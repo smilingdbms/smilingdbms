@@ -1,591 +1,598 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import { calculateMatch, calculateProfileStrength, shareJob, getDailyTip, updateStreak, awardXP, isAdSlot, getUserLocation } from '../../src/lib/jobseeker-utils'
 
-// ── THEMES ────────────────────────────────────────────────────────
-const THEMES: Record<string,Record<string,string>> = {
-  dark:    {'--bg':'#0f1117','--bg2':'#1a1d27','--bg3':'#22263a','--bg4':'#2a2f45','--tx':'#e8eaf0','--mu':'#7a7f90','--bd':'rgba(255,255,255,0.07)','--ac':'#6c8cff','--acbg':'rgba(108,140,255,0.1)'},
-  light:   {'--bg':'#f4f6fb','--bg2':'#ffffff','--bg3':'#eef0f7','--bg4':'#e4e7f0','--tx':'#1a1d2e','--mu':'#6b7280','--bd':'rgba(0,0,0,0.08)','--ac':'#4f46e5','--acbg':'rgba(79,70,229,0.08)'},
-  ocean:   {'--bg':'#080e1a','--bg2':'#0c1830','--bg3':'#101f3f','--bg4':'#152848','--tx':'#e0f0ff','--mu':'#5b8db8','--bd':'rgba(72,202,228,0.12)','--ac':'#38bdf8','--acbg':'rgba(56,189,248,0.1)'},
-  forest:  {'--bg':'#080f0a','--bg2':'#0c1a0f','--bg3':'#102415','--bg4':'#14301a','--tx':'#e0ffe8','--mu':'#4a8a5a','--bd':'rgba(61,214,140,0.1)','--ac':'#34d399','--acbg':'rgba(52,211,153,0.1)'},
-  purple:  {'--bg':'#0c0812','--bg2':'#150d22','--bg3':'#1e1230','--bg4':'#271840','--tx':'#ede8ff','--mu':'#7a5a9a','--bd':'rgba(167,139,250,0.1)','--ac':'#a78bfa','--acbg':'rgba(167,139,250,0.1)'},
-}
-const THEME_LIST = [{id:'dark',dot:'#6c8cff'},{id:'light',dot:'#4f46e5'},{id:'ocean',dot:'#38bdf8'},{id:'forest',dot:'#34d399'},{id:'purple',dot:'#a78bfa'}]
+// ══════════════════════════════════════════════════════════
+// JOB SEEKER PORTAL v2.0 — Sprint 1 Fresh Build
+// Onboarding → 3 Vibe Modes → All Sprint 1 Features
+// ══════════════════════════════════════════════════════════
 
-// ── ACCOUNT TYPES ─────────────────────────────────────────────────
-const ACCOUNT_TYPES = [
-  {
-    id: 'owner',
-    icon: '🏢',
-    title: 'I own / run a Company',
-    desc: 'Start your recruitment consultancy or HR firm workspace. You will be the Account Owner.',
-    color: '#6c8cff',
-    roles: [
-      {value:'account_owner', label:'Recruitment / Staffing Firm', desc:'Run a recruitment or staffing consultancy'},
-      {value:'account_owner', label:'Corporate HR / Talent Acquisition', desc:'Internal HR department of a company'},
-    ]
-  },
-  {
-    id: 'freelancer',
-    icon: '🧑‍💻',
-    title: 'I am a Freelancer / Independent',
-    desc: 'Work solo — no company setup needed. Your own workspace, your own clients.',
-    color: '#3dd68c',
-    roles: [
-      {value:'individual_recruiter', label:'Independent Recruiter', desc:'Source and place candidates independently'},
-      {value:'individual_bd', label:'Independent BD Professional', desc:'Business development and client acquisition'},
-    ]
-  },
-  {
-    id: 'join',
-    icon: '👥',
-    title: 'I am joining a Company',
-    desc: 'Your Account Owner has a company already. Enter the Company Code they shared with you.',
-    color: '#ff9f43',
-    roles: [
-      {value:'recruiter', label:'Recruiter', desc:'Source and manage candidates'},
-      {value:'sr_recruiter', label:'Senior Recruiter', desc:'Senior talent acquisition professional'},
-      {value:'team_leader', label:'Team Leader', desc:'Lead a group of recruiters'},
-      {value:'team_manager', label:'Team Manager', desc:'Manage a recruitment team'},
-      {value:'bd_executive', label:'BD Executive', desc:'Business development executive'},
-      {value:'bd_manager', label:'BD Manager', desc:'Business development manager'},
-    ]
-  },
-  {
-    id: 'jobseeker',
-    icon: '🎓',
-    title: 'I am a Job Seeker / Student',
-    desc: 'Looking for jobs or internships. Create your profile and apply to openings.',
-    color: '#48cae4',
-    roles: [
-      {value:'job_seeker', label:'Job Seeker', desc:'Looking for full-time employment'},
-      {value:'job_seeker', label:'Fresh Graduate / Student', desc:'Internship or entry-level opportunities'},
-    ]
-  },
-]
+type VibeMode = 'fun' | 'professional' | 'focus'
+type Segment = 'intern' | 'fresher' | 'junior' | 'experienced'
 
-type Screen = 'login'|'choose'|'signup'|'forgot'
+const VIBE_ICONS: Record<VibeMode, string> = { fun: '🎮', professional: '💼', focus: '🎯' }
+const VIBE_LABELS: Record<VibeMode, string> = { fun: 'Fun & Social', professional: 'Professional', focus: 'Quick Apply' }
+const SEG_LABELS: Record<Segment, string> = { intern: 'Intern (College)', fresher: 'Fresher (0-6 months)', junior: 'Junior (6m-2yr)', experienced: 'Experienced (2yr+)' }
 
-function generateSlug(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50) + '-' + Math.random().toString(36).slice(2,6)
-}
-
-function generateCode(name: string) {
-  const prefix = name.replace(/[^a-zA-Z]/g,'').toUpperCase().slice(0,4).padEnd(4,'X')
-  const suffix = Math.random().toString(36).slice(2,6).toUpperCase()
-  return prefix + suffix
-}
-
-export default function AuthPage() {
+export default function JobSeekerPortal() {
   const router = useRouter()
-  const [theme, setTheme] = useState('dark')
-  const [screen, setScreen] = useState<Screen>('login')
-  const [ready, setReady] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [err, setErr] = useState('')
-  const [ok, setOk] = useState('')
+  const [user, setUser] = useState<any>(null)
+  const [profile, setProfile] = useState<any>(null)
+  const [jobs, setJobs] = useState<any[]>([])
+  const [applications, setApplications] = useState<string[]>([])
+  const [savedJobs, setSavedJobs] = useState<string[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [filterCity, setFilterCity] = useState('')
+  const [filterType, setFilterType] = useState('')
+  const [showApply, setShowApply] = useState<any>(null)
+  const [coverNote, setCoverNote] = useState('')
+  const [applying, setApplying] = useState(false)
+  const [toast, setToast] = useState<{ msg: string, type: 'success' | 'error' } | null>(null)
+  const [vibeMode, setVibeMode] = useState<VibeMode>('fun')
+  const [segment, setSegment] = useState<Segment>('fresher')
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardStep, setOnboardStep] = useState(1)
+  const [dailyTip, setDailyTip] = useState<string | null>(null)
+  const [streak, setStreak] = useState(0)
+  const [showConfetti, setShowConfetti] = useState(false)
+  const [profileStrength, setProfileStrength] = useState({ score: 0, missing: [] as string[] })
+  const [showShareMenu, setShowShareMenu] = useState<string | null>(null)
+  const [showSaved, setShowSaved] = useState(false)
+  const confettiRef = useRef(false)
 
-  // Login
-  const [lEmail, setLEmail] = useState('')
-  const [lPass, setLPass] = useState('')
-  const [showPass, setShowPass] = useState(false)
+  function showToast(msg: string, type: 'success' | 'error' = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
-  // Choose
-  const [chosenType, setChosenType] = useState<string>('')
-
-  // Signup common
-  const [sName, setSName] = useState('')
-  const [sEmail, setSEmail] = useState('')
-  const [sMobile, setSMobile] = useState('')
-  const [sPass, setSPass] = useState('')
-  const [sRole, setSRole] = useState('')
-  const [sRoleLabel, setSRoleLabel] = useState('')
-
-  // Owner specific
-  const [sCompanyName, setSCompanyName] = useState('')
-  const [sCompanyType, setSCompanyType] = useState('') // Recruitment / Corporate HR
-
-  // Join specific
-  const [sCode, setSCode] = useState('')
-
-  // Job Seeker specific
-  const [sJobTitle, setSJobTitle] = useState('')
-
-  // Forgot
-  const [fEmail, setFEmail] = useState('')
-
-  const refCode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('ref') : null
-  const inviteCode = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('code') : null
-
+  // ── Auth + Data Load ───────────────────────────────────
   useEffect(() => {
-    const t = localStorage.getItem('rbp_theme') || 'dark'
-    setTheme(t); applyTheme(t)
-    // Pre-fill invite code
-    if (inviteCode) { setChosenType('join'); setSCode(inviteCode); setScreen('signup') }
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) window.location.href = '/dashboard'
-      else setReady(true)
-    })
-  }, [])
+    async function init() {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      if (!u) { router.push('/'); return }
+      const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
+      if (!au) { await supabase.auth.signOut(); router.push('/'); return }
+      if (au.status === 'disabled') { await supabase.auth.signOut(); router.push('/'); return }
+      if (!['job_seeker', 'super_admin'].includes(au.role)) { router.push('/dashboard'); return }
 
-  function applyTheme(t: string) {
-    const vars = THEMES[t] || THEMES.dark
-    Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v))
-    localStorage.setItem('rbp_theme', t)
-  }
+      setUser(au)
+      setVibeMode(au.vibe_mode || 'fun')
+      setSegment(au.experience_segment || 'fresher')
 
-  function reset() { setErr(''); setOk('') }
-  function go(s: Screen) { reset(); setScreen(s) }
-
-  function chooseType(id: string) {
-    setChosenType(id)
-    setSRole('')
-    setSRoleLabel('')
-    go('signup')
-  }
-
-  async function handleLogin() {
-    if (!lEmail||!lPass) { setErr('Please enter email and password'); return }
-    setLoading(true); reset()
-    const { error } = await supabase.auth.signInWithPassword({ email: lEmail.trim(), password: lPass })
-    if (error) { setErr(error.message); setLoading(false) }
-    else window.location.href = '/dashboard'
-  }
-
-  async function handleGoogle() {
-    setLoading(true)
-    await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: window.location.origin+'/dashboard' } })
-  }
-
-  async function handleSignup() {
-    // Validations
-    if (!sName.trim()) { setErr('Full name is required'); return }
-    if (!sEmail.trim()) { setErr('Email is required'); return }
-    if (sPass.length < 6) { setErr('Password must be at least 6 characters'); return }
-    if (chosenType === 'owner' && !sCompanyName.trim()) { setErr('Company name is required'); return }
-    if (chosenType === 'join' && !sCode.trim()) { setErr('Company Code is required to join a company'); return }
-    if (!sRole) { setErr('Please select your role'); return }
-
-    setLoading(true); reset()
-
-    // 1. Create auth user
-    const { data, error } = await supabase.auth.signUp({
-      email: sEmail.trim(),
-      password: sPass,
-      options: { data: { full_name: sName.trim() } }
-    })
-    if (error) {
-      const msg = (error.message || '').toLowerCase()
-      if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already')) {
-        setErr('This email is already registered. Please sign in instead.')
-      } else if (msg.includes('rate limit') || msg.includes('too many') || msg.includes('email rate')) {
-        setErr('Too many attempts. Please wait a few minutes and try again.')
-      } else if (msg.includes('password')) {
-        setErr('Password must be at least 6 characters.')
-      } else if (msg.includes('invalid email') || msg.includes('valid email')) {
-        setErr('Please enter a valid email address.')
-      } else {
-        setErr('Could not create your account: ' + error.message)
+      // Check onboarding
+      if (!au.onboarded) { setShowOnboarding(true) }
+      else if (!confettiRef.current) {
+        // Welcome back — update streak
+        const s = await updateStreak(u.id)
+        setStreak(s)
       }
-      setLoading(false); return
-    }
-    if (!data.user) { setErr('Could not create your account. Please try again.'); setLoading(false); return }
 
-    const uid = data.user.id
+      // Load profile
+      const { data: prof } = await supabase.from('profiles').select('*').eq('created_by', u.id).single()
+      setProfile(prof)
+      if (prof) setProfileStrength(calculateProfileStrength(prof))
+      else setProfileStrength(calculateProfileStrength(au))
 
-    try {
-      if (chosenType === 'owner') {
-        // Create company first
-        const code = generateCode(sCompanyName)
-        const slug = generateSlug(sCompanyName)
-        // Use RPC function to bypass RLS during signup
-        const { data: company, error: compErr } = await supabase.rpc('create_company_on_signup', {
-          p_user_id: uid,
-          p_name: sCompanyName.trim(),
-          p_slug: slug,
-          p_code: code,
-          p_email: sEmail.trim(),
-        })
+      // Load jobs, applications, saved, tip in parallel
+      const [jobsRes, appsRes, savedRes, tip] = await Promise.all([
+        supabase.from('job_descriptions').select('*, companies(name, company_code)').eq('status', 'Open').eq('is_public', true).order('created_at', { ascending: false }),
+        supabase.from('job_applications').select('job_id').eq('applicant_id', u.id),
+        supabase.from('saved_jobs').select('job_id').eq('user_id', u.id),
+        getDailyTip(au.experience_segment || 'fresher')
+      ])
 
-        if (compErr) throw new Error('COMPANY_FAILED')
+      setJobs(jobsRes.data || [])
+      setApplications((appsRes.data || []).map((a: any) => a.job_id))
+      setSavedJobs((savedRes.data || []).map((s: any) => s.job_id))
+      setDailyTip(tip)
 
-        // Create app_user
-        await supabase.from('app_users').upsert({
-          id: uid,
-          email: sEmail.trim().toLowerCase(),
-          full_name: sName.trim(),
-          mobile: sMobile || null,
-          role: 'account_owner',
-          title: sRoleLabel || 'Account Owner',
-          company_id: company.id,
-          company_name: sCompanyName.trim(),
-          company_code: code,
-          status: 'active',
-          points: 0,
-          user_type: 'company_member',
-          is_independent: false,
-          referred_by: refCode || null,
-        })
-
-        setOk(`✅ Company "${sCompanyName}" created! Your Company Code is: ${code}\n\nShare this code with your team members to join.`)
-        setLoading(false)
-        setTimeout(() => go('login'), 4000)
-
-      } else if (chosenType === 'freelancer') {
-        // Independent — no company
-        await supabase.from('app_users').upsert({
-          id: uid,
-          email: sEmail.trim().toLowerCase(),
-          full_name: sName.trim(),
-          mobile: sMobile || null,
-          role: sRole,
-          title: sRoleLabel || 'Independent Recruiter',
-          status: 'active',
-          points: 0,
-          user_type: 'independent',
-          is_independent: true,
-          referred_by: refCode || null,
-        })
-        setOk('Account created! Please verify your email then sign in.')
-        setLoading(false)
-        setTimeout(() => go('login'), 2500)
-
-      } else if (chosenType === 'join') {
-        // Find company by code
-        const code = sCode.trim().toUpperCase()
-        const { data: company } = await supabase.from('companies').select('*').eq('company_code', code).single()
-
-        if (!company) {
-          setErr(`Company Code "${code}" not found. Please check with your Account Owner.`)
-          setLoading(false)
-          return
+      // Get geolocation silently
+      getUserLocation().then(loc => {
+        if (loc && !au.latitude) {
+          supabase.from('app_users').update({ latitude: loc.lat, longitude: loc.lng }).eq('id', u.id)
         }
+      })
 
-        await supabase.from('app_users').upsert({
-          id: uid,
-          email: sEmail.trim().toLowerCase(),
-          full_name: sName.trim(),
-          mobile: sMobile || null,
-          role: sRole,
-          title: sRoleLabel,
-          company_id: company.id,
-          company_name: company.name,
-          company_code: code,
-          status: 'pending', // Account Owner must approve
-          points: 0,
-          user_type: 'company_member',
-          is_independent: false,
-          referred_by: refCode || null,
-        })
-
-        // Notify account owner
-        await supabase.from('notifications').insert({
-          user_id: company.owner_id,
-          company_id: company.id,
-          title: 'New Member Request',
-          message: `${sName.trim()} (${sRoleLabel}) wants to join your company. Please approve in Settings → Team Members.`,
-          type: 'info',
-          is_read: false,
-        })
-
-        setOk(`Request sent to join "${company.name}"! The Account Owner will approve your access shortly.`)
-        setLoading(false)
-        setTimeout(() => go('login'), 3000)
-
-      } else if (chosenType === 'jobseeker') {
-        await supabase.from('app_users').upsert({
-          id: uid,
-          email: sEmail.trim().toLowerCase(),
-          full_name: sName.trim(),
-          mobile: sMobile || null,
-          role: 'job_seeker',
-          title: sJobTitle || 'Job Seeker',
-          status: 'active',
-          points: 0,
-          user_type: 'independent',
-          is_independent: true,
-          referred_by: refCode || null,
-        })
-
-        // Auto-create their profile
-        await supabase.from('profiles').insert({
-          name: sName.trim(),
-          email: sEmail.trim().toLowerCase(),
-          mobile: sMobile || null,
-          role: sJobTitle || '',
-          status: 'New',
-          segment: 'experienced',
-          source: 'Self',
-          created_by: uid,
-        })
-
-        setOk('Profile created! Verify your email then sign in to complete your profile.')
-        setLoading(false)
-        setTimeout(() => go('login'), 2500)
-      }
-    } catch (e: any) {
-      const msg = e.message || ''
-      if (msg.includes('COMPANY_FAILED')) {
-        setErr('We could not create your company right now. Please try again in a moment.')
-      } else if (msg.includes('duplicate') || msg.includes('already exists') || msg.includes('23505')) {
-        setErr('This email address is already registered. Please sign in instead.')
-      } else if (msg.includes('Company Code') && msg.includes('not found')) {
-        setErr(msg)
-      } else if (msg.includes('password')) {
-        setErr('Your password must be at least 6 characters long.')
-      } else if (msg.includes('email')) {
-        setErr('Please enter a valid email address.')
-      } else if (msg.includes('network') || msg.includes('fetch')) {
-        setErr('Connection error. Please check your internet and try again.')
-      } else {
-        setErr('Something went wrong. Please try again. (' + msg.slice(0,80) + ')')
-      }
       setLoading(false)
     }
+    init()
+  }, [])
+
+  // ── Onboarding Complete ────────────────────────────────
+  async function completeOnboarding() {
+    if (!user) return
+    await supabase.from('app_users').update({
+      experience_segment: segment,
+      vibe_mode: vibeMode,
+      onboarded: true
+    }).eq('id', user.id)
+    setShowOnboarding(false)
+    setShowConfetti(true)
+    confettiRef.current = true
+    await awardXP(user.id, 50)
+    setTimeout(() => setShowConfetti(false), 3500)
+    const s = await updateStreak(user.id)
+    setStreak(s)
   }
 
-  async function handleForgot() {
-    if (!fEmail.trim()) { setErr('Enter your email'); return }
-    setLoading(true); reset()
-    const { error } = await supabase.auth.resetPasswordForEmail(fEmail.trim(), {
-      redirectTo: window.location.origin + '/reset-password'
+  // ── Switch Vibe Mode ───────────────────────────────────
+  async function switchVibe(v: VibeMode) {
+    setVibeMode(v)
+    if (user) {
+      await supabase.from('app_users').update({ vibe_mode: v }).eq('id', user.id)
+    }
+  }
+
+  // ── Apply ──────────────────────────────────────────────
+  async function applyJob(oneClick: boolean = false) {
+    if (!showApply && !oneClick) return
+    const job = showApply
+    if (!job || !user) return
+    setApplying(true)
+    const { error } = await supabase.from('job_applications').insert({
+      job_id: job.id,
+      applicant_id: user.id,
+      full_name: user.full_name || profile?.name || '',
+      email: user.email || profile?.email || '',
+      cover_note: oneClick ? null : coverNote.trim() || null,
+      cover_letter: oneClick ? null : coverNote.trim() || null,
+      status: 'Applied',
+      company_id: job.company_id || null,
     })
-    if (error) { setErr(error.message) }
-    else setOk('Password reset link sent! Check your email.')
-    setLoading(false)
+    setApplying(false)
+    if (error) { showToast('Application failed. Please try again.', 'error'); return }
+    setApplications(prev => [...prev, job.id])
+    setShowApply(null)
+    setCoverNote('')
+    await awardXP(user.id, 20)
+    showToast('Application submitted successfully!')
   }
 
-  const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:10, padding:'11px 14px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box', transition:'border-color 0.2s' }
-  const LB: any = { display:'block', fontSize:11, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:0.8, marginBottom:5 }
-  const BTN: any = { width:'100%', padding:'12px', borderRadius:10, background:'var(--ac)', color:'#fff', border:'none', cursor:'pointer', fontSize:14, fontWeight:700, fontFamily:'inherit', opacity:loading?0.65:1, transition:'opacity 0.2s' }
-  const BTNOUT: any = { ...BTN, background:'transparent', color:'var(--mu)', border:'1px solid var(--bd)' }
+  // ── 1-Tap Apply ────────────────────────────────────────
+  async function quickApply(job: any) {
+    if (!user) return
+    if (profileStrength.score < 50) {
+      showToast('Complete your profile (50%+) to use 1-tap apply.', 'error')
+      return
+    }
+    setShowApply(job)
+    // Immediately apply
+    setApplying(true)
+    const { error } = await supabase.from('job_applications').insert({
+      job_id: job.id,
+      applicant_id: user.id,
+      full_name: user.full_name || profile?.name || '',
+      email: user.email || profile?.email || '',
+      status: 'Applied',
+      company_id: job.company_id || null,
+    })
+    setApplying(false)
+    setShowApply(null)
+    if (error) { showToast('Application failed. Please try again.', 'error'); return }
+    setApplications(prev => [...prev, job.id])
+    await awardXP(user.id, 20)
+    showToast('Applied with 1-tap!')
+  }
 
-  const currentType = ACCOUNT_TYPES.find(t => t.id === chosenType)
+  // ── Save/Unsave Job ────────────────────────────────────
+  async function toggleSave(jobId: string) {
+    if (!user) return
+    if (savedJobs.includes(jobId)) {
+      await supabase.from('saved_jobs').delete().eq('user_id', user.id).eq('job_id', jobId)
+      setSavedJobs(prev => prev.filter(id => id !== jobId))
+      showToast('Removed from saved.')
+    } else {
+      await supabase.from('saved_jobs').insert({ user_id: user.id, job_id: jobId })
+      setSavedJobs(prev => [...prev, jobId])
+      await awardXP(user.id, 5)
+      showToast('Job saved!')
+    }
+  }
 
-  if (!ready) return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#0f1117'}}>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{width:36,height:36,border:'3px solid #6c8cff',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.7s linear infinite'}}/>
+  // ── Filter ─────────────────────────────────────────────
+  const filtered = jobs.filter(j => {
+    const q = search.toLowerCase()
+    const matchSearch = !q || (j.title || '').toLowerCase().includes(q) ||
+      (j.companies?.name || j.company_name || '').toLowerCase().includes(q) ||
+      (j.skills || '').toLowerCase().includes(q) ||
+      (j.location || j.city || '').toLowerCase().includes(q)
+    const matchCity = !filterCity || (j.location || j.city || '') === filterCity
+    const matchType = !filterType || j.job_type === filterType
+    if (showSaved) return matchSearch && matchCity && matchType && savedJobs.includes(j.id)
+    return matchSearch && matchCity && matchType
+  })
+
+  const cities = [...new Set(jobs.map(j => j.location || j.city).filter(Boolean))]
+  const types = [...new Set(jobs.map(j => j.job_type).filter(Boolean))]
+  const userSkills = profile?.skills || user?.designation || ''
+  const userExp = profile?.experience ? parseFloat(profile.experience) : null
+
+  // ── STYLES ─────────────────────────────────────────────
+  const isDark = true // future: theme toggle
+  const S: Record<string, any> = {
+    page: { minHeight: '100vh', background: 'var(--bg,#0f1117)', color: 'var(--tx,#e8eaf0)', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: 'var(--bg2,#161921)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    body: { padding: '16px 20px', maxWidth: 760, margin: '0 auto' },
+    inp: { background: 'var(--bg3,#1e2230)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px', color: 'var(--tx,#e8eaf0)', fontSize: 14, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' as const },
+    btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }),
+  }
+
+  // ── LOADING ────────────────────────────────────────────
+  if (loading) return (
+    <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>R</div>
+        <div style={{ color: '#7a7f90', fontSize: 14 }}>Finding opportunities for you...</div>
+      </div>
     </div>
   )
 
+  // ── RENDER ─────────────────────────────────────────────
   return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',padding:16,transition:'background 0.3s'}}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
-        *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Inter',sans-serif;}
-        :root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#22263a;--tx:#e8eaf0;--mu:#7a7f90;--bd:rgba(255,255,255,0.07);--ac:#6c8cff;--acbg:rgba(108,140,255,0.1);}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @keyframes up{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-        input:focus,select:focus,textarea:focus{border-color:var(--ac)!important;box-shadow:0 0 0 2px var(--acbg);}
-        select option{background:var(--bg3);}
-        .link{color:var(--ac);cursor:pointer;font-weight:600;font-size:13px;}
-        .link:hover{text-decoration:underline;}
-        .type-card{border:2px solid var(--bd);border-radius:14px;padding:16px;cursor:pointer;transition:all 0.2s;background:var(--bg3);}
-        .type-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.2);}
-        .role-card{border:1.5px solid var(--bd);border-radius:10px;padding:10px 12px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;gap:10px;}
-        .role-card:hover{border-color:var(--ac);background:var(--acbg);}
-        .role-card.on{border-color:var(--ac);background:var(--acbg);}
-      `}</style>
-      <div style={{position:'fixed',inset:0,background:'radial-gradient(ellipse 50% 35% at 50% 0%,rgba(108,140,255,0.07),transparent)',pointerEvents:'none'}}/>
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}select option{background:#1e2230}
+.jcard{transition:transform 0.15s,border-color 0.2s}.jcard:hover{border-color:rgba(108,140,255,0.35)!important;transform:translateY(-1px)}
+.vbtn{transition:all 0.15s}.vbtn:hover{transform:scale(1.05)}
+@keyframes confetti-fall{0%{transform:translateY(-100vh) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.fade-in{animation:fadeIn 0.3s ease}
+.heart-btn{transition:all 0.2s}.heart-btn:hover{transform:scale(1.2)}
+`}</style>
 
-      <div style={{position:'relative',zIndex:1,width:'100%',maxWidth:screen==='choose'?680:460,animation:'up 0.3s ease'}}>
-        <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:'28px',boxShadow:'0 20px 60px rgba(0,0,0,0.3)'}}>
+      {/* ── CONFETTI (one-time, 3 sec) ── */}
+      {showConfetti && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', overflow: 'hidden' }}>
+          {Array.from({ length: 50 }).map((_, i) => (
+            <div key={i} style={{
+              position: 'absolute',
+              left: `${Math.random() * 100}%`,
+              top: '-5%',
+              width: 8 + Math.random() * 8,
+              height: 8 + Math.random() * 8,
+              borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+              background: ['#6c8cff', '#3dd68c', '#ffd60a', '#ff6b6b', '#48cae4', '#c77dff'][i % 6],
+              animation: `confetti-fall ${2 + Math.random() * 2}s linear ${Math.random() * 0.5}s forwards`,
+            }} />
+          ))}
+        </div>
+      )}
 
-          {/* Theme dots */}
-          <div style={{display:'flex',gap:7,justifyContent:'center',marginBottom:20}}>
-            {THEME_LIST.map(t=>(
-              <button key={t.id} onClick={()=>{setTheme(t.id);applyTheme(t.id)}} style={{width:12,height:12,borderRadius:'50%',background:t.dot,border:'none',cursor:'pointer',transform:theme===t.id?'scale(1.7)':'scale(1)',transition:'transform 0.15s',outline:theme===t.id?`2px solid ${t.dot}`:'none',outlineOffset:2}}/>
-            ))}
-          </div>
+      {/* ── TOAST ── */}
+      {toast && (
+        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 999, background: toast.type === 'success' ? '#0d2a1a' : '#2a0d0d', border: `1px solid ${toast.type === 'success' ? '#3dd68c55' : '#ff505055'}`, color: toast.type === 'success' ? '#3dd68c' : '#ff5050', padding: '12px 20px', borderRadius: 12, fontSize: 13, fontWeight: 600, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+          {toast.msg}
+        </div>
+      )}
 
-          {/* Logo */}
-          <div style={{textAlign:'center',marginBottom:20}}>
-            <div style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:48,height:48,borderRadius:13,background:'var(--acbg)',border:'1px solid var(--ac)',marginBottom:8}}>
-              <span style={{fontSize:20,fontWeight:800,color:'var(--ac)',fontFamily:'Outfit,sans-serif'}}>R</span>
-            </div>
-            <div style={{fontSize:17,fontWeight:800,color:'var(--tx)',fontFamily:'Outfit,sans-serif'}}>RecruitBase Pro</div>
-            <div style={{fontSize:11,color:'var(--mu)',marginTop:2}}>
-              {screen==='login'&&'Sign in to your workspace'}
-              {screen==='choose'&&'How would you like to join?'}
-              {screen==='signup'&&(currentType?.title||'Create your account')}
-              {screen==='forgot'&&'Reset your password'}
-            </div>
-          </div>
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── ONBOARDING MODAL ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      {showOnboarding && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="fade-in" style={{ background: '#161921', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '36px 32px', maxWidth: 480, width: '100%', textAlign: 'center' }}>
 
-          {/* Alerts */}
-          {err&&<div style={{padding:'9px 12px',borderRadius:8,background:'rgba(248,113,113,0.1)',border:'1px solid rgba(248,113,113,0.2)',color:'#f87171',fontSize:12,marginBottom:14,whiteSpace:'pre-wrap'}}>⚠ {err}</div>}
-          {ok&&<div style={{padding:'9px 12px',borderRadius:8,background:'rgba(52,211,153,0.1)',border:'1px solid rgba(52,211,153,0.2)',color:'#34d399',fontSize:12,marginBottom:14,whiteSpace:'pre-wrap'}}>✓ {ok}</div>}
-
-          {/* ══ LOGIN ════════════════════════════════════════════ */}
-          {screen==='login'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              <div>
-                <label style={LB}>Email Address</label>
-                <input style={IS} type="email" value={lEmail} onChange={e=>setLEmail(e.target.value)} placeholder="you@company.com" onKeyDown={e=>e.key==='Enter'&&handleLogin()}/>
-              </div>
-              <div>
-                <label style={LB}>Password</label>
-                <div style={{position:'relative'}}>
-                  <input style={{...IS,paddingRight:42}} type={showPass?'text':'password'} value={lPass} onChange={e=>setLPass(e.target.value)} placeholder="••••••••" onKeyDown={e=>e.key==='Enter'&&handleLogin()}/>
-                  <button onClick={()=>setShowPass(v=>!v)} style={{position:'absolute',right:10,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--mu)',fontSize:14}}>{showPass?'🙈':'👁'}</button>
-                </div>
-                <div style={{textAlign:'right',marginTop:5}}><span className="link" onClick={()=>go('forgot')}>Forgot password?</span></div>
-              </div>
-              <button onClick={handleLogin} disabled={loading} style={BTN}>{loading?'Signing in…':'Sign In →'}</button>
-              <div style={{display:'flex',alignItems:'center',gap:8}}>
-                <div style={{flex:1,height:1,background:'var(--bd)'}}/><span style={{fontSize:11,color:'var(--mu)'}}>OR</span><div style={{flex:1,height:1,background:'var(--bd)'}}/>
-              </div>
-              <button onClick={handleGoogle} disabled={loading} style={{...BTNOUT,display:'flex',alignItems:'center',justifyContent:'center',gap:9}}>
-                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-                Continue with Google
-              </button>
-              <div style={{textAlign:'center',fontSize:13,color:'var(--mu)'}}>
-                New here? <span className="link" onClick={()=>go('choose')}>Create free account</span>
-              </div>
-            </div>
-          )}
-
-          {/* ══ CHOOSE TYPE ══════════════════════════════════════ */}
-          {screen==='choose'&&(
-            <div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
-                {ACCOUNT_TYPES.map(t=>(
-                  <div key={t.id} className="type-card" onClick={()=>chooseType(t.id)}
-                    style={{borderColor:chosenType===t.id?t.color:'var(--bd)'}}>
-                    <div style={{fontSize:28,marginBottom:8}}>{t.icon}</div>
-                    <div style={{fontSize:13,fontWeight:700,color:'var(--tx)',marginBottom:4}}>{t.title}</div>
-                    <div style={{fontSize:11,color:'var(--mu)',lineHeight:1.5}}>{t.desc}</div>
-                    <div style={{marginTop:10,display:'inline-block',padding:'3px 10px',borderRadius:20,background:`${t.color}22`,color:t.color,fontSize:10,fontWeight:700}}>
-                      Select →
-                    </div>
-                  </div>
+            {/* Step 1: Segment */}
+            {onboardStep === 1 && (<>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Welcome to RecruitBase!</div>
+              <div style={{ fontSize: 14, color: '#7a7f90', marginBottom: 28 }}>Tell us about your experience level</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {(['intern', 'fresher', 'junior', 'experienced'] as Segment[]).map(s => (
+                  <button key={s} className="vbtn" onClick={() => setSegment(s)} style={{
+                    padding: '14px 16px', borderRadius: 12, border: `1.5px solid ${segment === s ? '#6c8cff' : 'rgba(255,255,255,0.08)'}`,
+                    background: segment === s ? 'rgba(108,140,255,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: segment === s ? '#6c8cff' : '#e8eaf0', cursor: 'pointer', fontSize: 15, fontWeight: 600, fontFamily: 'inherit', textAlign: 'left' as const,
+                  }}>
+                    {SEG_LABELS[s]}
+                  </button>
                 ))}
               </div>
-              <div style={{textAlign:'center',fontSize:13,color:'var(--mu)'}}>
-                Already have an account? <span className="link" onClick={()=>go('login')}>Sign in</span>
-              </div>
-            </div>
-          )}
-
-          {/* ══ SIGNUP FORM ══════════════════════════════════════ */}
-          {screen==='signup'&&currentType&&(
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-
-              {/* Type badge */}
-              <div style={{display:'flex',alignItems:'center',gap:8,padding:'8px 12px',borderRadius:8,background:`${currentType.color}11`,border:`1px solid ${currentType.color}33`}}>
-                <span style={{fontSize:18}}>{currentType.icon}</span>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:currentType.color}}>{currentType.title}</div>
-                  <div style={{fontSize:10,color:'var(--mu)'}}>{currentType.desc}</div>
-                </div>
-                <button onClick={()=>go('choose')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'var(--mu)',fontSize:11,fontFamily:'inherit'}}>Change ↩</button>
-              </div>
-
-              {/* Role selection */}
-              <div>
-                <label style={LB}>I am specifically a *</label>
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {currentType.roles.map((r,i)=>(
-                    <div key={i} className={`role-card${sRole===r.value&&sRoleLabel===r.label?' on':''}`}
-                      onClick={()=>{setSRole(r.value);setSRoleLabel(r.label)}}>
-                      <div>
-                        <div style={{fontSize:12,fontWeight:600,color:'var(--tx)'}}>{r.label}</div>
-                        <div style={{fontSize:10,color:'var(--mu)',marginTop:1}}>{r.desc}</div>
-                      </div>
-                      {sRole===r.value&&sRoleLabel===r.label&&<span style={{marginLeft:'auto',color:'var(--ac)',fontSize:16}}>✓</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Common fields */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                <div style={{gridColumn:'1/-1'}}>
-                  <label style={LB}>Full Name *</label>
-                  <input style={IS} value={sName} onChange={e=>setSName(e.target.value)} placeholder="Your full name"/>
-                </div>
-                <div style={{gridColumn:'1/-1'}}>
-                  <label style={LB}>Email Address *</label>
-                  <input style={IS} type="email" value={sEmail} onChange={e=>setSEmail(e.target.value)} placeholder="you@company.com"/>
-                </div>
-                <div style={{gridColumn:'1/-1'}}>
-                  <label style={LB}>Mobile Number</label>
-                  <input style={IS} type="tel" value={sMobile} onChange={e=>setSMobile(e.target.value.replace(/\D/g,'').slice(0,15))} placeholder="10-digit mobile number"/>
-                </div>
-                <div style={{gridColumn:'1/-1'}}>
-                  <label style={LB}>Password * (min 6 characters)</label>
-                  <input style={IS} type="password" value={sPass} onChange={e=>setSPass(e.target.value)} placeholder="Create a strong password"/>
-                </div>
-
-                {/* Owner: Company Name */}
-                {chosenType==='owner'&&(
-                  <div style={{gridColumn:'1/-1'}}>
-                    <label style={LB}>Company / Consultancy Name *</label>
-                    <input style={IS} value={sCompanyName} onChange={e=>setSCompanyName(e.target.value)} placeholder="e.g. TalentFirst HR Solutions Pvt Ltd"/>
-                    <div style={{fontSize:10,color:'var(--mu)',marginTop:5}}>
-                      💡 A unique Company Code will be auto-generated. Share it with your team to join.
-                    </div>
-                  </div>
-                )}
-
-                {/* Join: Company Code */}
-                {chosenType==='join'&&(
-                  <div style={{gridColumn:'1/-1'}}>
-                    <label style={LB}>Company Code *</label>
-                    <input style={{...IS,fontFamily:'monospace',fontSize:15,fontWeight:700,letterSpacing:2,textTransform:'uppercase'}}
-                      value={sCode} onChange={e=>setSCode(e.target.value.toUpperCase())} placeholder="e.g. RECK8F2A"/>
-                    <div style={{fontSize:10,color:'var(--mu)',marginTop:5}}>
-                      📋 Ask your Account Owner for the Company Code, or use the invite link they shared.
-                    </div>
-                  </div>
-                )}
-
-                {/* Job Seeker: Current Title */}
-                {chosenType==='jobseeker'&&(
-                  <div style={{gridColumn:'1/-1'}}>
-                    <label style={LB}>Current Title / What are you looking for?</label>
-                    <input style={IS} value={sJobTitle} onChange={e=>setSJobTitle(e.target.value)} placeholder="e.g. Software Engineer, MBA Graduate, Marketing Executive"/>
-                  </div>
-                )}
-              </div>
-
-              <button onClick={handleSignup} disabled={loading} style={{...BTN,marginTop:4}}>
-                {loading ? 'Creating account…' :
-                  chosenType==='owner' ? '🏢 Create My Company →' :
-                  chosenType==='join' ? '👥 Join Company →' :
-                  chosenType==='jobseeker' ? '🎓 Create Job Seeker Profile →' :
-                  '🧑‍💻 Create Account →'}
+              <button onClick={() => setOnboardStep(2)} style={{ ...S.btn('#6c8cff', '#fff'), width: '100%', marginTop: 20, padding: '14px', fontSize: 15, fontWeight: 700, borderRadius: 12 }}>
+                Continue →
               </button>
-              <div style={{textAlign:'center',fontSize:13,color:'var(--mu)'}}>
-                Already have an account? <span className="link" onClick={()=>go('login')}>Sign in</span>
-              </div>
-            </div>
-          )}
+            </>)}
 
-          {/* ══ FORGOT ═══════════════════════════════════════════ */}
-          {screen==='forgot'&&(
-            <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              <div>
-                <label style={LB}>Your Email Address</label>
-                <input style={IS} type="email" value={fEmail} onChange={e=>setFEmail(e.target.value)} placeholder="you@company.com" onKeyDown={e=>e.key==='Enter'&&handleForgot()}/>
+            {/* Step 2: Vibe Mode */}
+            {onboardStep === 2 && (<>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>✨</div>
+              <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>How do you like your feed?</div>
+              <div style={{ fontSize: 14, color: '#7a7f90', marginBottom: 28 }}>You can change this anytime</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {(['fun', 'professional', 'focus'] as VibeMode[]).map(v => (
+                  <button key={v} className="vbtn" onClick={() => setVibeMode(v)} style={{
+                    padding: '16px', borderRadius: 12, border: `1.5px solid ${vibeMode === v ? '#6c8cff' : 'rgba(255,255,255,0.08)'}`,
+                    background: vibeMode === v ? 'rgba(108,140,255,0.12)' : 'rgba(255,255,255,0.03)',
+                    color: vibeMode === v ? '#e8eaf0' : '#7a7f90', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' as const,
+                  }}>
+                    <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 2 }}>{VIBE_ICONS[v]} {VIBE_LABELS[v]}</div>
+                    <div style={{ fontSize: 12, color: '#505468' }}>
+                      {v === 'fun' ? 'Card-based feed with animations and colors' : v === 'professional' ? 'Clean list view, formal layout' : 'Minimal UI, just jobs and apply buttons'}
+                    </div>
+                  </button>
+                ))}
               </div>
-              <div style={{padding:'10px 12px',borderRadius:8,background:'var(--bg3)',fontSize:12,color:'var(--mu)'}}>
-                📧 A password reset link will be sent to your email.
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button onClick={() => setOnboardStep(1)} style={{ ...S.btn('rgba(255,255,255,0.06)', '#7a7f90'), flex: 1, padding: '14px', borderRadius: 12 }}>← Back</button>
+                <button onClick={completeOnboarding} style={{ ...S.btn('#6c8cff', '#fff'), flex: 2, padding: '14px', fontSize: 15, fontWeight: 700, borderRadius: 12 }}>
+                  Let's Go! 🚀
+                </button>
               </div>
-              <button onClick={handleForgot} disabled={loading} style={BTN}>{loading?'Sending…':'Send Reset Link'}</button>
-              <button onClick={()=>go('login')} style={BTNOUT}>← Back to Login</button>
+            </>)}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── APPLY MODAL ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      {showApply && !applying && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+          <div className="fade-in" style={{ background: '#161921', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: 32, maxWidth: 480, width: '100%' }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Apply for {showApply.title}</div>
+            <div style={{ fontSize: 13, color: '#7a7f90', marginBottom: 20 }}>{showApply.companies?.name || showApply.company_name}</div>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#7a7f90', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }}>Cover Note (optional)</label>
+            <textarea rows={4} value={coverNote} onChange={e => setCoverNote(e.target.value)} placeholder="Tell the recruiter why you're a great fit..." style={{ ...S.inp, resize: 'none' as const, marginBottom: 20 }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button style={S.btn('rgba(255,255,255,0.06)', '#7a7f90')} onClick={() => { setShowApply(null); setCoverNote('') }}>Cancel</button>
+              <button style={{ ...S.btn('#6c8cff', '#fff'), flex: 1 }} onClick={() => applyJob(false)}>Submit Application</button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════ */}
+      {/* ── NAV ── */}
+      {/* ══════════════════════════════════════════════════ */}
+      <nav style={S.nav}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#6c8cff', fontSize: 15 }}>R</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase</div>
+            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Job Portal</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {/* Vibe Toggle */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 2, border: '1px solid rgba(255,255,255,0.06)' }}>
+            {(['fun', 'professional', 'focus'] as VibeMode[]).map(v => (
+              <button key={v} className="vbtn" onClick={() => switchVibe(v)} title={VIBE_LABELS[v]} style={{
+                padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 14,
+                background: vibeMode === v ? 'rgba(108,140,255,0.2)' : 'transparent',
+                color: vibeMode === v ? '#6c8cff' : '#505468', fontFamily: 'inherit',
+              }}>
+                {VIBE_ICONS[v]}
+              </button>
+            ))}
+          </div>
+          <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/jobseeker/applications')}>Applications</button>
+          <button style={S.btn('rgba(61,214,140,0.1)', '#3dd68c')} onClick={() => router.push('/jobseeker/profile')}>Profile</button>
+          <button style={S.btn('rgba(255,255,255,0.04)', '#7a7f90')} onClick={async () => { await supabase.auth.signOut(); router.push('/') }}>Sign Out</button>
+        </div>
+      </nav>
+
+      <div style={S.body}>
+        {/* ── Streak + XP (fun mode only) ── */}
+        {vibeMode === 'fun' && streak > 0 && (
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            <div style={{ background: 'rgba(255,159,67,0.1)', border: '1px solid rgba(255,159,67,0.2)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: '#ff9f43', fontWeight: 600 }}>
+              🔥 {streak} day streak
+            </div>
+            <div style={{ background: 'rgba(108,140,255,0.1)', border: '1px solid rgba(108,140,255,0.2)', borderRadius: 10, padding: '8px 14px', fontSize: 13, color: '#6c8cff', fontWeight: 600 }}>
+              ⭐ {user?.xp_points || 0} XP
+            </div>
+          </div>
+        )}
+
+        {/* ── Daily Tip ── */}
+        {dailyTip && (
+          <div style={{ background: 'rgba(108,140,255,0.06)', border: '1px solid rgba(108,140,255,0.12)', borderRadius: 14, padding: '14px 18px', marginBottom: 16, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 18, flexShrink: 0 }}>💡</span>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#6c8cff', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 4 }}>Daily Career Tip</div>
+              <div style={{ fontSize: 13, color: '#c8cad0', lineHeight: 1.5 }}>{dailyTip}</div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Profile Strength ── */}
+        {profileStrength.score < 80 && (
+          <div style={{ background: 'rgba(255,214,10,0.06)', border: '1px solid rgba(255,214,10,0.12)', borderRadius: 14, padding: '14px 18px', marginBottom: 16, cursor: 'pointer' }} onClick={() => router.push('/jobseeker/profile')}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#ffd60a' }}>Profile Strength: {profileStrength.score}%</span>
+              <span style={{ fontSize: 11, color: '#7a7f90' }}>Complete to unlock 1-tap apply →</span>
+            </div>
+            <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${profileStrength.score}%`, background: profileStrength.score > 60 ? '#3dd68c' : '#ffd60a', borderRadius: 3, transition: 'width 0.5s' }} />
+            </div>
+            {profileStrength.missing.length > 0 && (
+              <div style={{ fontSize: 11, color: '#7a7f90', marginTop: 6 }}>Missing: {profileStrength.missing.slice(0, 3).join(', ')}{profileStrength.missing.length > 3 ? ` +${profileStrength.missing.length - 3} more` : ''}</div>
+            )}
+          </div>
+        )}
+
+        {/* ── Header ── */}
+        <div style={{ marginBottom: 20, textAlign: vibeMode === 'fun' ? 'center' as const : 'left' as const }}>
+          <div style={{ fontSize: vibeMode === 'fun' ? 26 : 20, fontWeight: 800, marginBottom: 4 }}>
+            {vibeMode === 'fun' ? <>Find Your Next <span style={{ color: '#6c8cff' }}>Opportunity</span></> : 'Open Positions'}
+          </div>
+          <div style={{ color: '#7a7f90', fontSize: 13 }}>
+            {filtered.length} {showSaved ? 'saved' : 'open'} positions
+          </div>
         </div>
 
-        {/* Footer */}
-        <div style={{display:'flex',gap:16,justifyContent:'center',marginTop:12}}>
-          <a href="/privacy" style={{fontSize:11,color:'var(--mu)',textDecoration:'none'}}>Privacy Policy</a>
-          <a href="/terms" style={{fontSize:11,color:'var(--mu)',textDecoration:'none'}}>Terms of Service</a>
+        {/* ── Search + Filters ── */}
+        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 14, marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+            <input style={{ ...S.inp, flex: 1, minWidth: 180 }} placeholder="Search role, company, skill, city..." value={search} onChange={e => setSearch(e.target.value)} />
+            {cities.length > 0 && (
+              <select style={{ ...S.inp, width: 'auto', minWidth: 120 }} value={filterCity} onChange={e => setFilterCity(e.target.value)}>
+                <option value="">All Cities</option>
+                {cities.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            )}
+            {types.length > 0 && (
+              <select style={{ ...S.inp, width: 'auto', minWidth: 110 }} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="">All Types</option>
+                {types.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+            <button className="vbtn" onClick={() => setShowSaved(!showSaved)} style={{
+              ...S.btn(showSaved ? 'rgba(255,107,107,0.15)' : 'rgba(255,255,255,0.04)', showSaved ? '#ff6b6b' : '#7a7f90'),
+              padding: '10px 14px', fontSize: 14, borderRadius: 10
+            }}>
+              {showSaved ? '❤️' : '🤍'} {savedJobs.length}
+            </button>
+          </div>
         </div>
+
+        {/* ══════════════════════════════════════════════════ */}
+        {/* ── JOB FEED ── */}
+        {/* ══════════════════════════════════════════════════ */}
+        {filtered.length === 0 ? (
+          <div style={{ textAlign: 'center' as const, padding: 60, color: '#505468' }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>🔍</div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>No {showSaved ? 'saved ' : ''}jobs found</div>
+            <div style={{ fontSize: 13, marginTop: 6 }}>{showSaved ? 'Save jobs by tapping the heart icon' : 'Try different keywords or clear filters'}</div>
+          </div>
+        ) : (
+          <div>
+            {filtered.map((j, idx) => {
+              const applied = applications.includes(j.id)
+              const isSaved = savedJobs.includes(j.id)
+              const matchPct = calculateMatch(userSkills, userExp, j)
+              const mapLink = j.latitude && j.longitude
+                ? `https://www.google.com/maps?q=${j.latitude},${j.longitude}`
+                : j.location || j.city ? `https://www.google.com/maps/search/${encodeURIComponent(j.location || j.city)}` : ''
+
+              return (
+                <div key={j.id}>
+                  {/* ── AD SLOT ── */}
+                  {isAdSlot(idx) && (
+                    <div style={{ background: 'rgba(255,214,10,0.04)', border: '1px solid rgba(255,214,10,0.1)', borderRadius: 14, padding: '16px 20px', marginBottom: 12, textAlign: 'center' as const }}>
+                      <div style={{ fontSize: 10, color: '#7a7f90', letterSpacing: 1, textTransform: 'uppercase' as const, marginBottom: 6 }}>Sponsored</div>
+                      <div style={{ fontSize: 14, color: '#505468' }}>Ad space available — promote your job here</div>
+                    </div>
+                  )}
+
+                  {/* ── JOB CARD ── */}
+                  {vibeMode === 'focus' ? (
+                    /* ── FOCUS MODE: Minimal row ── */
+                    <div className="jcard" style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 10, marginBottom: 6, cursor: 'pointer' }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.title}</div>
+                        <div style={{ fontSize: 12, color: '#7a7f90' }}>{j.companies?.name || j.company_name}{j.location || j.city ? ` · ${j.location || j.city}` : ''}</div>
+                      </div>
+                      {matchPct > 0 && <span style={{ fontSize: 11, color: matchPct > 70 ? '#3dd68c' : '#6c8cff', fontWeight: 700, flexShrink: 0 }}>{matchPct}%</span>}
+                      <button className="heart-btn" onClick={() => toggleSave(j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 4 }}>{isSaved ? '❤️' : '🤍'}</button>
+                      {applied ? (
+                        <span style={{ fontSize: 11, color: '#3dd68c', fontWeight: 700 }}>Applied ✓</span>
+                      ) : (
+                        <button style={S.btn('#6c8cff', '#fff')} onClick={() => profileStrength.score >= 50 ? quickApply(j) : setShowApply(j)}>Apply</button>
+                      )}
+                    </div>
+                  ) : (
+                    /* ── FUN + PROFESSIONAL MODE: Card ── */
+                    <div className="jcard fade-in" style={{
+                      background: vibeMode === 'fun' ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.02)',
+                      borderRadius: vibeMode === 'fun' ? 16 : 12,
+                      border: `1px solid ${applied ? 'rgba(61,214,140,0.25)' : 'rgba(255,255,255,0.06)'}`,
+                      padding: vibeMode === 'fun' ? 20 : 16,
+                      marginBottom: 12,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          {/* Company + Title */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'rgba(108,140,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#6c8cff', fontSize: 15, flexShrink: 0 }}>
+                              {(j.companies?.name || j.company_name || 'C')[0]}
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{ fontSize: 15, fontWeight: 700, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }}>{j.title}</div>
+                              <div style={{ fontSize: 12, color: '#7a7f90' }}>{j.companies?.name || j.company_name || 'Company'}</div>
+                            </div>
+                          </div>
+
+                          {/* Tags */}
+                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8 }}>
+                            {(j.location || j.city) && (
+                              <a href={mapLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '3px 8px', color: '#7a7f90', textDecoration: 'none' }}>
+                                📍 {j.location || j.city}
+                              </a>
+                            )}
+                            {j.experience_min != null && <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 6, padding: '3px 8px', color: '#7a7f90' }}>💼 {j.experience_min}{j.experience_max ? `–${j.experience_max}` : '+'} yrs</span>}
+                            {j.salary_min && <span style={{ fontSize: 11, background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.15)', borderRadius: 6, padding: '3px 8px', color: '#3dd68c' }}>₹{j.salary_min}{j.salary_max ? `–${j.salary_max}` : '+'} LPA</span>}
+                            {j.job_type && <span style={{ fontSize: 11, background: 'rgba(108,140,255,0.08)', border: '1px solid rgba(108,140,255,0.15)', borderRadius: 6, padding: '3px 8px', color: '#6c8cff' }}>{j.job_type}</span>}
+                          </div>
+
+                          {/* Description */}
+                          {vibeMode === 'fun' && j.description && (
+                            <div style={{ fontSize: 12, color: '#7a7f90', lineHeight: 1.6, marginBottom: 8 }}>{j.description.slice(0, 120)}{j.description.length > 120 ? '...' : ''}</div>
+                          )}
+
+                          {/* Skills */}
+                          {j.skills && (
+                            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
+                              {j.skills.split(',').slice(0, 4).map((sk: string) => (
+                                <span key={sk} style={{ fontSize: 10, background: 'rgba(255,255,255,0.04)', color: '#505468', padding: '2px 7px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.06)' }}>{sk.trim()}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right side: actions */}
+                        <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+                          {/* Match % */}
+                          {matchPct > 0 && (
+                            <div style={{ fontSize: 12, fontWeight: 700, color: matchPct > 70 ? '#3dd68c' : matchPct > 40 ? '#6c8cff' : '#7a7f90', background: matchPct > 70 ? 'rgba(61,214,140,0.1)' : 'rgba(108,140,255,0.1)', padding: '3px 10px', borderRadius: 8 }}>
+                              {matchPct}% match
+                            </div>
+                          )}
+
+                          <div style={{ fontSize: 10, color: '#505468' }}>{new Date(j.created_at).toLocaleDateString('en-IN')}</div>
+
+                          {/* Save + Share */}
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            <button className="heart-btn" onClick={() => toggleSave(j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2 }} title={isSaved ? 'Remove from saved' : 'Save job'}>
+                              {isSaved ? '❤️' : '🤍'}
+                            </button>
+                            <div style={{ position: 'relative' }}>
+                              <button onClick={() => setShowShareMenu(showShareMenu === j.id ? null : j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 2, color: '#7a7f90' }}>↗</button>
+                              {showShareMenu === j.id && (
+                                <div style={{ position: 'absolute', right: 0, top: 28, background: '#1e2230', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 6, zIndex: 10, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 140 }}>
+                                  <button onClick={() => { shareJob(j, 'whatsapp'); setShowShareMenu(null) }} style={{ background: 'none', border: 'none', color: '#25d366', cursor: 'pointer', fontSize: 13, padding: '8px 12px', textAlign: 'left' as const, borderRadius: 6, fontFamily: 'inherit' }}>WhatsApp</button>
+                                  <button onClick={() => { shareJob(j, 'copy'); setShowShareMenu(null); showToast('Link copied!') }} style={{ background: 'none', border: 'none', color: '#7a7f90', cursor: 'pointer', fontSize: 13, padding: '8px 12px', textAlign: 'left' as const, borderRadius: 6, fontFamily: 'inherit' }}>Copy Link</button>
+                                  {typeof navigator !== 'undefined' && navigator.share && (
+                                    <button onClick={() => { shareJob(j, 'native'); setShowShareMenu(null) }} style={{ background: 'none', border: 'none', color: '#6c8cff', cursor: 'pointer', fontSize: 13, padding: '8px 12px', textAlign: 'left' as const, borderRadius: 6, fontFamily: 'inherit' }}>Share...</button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Apply Button */}
+                          {applied ? (
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#3dd68c', background: 'rgba(61,214,140,0.1)', border: '1px solid rgba(61,214,140,0.2)', borderRadius: 10, padding: '8px 16px' }}>Applied ✓</span>
+                          ) : profileStrength.score >= 50 ? (
+                            <button className="vbtn" style={{ ...S.btn('#6c8cff', '#fff'), animation: vibeMode === 'fun' ? 'pulse 2s infinite' : 'none' }} onClick={() => quickApply(j)}>⚡ 1-Tap Apply</button>
+                          ) : (
+                            <button className="vbtn" style={S.btn('#6c8cff', '#fff')} onClick={() => setShowApply(j)}>Apply Now</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
+
+      {/* Close share menu on outside click */}
+      {showShareMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 5 }} onClick={() => setShowShareMenu(null)} />}
     </div>
   )
 }
