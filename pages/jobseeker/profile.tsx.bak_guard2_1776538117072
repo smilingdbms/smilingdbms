@@ -1,0 +1,210 @@
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../../src/lib/supabase'
+
+const CITIES = ['Delhi','Mumbai','Bangalore','Hyderabad','Pune','Chennai','Noida','Gurgaon','Kolkata','Ahmedabad','Jaipur','Lucknow','Chandigarh','Kochi','Nagpur','Indore','Other']
+const QUALIFICATIONS = ['B.Tech','M.Tech','MCA','BCA','MBA','B.Sc','M.Sc','BBA','B.Com','M.Com','BA','MA','12th Pass','Graduate','Post Graduate','Other']
+const NOTICE_PERIODS = ['Immediate','7 days','15 days','1 month','2 months','3 months']
+const WORK_MODES = ['WFH','Office','Hybrid','Flexible']
+
+export default function JobSeekerProfile() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [form, setForm] = useState<any>({})
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { checkAuth() }, [])
+
+  async function checkAuth() {
+    const { data: { user: u } } = await supabase.auth.getUser()
+    if (!u) { router.push('/'); return }
+    const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
+    if (!au) { router.push('/'); return }
+    setUser(au)
+    // Load profile if exists
+    const { data: profile } = await supabase.from('profiles').select('*').eq('created_by', u.id).single()
+    if (profile) {
+      setForm(profile)
+    } else {
+      setForm({ name: au.full_name || '', email: au.email || '', mobile: au.mobile || '', segment: 'experienced' })
+    }
+    setLoading(false)
+  }
+
+  const sf = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }))
+
+  async function saveProfile() {
+    if (!form.name?.trim()) { alert('Name is required'); return }
+    setSaving(true)
+    const payload = {
+      name: form.name || '',
+      email: form.email || '',
+      mobile: (form.mobile || '').replace(/\D/g, '').slice(0, 15),
+      role: form.role || '',
+      qualification: form.qualification || '',
+      skills: form.skills || '',
+      experience: form.experience || null,
+      current_ctc: form.current_ctc || null,
+      expected_ctc: form.expected_ctc || null,
+      notice_period: form.notice_period || '',
+      work_mode: form.work_mode || '',
+      city: form.city || '',
+      linkedin: form.linkedin || '',
+      segment: form.segment || 'experienced',
+      status: 'New',
+      source: 'Job Portal',
+      created_by: user.id,
+    }
+    if (form.id) {
+      await supabase.from('profiles').update(payload).eq('id', form.id)
+    } else {
+      const { data } = await supabase.from('profiles').insert(payload).select().single()
+      if (data) setForm(data)
+    }
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const S = {
+    page: { minHeight: '100vh', background: '#111318', color: '#e8eaf0', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: '#0d0f14', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    body: { padding: '24px', maxWidth: 700, margin: '0 auto' },
+    card: { background: '#1a1d24', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 24, marginBottom: 16 },
+    inp: { width: '100%', background: '#22262f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '9px 12px', color: '#e8eaf0', fontSize: 13, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const },
+    label: { display: 'block', fontSize: 10, fontWeight: 600, color: '#7a7f90', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 5, marginTop: 14 },
+    btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' } as const),
+  }
+
+  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#7a7f90' }}>Loading...</div></div>
+
+  return (
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}input:focus,select:focus,textarea:focus{border-color:#6c8cff!important}`}</style>
+
+      <nav style={S.nav}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#6c8cff', fontSize: 14 }}>R</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase</div>
+            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Job Portal</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/jobseeker')}>🔍 Browse Jobs</button>
+          <button style={S.btn('rgba(255,159,67,0.1)', '#ff9f43')} onClick={() => router.push('/jobseeker/applications')}>📋 Applications</button>
+          <button style={S.btn('rgba(255,255,255,0.06)', '#7a7f90')} onClick={async () => { await supabase.auth.signOut(); router.push('/') }}>Sign Out</button>
+        </div>
+      </nav>
+
+      <div style={S.body}>
+        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>My Profile</div>
+            <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>Keep your profile updated for better visibility</div>
+          </div>
+          {form.plan && form.plan !== 'basic' && (
+            <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(255,214,10,0.15)', color: '#ffd60a', border: '1px solid rgba(255,214,10,0.3)', padding: '4px 12px', borderRadius: 20 }}>
+              ★ {form.plan?.toUpperCase()} Plan
+            </span>
+          )}
+        </div>
+
+        <div style={S.card}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Personal Information</div>
+          <div style={{ fontSize: 12, color: '#7a7f90', marginBottom: 4 }}>Basic contact details</div>
+
+          <label style={S.label}>Full Name *</label>
+          <input style={S.inp} value={form.name || ''} onChange={e => sf('name', e.target.value)} placeholder="Your full name" />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={S.label}>Mobile</label>
+              <input style={S.inp} value={form.mobile || ''} onChange={e => sf('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" />
+            </div>
+            <div>
+              <label style={S.label}>Email</label>
+              <input style={S.inp} type="email" value={form.email || ''} onChange={e => sf('email', e.target.value)} placeholder="your@email.com" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={S.label}>City</label>
+              <select style={S.inp} value={form.city || ''} onChange={e => sf('city', e.target.value)}>
+                <option value="">Select City</option>
+                {CITIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={S.label}>LinkedIn</label>
+              <input style={S.inp} value={form.linkedin || ''} onChange={e => sf('linkedin', e.target.value)} placeholder="linkedin.com/in/..." />
+            </div>
+          </div>
+        </div>
+
+        <div style={S.card}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Professional Details</div>
+          <div style={{ fontSize: 12, color: '#7a7f90', marginBottom: 4 }}>Help recruiters find you</div>
+
+          <label style={S.label}>Current Role / Designation</label>
+          <input style={S.inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Engineer, HR Manager" />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={S.label}>Experience (years)</label>
+              <input style={S.inp} type="number" step="0.5" value={form.experience || ''} onChange={e => sf('experience', e.target.value)} placeholder="e.g. 3.5" />
+            </div>
+            <div>
+              <label style={S.label}>Qualification</label>
+              <select style={S.inp} value={form.qualification || ''} onChange={e => sf('qualification', e.target.value)}>
+                <option value="">Select</option>
+                {QUALIFICATIONS.map(q => <option key={q}>{q}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={S.label}>Current CTC (₹ LPA)</label>
+              <input style={S.inp} type="number" step="0.5" value={form.current_ctc || ''} onChange={e => sf('current_ctc', e.target.value)} placeholder="e.g. 8" />
+            </div>
+            <div>
+              <label style={S.label}>Expected CTC (₹ LPA)</label>
+              <input style={S.inp} type="number" step="0.5" value={form.expected_ctc || ''} onChange={e => sf('expected_ctc', e.target.value)} placeholder="e.g. 12" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={S.label}>Notice Period</label>
+              <select style={S.inp} value={form.notice_period || ''} onChange={e => sf('notice_period', e.target.value)}>
+                <option value="">Select</option>
+                {NOTICE_PERIODS.map(n => <option key={n}>{n}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={S.label}>Work Mode Preference</label>
+              <div style={{ display: 'flex', gap: 6, marginTop: 2 }}>
+                {WORK_MODES.map(w => (
+                  <button key={w} onClick={() => sf('work_mode', form.work_mode === w ? '' : w)} style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `1px solid ${form.work_mode === w ? '#6c8cff' : 'rgba(255,255,255,0.08)'}`, background: form.work_mode === w ? 'rgba(108,140,255,0.15)' : 'rgba(255,255,255,0.03)', color: form.work_mode === w ? '#6c8cff' : '#7a7f90', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit' }}>
+                    {w}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <label style={S.label}>Skills (comma separated)</label>
+          <textarea rows={2} style={{ ...S.inp, resize: 'none' as const }} value={form.skills || ''} onChange={e => sf('skills', e.target.value)} placeholder="e.g. React, Node.js, Python, Sales..." />
+        </div>
+
+        <button onClick={saveProfile} disabled={saving} style={{ width: '100%', padding: '13px', borderRadius: 12, background: saved ? '#3dd68c' : '#6c8cff', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'inherit', opacity: saving ? 0.7 : 1 }}>
+          {saving ? 'Saving...' : saved ? '✅ Profile Saved!' : 'Save Profile'}
+        </button>
+      </div>
+    </div>
+  )
+}

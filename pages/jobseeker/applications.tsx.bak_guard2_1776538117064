@@ -1,0 +1,154 @@
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../../src/lib/supabase'
+
+const STATUS_COLORS: any = {
+  Applied:   { bg: 'rgba(108,140,255,0.15)', color: '#6c8cff' },
+  Reviewing: { bg: 'rgba(255,159,67,0.15)',  color: '#ff9f43' },
+  Shortlisted:{ bg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
+  Interview: { bg: 'rgba(72,202,228,0.15)',  color: '#48cae4' },
+  Rejected:  { bg: 'rgba(255,107,107,0.15)', color: '#ff6b6b' },
+  Hired:     { bg: 'rgba(111,207,111,0.2)',  color: '#6fcf6f' },
+}
+
+export default function MyApplications() {
+  const router = useRouter()
+  const [user, setUser] = useState<any>(null)
+  const [apps, setApps] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { checkAuth() }, [])
+
+  async function checkAuth() {
+    const { data: { user: u } } = await supabase.auth.getUser()
+    if (!u) { router.push('/'); return }
+    const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
+    if (!au) { router.push('/'); return }
+    setUser(au)
+    const { data } = await supabase.from('job_applications')
+      .select('*, job_descriptions(title, location, city, salary_min, salary_max, experience_min, job_type, companies(name))')
+      .eq('applicant_id', u.id)
+      .order('applied_at', { ascending: false })
+    setApps(data || [])
+    setLoading(false)
+  }
+
+  const S = {
+    page: { minHeight: '100vh', background: '#111318', color: '#e8eaf0', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: '#0d0f14', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    body: { padding: '24px', maxWidth: 900, margin: '0 auto' },
+    card: { background: '#1a1d24', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 20, marginBottom: 10 },
+    btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' } as const),
+  }
+
+  const statusCounts = Object.keys(STATUS_COLORS).reduce((acc: any, s) => {
+    acc[s] = apps.filter(a => a.status === s).length
+    return acc
+  }, {})
+
+  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#7a7f90' }}>Loading...</div></div>
+
+  return (
+    <div style={S.page}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}`}</style>
+
+      <nav style={S.nav}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#6c8cff', fontSize: 14 }}>R</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase</div>
+            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Job Portal</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/jobseeker')}>🔍 Browse Jobs</button>
+          <button style={S.btn('rgba(61,214,140,0.1)', '#3dd68c')} onClick={() => router.push('/jobseeker/profile')}>👤 My Profile</button>
+          <button style={S.btn('rgba(255,255,255,0.06)', '#7a7f90')} onClick={async () => { await supabase.auth.signOut(); router.push('/') }}>Sign Out</button>
+        </div>
+      </nav>
+
+      <div style={S.body}>
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 22, fontWeight: 700 }}>My Applications</div>
+          <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>{apps.length} total applications</div>
+        </div>
+
+        {/* Status summary */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(120px,1fr))', gap: 10, marginBottom: 24 }}>
+          {Object.entries(STATUS_COLORS).map(([status, sc]: any) => (
+            <div key={status} style={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px', textAlign: 'center' as const, borderTop: `2px solid ${sc.color}` }}>
+              <div style={{ fontSize: 20, fontWeight: 700, color: sc.color }}>{statusCounts[status] || 0}</div>
+              <div style={{ fontSize: 11, color: '#7a7f90', marginTop: 2 }}>{status}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Applications list */}
+        {apps.length === 0 ? (
+          <div style={{ textAlign: 'center' as const, padding: 60, color: '#505468' }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>📋</div>
+            <div style={{ fontSize: 16, fontWeight: 600 }}>No applications yet</div>
+            <div style={{ fontSize: 13, marginTop: 6, marginBottom: 16 }}>Start applying to jobs!</div>
+            <button style={S.btn('#6c8cff', '#fff')} onClick={() => router.push('/jobseeker')}>Browse Jobs →</button>
+          </div>
+        ) : (
+          apps.map(a => {
+            const j = a.job_descriptions
+            const sc = STATUS_COLORS[a.status] || STATUS_COLORS['Applied']
+            return (
+              <div key={a.id} style={S.card}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{j?.title || 'Job Title'}</div>
+                    <div style={{ fontSize: 13, color: '#7a7f90', marginBottom: 8 }}>{j?.companies?.name || 'Company'}</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8 }}>
+                      {(j?.location || j?.city) && <span style={{ fontSize: 11, color: '#505468' }}>📍 {j?.location || j?.city}</span>}
+                      {j?.salary_min && <span style={{ fontSize: 11, color: '#3dd68c' }}>₹{j?.salary_min}{j?.salary_max ? `–${j?.salary_max}` : '+'} LPA</span>}
+                      {j?.job_type && <span style={{ fontSize: 11, color: '#7a7f90' }}>{j?.job_type}</span>}
+                    </div>
+                    {a.cover_note && (
+                      <div style={{ fontSize: 12, color: '#505468', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px', borderLeft: '2px solid rgba(108,140,255,0.3)' }}>
+                        "{a.cover_note}"
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, background: sc.bg, color: sc.color, padding: '4px 12px', borderRadius: 20 }}>{a.status}</span>
+                    <span style={{ fontSize: 11, color: '#505468' }}>Applied {new Date(a.applied_at).toLocaleDateString('en-IN')}</span>
+                    {a.updated_at !== a.applied_at && (
+                      <span style={{ fontSize: 10, color: '#505468' }}>Updated {new Date(a.updated_at).toLocaleDateString('en-IN')}</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status timeline */}
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+                  <div style={{ display: 'flex', gap: 0 }}>
+                    {['Applied','Reviewing','Shortlisted','Interview','Hired'].map((s, i) => {
+                      const steps = ['Applied','Reviewing','Shortlisted','Interview','Hired']
+                      const currentIdx = steps.indexOf(a.status)
+                      const isRejected = a.status === 'Rejected'
+                      const isDone = isRejected ? false : i <= currentIdx
+                      const isCurrent = s === a.status
+                      return (
+                        <div key={s} style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', flex: 1 }}>
+                            <div style={{ width: 20, height: 20, borderRadius: '50%', background: isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'rgba(255,255,255,0.06)', border: `2px solid ${isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'rgba(255,255,255,0.1)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, color: isDone ? '#fff' : '#505468' }}>
+                              {isDone ? '✓' : ''}
+                            </div>
+                            <div style={{ fontSize: 9, color: isCurrent ? (isRejected ? '#ff6b6b' : '#3dd68c') : '#505468', marginTop: 3, whiteSpace: 'nowrap' as const }}>{s}</div>
+                          </div>
+                          {i < 4 && <div style={{ height: 2, flex: 1, background: isDone && i < currentIdx ? '#3dd68c' : 'rgba(255,255,255,0.06)', marginBottom: 14 }} />}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
