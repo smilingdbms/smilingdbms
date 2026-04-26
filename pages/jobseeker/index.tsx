@@ -186,7 +186,7 @@ export default function JobSeekerPortal() {
     } else {
       await supabase.from('saved_jobs').insert({ user_id: user.id, job_id: jobId })
       setSavedJobs(prev => [...prev, jobId])
-      await awardXP(user.id, 1)
+      // no XP for saves
       showToast('Job saved!')
     }
   }
@@ -561,7 +561,7 @@ export default function JobSeekerPortal() {
                             <div style={{ position: 'relative' }}>
                               <button onClick={() => setShowShareMenu(showShareMenu === j.id ? null : j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 2, color: '#7a7f90' }}>↗</button>
                               {showShareMenu === j.id && (
-                                <div style={{ position: 'absolute', right: 0, top: 28, background: '#1e2230', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 6, zIndex: 10, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 140 }}>
+                                <div style={{ position: 'absolute', right: 0, top: 28, background: '#1e2230', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: 6, zIndex: 60, display: 'flex', flexDirection: 'column' as const, gap: 2, minWidth: 140 }}>
                                   <button onClick={() => { shareJob(j, 'whatsapp'); setShowShareMenu(null) }} style={{ background: 'none', border: 'none', color: '#25d366', cursor: 'pointer', fontSize: 13, padding: '8px 12px', textAlign: 'left' as const, borderRadius: 6, fontFamily: 'inherit' }}>WhatsApp</button>
                                   <button onClick={() => { shareJob(j, 'copy'); setShowShareMenu(null); showToast('Link copied!') }} style={{ background: 'none', border: 'none', color: '#7a7f90', cursor: 'pointer', fontSize: 13, padding: '8px 12px', textAlign: 'left' as const, borderRadius: 6, fontFamily: 'inherit' }}>Copy Link</button>
                                   {typeof navigator !== 'undefined' && navigator.share && (
@@ -592,7 +592,7 @@ export default function JobSeekerPortal() {
       </div>
 
       {/* Close share menu on outside click */}
-      {showShareMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 5 }} onClick={() => setShowShareMenu(null)} />}
+      {showShareMenu && <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setShowShareMenu(null)} />}
     </div>
   )
 }
