@@ -111,7 +111,7 @@ export default function JobSeekerPortal() {
     setShowOnboarding(false)
     setShowConfetti(true)
     confettiRef.current = true
-    await awardXP(user.id, 50)
+    await awardXP(user.id, 3)
     setTimeout(() => setShowConfetti(false), 3500)
     const s = await updateStreak(user.id)
     setStreak(s)
@@ -146,7 +146,7 @@ export default function JobSeekerPortal() {
     setApplications(prev => [...prev, job.id])
     setShowApply(null)
     setCoverNote('')
-    await awardXP(user.id, 20)
+    await awardXP(user.id, 3)
     showToast('Application submitted successfully!')
   }
 
@@ -172,7 +172,7 @@ export default function JobSeekerPortal() {
     setShowApply(null)
     if (error) { showToast('Application failed. Please try again.', 'error'); return }
     setApplications(prev => [...prev, job.id])
-    await awardXP(user.id, 20)
+    await awardXP(user.id, 3)
     showToast('Applied with 1-tap!')
   }
 
@@ -186,7 +186,7 @@ export default function JobSeekerPortal() {
     } else {
       await supabase.from('saved_jobs').insert({ user_id: user.id, job_id: jobId })
       setSavedJobs(prev => [...prev, jobId])
-      await awardXP(user.id, 5)
+      await awardXP(user.id, 1)
       showToast('Job saved!')
     }
   }
