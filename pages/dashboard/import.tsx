@@ -276,7 +276,7 @@ export default function ImportPage() {
           <span style={{fontWeight:700, fontSize:14}}>RecruitBase Pro</span>
           <span style={{fontSize:12, padding:'2px 10px', borderRadius:20, background:'rgba(108,140,255,0.1)', color:'#6c8cff'}}>📥 Bulk Import</span>
         </div>
-        <button onClick={() => router.push('/dashboard')} style={{fontSize:12, padding:'6px 14px', borderRadius:8, background:'rgba(108,140,255,0.1)', color:'#6c8cff', border:'1px solid rgba(108,140,255,0.3)', cursor:'pointer', fontFamily:'inherit'}}>← Dashboard</button>
+        
       </nav>
 
       <div style={{maxWidth:1000, margin:'0 auto', padding:'24px 16px'}}>

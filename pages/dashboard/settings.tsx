@@ -47,7 +47,7 @@ export default function Settings() {
           <span style={{fontWeight:700,fontSize:15}}>RecruitBase Pro</span>
         </div>
         <div style={{display:'flex',gap:10}}>
-          <button onClick={()=>router.push('/dashboard')} style={{fontSize:12,padding:'6px 14px',borderRadius:8,background:'rgba(108,140,255,0.1)',color:'#6c8cff',border:'1px solid rgba(108,140,255,0.3)',cursor:'pointer',fontFamily:'inherit'}}>← Dashboard</button>
+          
           <button onClick={signOut} style={{fontSize:12,padding:'6px 14px',borderRadius:8,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',border:'1px solid rgba(255,107,107,0.3)',cursor:'pointer',fontFamily:'inherit'}}>Sign out</button>
         </div>
       </nav>

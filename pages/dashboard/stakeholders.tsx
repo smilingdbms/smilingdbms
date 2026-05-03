@@ -150,7 +150,7 @@ export default function Stakeholders() {
           <span style={{fontSize:10,padding:'2px 8px',borderRadius:6,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',fontWeight:600}}>🔒 Admin Only</span>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>router.push('/dashboard')} style={{background:'rgba(255,255,255,0.06)',color:'var(--tx)',border:'none',borderRadius:7,padding:'7px 14px',fontSize:12,cursor:'pointer'}}>← Dashboard</button>
+          
           <button onClick={openAdd} style={S.btn}>+ Add Stakeholder</button>
         </div>
       </nav>

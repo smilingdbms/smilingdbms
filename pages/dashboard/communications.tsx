@@ -143,7 +143,7 @@ export default function Communications() {
           <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:'rgba(255,159,67,0.1)',color:'#ff9f43'}}>📨 Communications</span>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>router.push('/dashboard')} style={{background:'rgba(255,255,255,0.06)',color:'var(--tx)',border:'none',borderRadius:7,padding:'7px 14px',fontSize:12,cursor:'pointer'}}>← Dashboard</button>
+          
           <button onClick={openAdd} style={S.btn}>+ New Template</button>
         </div>
       </nav>

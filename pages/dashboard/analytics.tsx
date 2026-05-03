@@ -46,14 +46,7 @@ export default function Analytics() {
     <div style={{minHeight:'100vh',background:'var(--bg)',color:'var(--tx)',fontFamily:'Outfit,Inter,sans-serif'}}>
       <DashboardNav />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}`}</style>
-      <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:50}}>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{width:30,height:30,borderRadius:8,background:'rgba(108,140,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'bold',color:'#6c8cff',fontSize:14}}>R</div>
-          <span style={{fontWeight:700,fontSize:15}}>RecruitBase Pro</span>
-          <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:'rgba(108,140,255,0.1)',color:'#6c8cff'}}>📊 Analytics</span>
-        </div>
-        <button onClick={()=>router.push('/dashboard')} style={{fontSize:12,padding:'6px 14px',borderRadius:8,background:'rgba(108,140,255,0.1)',color:'#6c8cff',border:'1px solid rgba(108,140,255,0.3)',cursor:'pointer',fontFamily:'inherit'}}>← Dashboard</button>
-      </nav>
+      
 
       <div style={{padding:'24px',maxWidth:1200,margin:'0 auto'}}>
         <h1 style={{fontSize:20,fontWeight:700,marginBottom:4}}>Analytics & Reports</h1>

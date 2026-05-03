@@ -147,17 +147,7 @@ export default function ApplicationsPage() {
       )}
 
       {/* Nav */}
-      <nav style={S.nav}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }} onClick={() => router.push('/dashboard')}>
-          <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#6c8cff', fontSize: 14 }}>R</div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase Pro</div>
-            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Recruitment OS</div>
-          </div>
-          <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: 'rgba(255,107,107,0.1)', color: '#ff6b6b' }}>Applications</span>
-        </div>
-        <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/dashboard')}>← Dashboard</button>
-      </nav>
+      
 
       <div style={S.body}>
         {/* Header */}

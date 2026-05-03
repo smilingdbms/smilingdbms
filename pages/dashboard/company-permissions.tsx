@@ -192,7 +192,7 @@ export default function CompanyPermissionsPage() {
           </div>
           <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: 'rgba(255,215,10,0.1)', color: '#ffd60a' }}>⚙️ Permissions</span>
         </div>
-        <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/dashboard')}>← Dashboard</button>
+        
       </nav>
 
       <div style={S.body}>

@@ -126,17 +126,7 @@ export default function BDPipeline() {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
       {/* NAV */}
-      <nav style={S.nav}>
-        <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <div style={{width:30,height:30,borderRadius:8,background:'rgba(108,140,255,0.2)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'bold',color:'#6c8cff',fontSize:14}}>R</div>
-          <span style={{fontWeight:700,fontSize:15}}>RecruitBase Pro</span>
-          <span style={{fontSize:12,padding:'2px 10px',borderRadius:20,background:'rgba(72,202,228,0.1)',color:'#48cae4'}}>💼 BD Pipeline</span>
-        </div>
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
-          <button onClick={() => router.push('/dashboard')} style={{background:'rgba(255,255,255,0.06)',color:'var(--tx)',border:'none',borderRadius:7,padding:'7px 14px',fontSize:12,cursor:'pointer'}}>← Dashboard</button>
-          <button onClick={openAdd} style={S.btn}>+ Add Deal</button>
-        </div>
-      </nav>
+      
 
       <div style={{maxWidth:1300,margin:'0 auto',padding:'24px 20px'}}>
 

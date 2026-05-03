@@ -93,7 +93,7 @@ export default function CompanyDashboard() {
       <div style={{fontSize:40}}>🏢</div>
       <div style={{fontSize:18,fontWeight:600}}>No Company Found</div>
       <div style={{fontSize:13,color:'var(--mu)'}}>You are not linked to any company yet.</div>
-      <button onClick={()=>router.push('/dashboard')} style={S.btn}>← Back to Dashboard</button>
+      
     </div>
   )
 
@@ -118,7 +118,7 @@ export default function CompanyDashboard() {
                 <button onClick={saveCompany} disabled={saving} style={S.btn}>{saving?'Saving...':'Save Changes'}</button>
               </>
           }
-          <button onClick={()=>router.push('/dashboard')} style={{background:'rgba(255,255,255,0.06)',color:'var(--tx)',border:'none',borderRadius:7,padding:'7px 14px',fontSize:12,cursor:'pointer'}}>← Dashboard</button>
+          
         </div>
       </nav>
 

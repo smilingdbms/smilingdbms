@@ -122,7 +122,7 @@ export default function CompaniesPage() {
           </div>
           <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: 'rgba(255,107,107,0.1)', color: '#ff6b6b' }}>🏢 Companies</span>
         </div>
-        <button style={S.btn('rgba(108,140,255,0.1)', '#6c8cff')} onClick={() => router.push('/dashboard')}>← Dashboard</button>
+        
       </nav>
 
       <div style={S.body}>
