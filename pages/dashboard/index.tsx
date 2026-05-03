@@ -1,3 +1,4 @@
+import DashboardNav from '../../src/components/DashboardNav'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
@@ -651,6 +652,7 @@ export default function Dashboard() {
       `}</style>
 
       {/* ── TOP BAR ─────────────────────────────────────────────── */}
+      <DashboardNav userName={appUser?.full_name} userRole={appUser?.role} companyName={company?.name} />
       <div style={{background:'var(--bg2)',borderBottom:'1px solid var(--bd)',padding:'0 20px',height:54,display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
         <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:9,padding:'6px 14px',flex:1,maxWidth:420}}>
           <span style={{color:'var(--mu)',fontSize:14,flexShrink:0}}>🔍</span>
