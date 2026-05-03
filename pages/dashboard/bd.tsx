@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { applyTheme, getSavedTheme, THEME_LIST, THEMES } from '../../src/lib/theme'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import DashboardNav from '../../src/components/DashboardNav'
 
 const STAGES = ['Lead','Prospect','Qualified','Proposal Sent','Negotiation','Won','Lost']
 const STAGE_COLORS: Record<string,string> = {
@@ -121,6 +122,7 @@ export default function BDPipeline() {
 
   return (
     <div style={S.page}>
+      <DashboardNav />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
       {/* NAV */}

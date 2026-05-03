@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import Layout from '../../src/components/Layout'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
+import DashboardNav from '../../src/components/DashboardNav'
 
 const STATUSES = ['Scheduled','Completed','Cancelled','No Show','Rescheduled']
 const OUTCOMES = ['','Selected','Rejected','On Hold','No Show','Rescheduled']
@@ -224,6 +225,7 @@ export default function Interviews() {
 
   if (loading) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)'}}>
+      <DashboardNav />
       <div style={{width:36,height:36,border:'3px solid var(--ac)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>

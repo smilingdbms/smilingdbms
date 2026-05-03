@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import DashboardNav from '../../src/components/DashboardNav'
 
 // ══════════════════════════════════════════════════════════
 // ADMIN PAGE v2.0 — FRESH REWRITE (25 April 2026)
@@ -273,6 +274,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div style={{ ...S.page, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <DashboardNav />
         <div style={{ fontSize:16, color:'var(--mu,#7a7f90)' }}>Loading team...</div>
       </div>
     )

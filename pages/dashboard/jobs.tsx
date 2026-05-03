@@ -3,6 +3,7 @@ import { applyTheme, getSavedTheme } from '../../src/components/theme'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import DashboardNav from '../../src/components/DashboardNav'
 
 const EMPTY_JD = { title:'', company:'', location:'', industry:'', experience_min:'', experience_max:'', qualification:'', skills:'', description:'', status:'Open', openings:1 }
 
@@ -63,6 +64,7 @@ export default function Jobs() {
 
   return (
     <div style={{minHeight:'100vh',background:'#111318',color:'#e8eaf0',fontFamily:'Outfit,Inter,sans-serif'}}>
+      <DashboardNav />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
       
       <nav style={{background:'#0d0f14',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:50}}>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import DashboardNav from '../../src/components/DashboardNav'
 
 const TEMPLATE_TYPES = ['whatsapp','email','both']
 const TYPE_COLORS: any = { whatsapp:'#25d366', email:'#6c8cff', both:'#ff9f43' }
@@ -129,6 +130,7 @@ export default function Communications() {
 
   return (
     <div style={S.page}>
+      <DashboardNav />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}textarea{font-family:Outfit,sans-serif}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
