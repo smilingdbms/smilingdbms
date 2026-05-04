@@ -103,7 +103,7 @@ export function calculateProfileStrength(profile: Partial<Profile> | null): { sc
 }
 
 // ── Image Compression (max 1MB, client-side) ─────────────
-export function compressImage(file: File, maxSizeKB: number = 250, maxDim: number = 800): Promise<Blob> {
+export function compressImage(file: File, maxSizeKB: number = 125, maxDim: number = 800): Promise<Blob> {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) { reject(new Error('Not an image')); return }
     const reader = new FileReader()
