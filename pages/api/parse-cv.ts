@@ -228,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (mime.includes('pdf')) {
         // Use pdf-parse for PDF files
         try {
-          const pdfParse = (await import("pdf-parse")).default
+          const pdfParse = (await import('pdf-parse')).default
           const pdfData = await pdfParse(buffer)
           extractedText = pdfData.text || ''
         } catch (pdfErr: any) {
