@@ -1,9 +1,18 @@
-const generateSmartID=(co,ci)=>{const c=co.replace(/\s/g,"").substring(0,3).toUpperCase();const ct=ci.replace(/\s/g,"").substring(0,3).toUpperCase();const d=new Date();const m=(d.getMonth()+1).toString().padStart(2,"0");const y=d.getFullYear().toString().slice(-2);return c+ct+m+y;};import Layout from '../../src/components/Layout'
+import Layout from '../../src/components/Layout'
 import { useEffect, useState } from 'react'
-import { applyTheme, getSavedTheme, THEME_LIST, THEMES } from '../../src/lib/theme'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import DashboardNav from '../../src/components/DashboardNav'
+
+// Smart ID Generator
+const generateSmartID = (co, ci) => {
+  const c = (co || 'GEN').replace(/\s/g, "").substring(0, 3).toUpperCase();
+  const ct = (ci || 'IND').replace(/\s/g, "").substring(0, 3).toUpperCase();
+  const d = new Date();
+  const m = (d.getMonth() + 1).toString().padStart(2, "0");
+  const y = d.getFullYear().toString().slice(-2);
+  return `${c}${ct}${m}${y}`;
+};
 
 const STAGES = ['Lead','Prospect','Qualified','Proposal Sent','Negotiation','Won','Lost']
 const STAGE_COLORS: Record<string,string> = {
@@ -87,9 +96,40 @@ export default function BDPipeline() {
     loadData({ id: appUser.id })
   }
 
+  // FIXED: Auto-Invoice Generator + DB Update
   async function updateStage(id: string, stage: string) {
+    // 1. Update Database
     await supabase.from('bd_pipeline').update({ stage }).eq('id', id)
+    // 2. Update Screen
     setDeals(prev => prev.map(d => d.id === id ? { ...d, stage } : d))
+    
+    // 3. Magic: If Won, generate bill
+    if (stage === 'Won') {
+      const deal = deals.find(d => d.id === id);
+      if (deal) {
+        const smartID = generateSmartID(deal.client_company || deal.client_name, 'IND');
+        try {
+          const res = await fetch('/api/generate-invoice', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              dealAmount: deal.deal_value || 0,
+              companyName: deal.client_company || deal.client_name,
+              companyCode: smartID,
+              gstNumber: 'N/A'
+            })
+          });
+          const data = await res.json();
+          if (data.html) {
+            const win = window.open('', '_blank');
+            win?.document.write(data.html);
+            win?.document.close();
+          }
+        } catch (err) {
+          console.error('Invoice error:', err);
+        }
+      }
+    }
   }
 
   async function deleteDeal(id: string) {
@@ -125,16 +165,11 @@ export default function BDPipeline() {
       <DashboardNav />
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
-      {/* NAV */}
-      
-
       <div style={{maxWidth:1300,margin:'0 auto',padding:'24px 20px'}}>
-
-        {/* STATS */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:14,marginBottom:24}}>
           {[
-            { label:'Total Deals', value:deals.length, color:'#6c8cff', icon:'📋' },
-            { label:'Active Deals', value:activeCount, color:'#48cae4', icon:'🔄' },
+            { label:'Total Deals', value:deals.length, color:'#6c8cff', icon:'💼' },
+            { label:'Active Deals', value:activeCount, color:'#48cae4', icon:'🔥' },
             { label:'Won Deals', value:wonCount, color:'#3dd68c', icon:'🏆' },
             { label:'Revenue Won', value:`₹${(totalValue/1000).toFixed(0)}K`, color:'#ffd60a', icon:'💰' },
             { label:'Pipeline Value', value:`₹${(pipelineValue/1000).toFixed(0)}K`, color:'#c77dff', icon:'📈' },
@@ -147,7 +182,6 @@ export default function BDPipeline() {
           ))}
         </div>
 
-        {/* STAGE SUMMARY */}
         <div style={{...S.card,marginBottom:20}}>
           <div style={{fontSize:13,fontWeight:600,marginBottom:14,color:'var(--tx)'}}>Pipeline by Stage</div>
           <div style={{display:'flex',gap:8,flexWrap:'wrap' as any}}>
@@ -166,7 +200,6 @@ export default function BDPipeline() {
           </div>
         </div>
 
-        {/* FILTERS */}
         <div style={{display:'flex',gap:10,marginBottom:16,flexWrap:'wrap' as any}}>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Search client or company..." style={{...S.inp,marginBottom:0,flex:1,minWidth:200}} />
           <select value={filterStage} onChange={e=>setFilterStage(e.target.value)} style={{...S.inp,marginBottom:0,width:'auto'}}>
@@ -175,7 +208,6 @@ export default function BDPipeline() {
           </select>
         </div>
 
-        {/* DEALS TABLE */}
         <div style={S.card}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
             <span style={{fontSize:13,fontWeight:600}}>{filtered.length} Deals</span>
@@ -238,13 +270,12 @@ export default function BDPipeline() {
         </div>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000,padding:20}}>
           <div style={{background:'var(--bg2)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:16,padding:28,width:'100%',maxWidth:540,maxHeight:'90vh',overflowY:'auto' as any}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
               <span style={{fontSize:16,fontWeight:700}}>{editDeal ? 'Edit Deal' : '+ New Deal'}</span>
-              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'var(--mu)',fontSize:18,cursor:'pointer'}}>✕</button>
+              <button onClick={()=>setShowModal(false)} style={{background:'none',border:'none',color:'var(--mu)',fontSize:18,cursor:'pointer'}}>✖</button>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
               {[
