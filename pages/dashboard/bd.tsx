@@ -1,4 +1,4 @@
-import Layout from '../../src/components/Layout'
+const generateSmartID=(co,ci)=>{const c=co.replace(/\s/g,"").substring(0,3).toUpperCase();const ct=ci.replace(/\s/g,"").substring(0,3).toUpperCase();const d=new Date();const m=(d.getMonth()+1).toString().padStart(2,"0");const y=d.getFullYear().toString().slice(-2);return c+ct+m+y;};import Layout from '../../src/components/Layout'
 import { useEffect, useState } from 'react'
 import { applyTheme, getSavedTheme, THEME_LIST, THEMES } from '../../src/lib/theme'
 import { useRouter } from 'next/router'
