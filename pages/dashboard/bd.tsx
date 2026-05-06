@@ -87,7 +87,7 @@ export default function BDPipeline() {
 
       <div style={{maxWidth:1300,margin:'0 auto',padding:'24px 20px'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
-          <div><h1 style={{margin:0,fontSize:24}}>BD Pipeline</h1></div>
+          <div><h1 style={{margin:0,fontSize:24}}>BD Pipeline</h1></div> 
           <button onClick={openAdd} style={S.btn}>+ Add New Deal</button>
         </div>
 
