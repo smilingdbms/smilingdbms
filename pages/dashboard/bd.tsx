@@ -5,128 +5,183 @@ import { supabase } from '../../src/lib/supabase'
 import DashboardNav from '../../src/components/DashboardNav'
 
 const STAGES = ['Lead','Prospect','Qualified','Proposal Sent','Negotiation','Won','Lost']
-const STAGE_COLORS: Record<string,string> = { 'Lead':'#7ab3ff','Prospect':'#ffb347','Qualified':'#c77dff','Proposal Sent':'#48cae4','Negotiation':'#ffd60a','Won':'#3dd68c','Lost':'#ff6b6b' }
-const INDUSTRIES = ['IT / Software','BFSI / Banking','Healthcare','Manufacturing','Real Estate','E-commerce','Education','Consulting','Media','Pharma','Logistics','Legal','Hospitality','Telecom','Automobile','Other']
 
 export default function BDPipeline() {
   const router = useRouter()
-  const [appUser, setAppUser] = useState<any>(null)
   const [deals, setDeals] = useState<any[]>([])
-  const [users, setUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [editDeal, setEditDeal] = useState<any>(null)
-  const [filterStage, setFilterStage] = useState('All')
-  const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
   
-  const [form, setForm] = useState({ client_name:'', client_email:'', client_phone:'', client_company:'', client_industry:'', stage:'Lead', deal_value:'', notes:'', assigned_to:'', follow_up_date:'', candidate_name:'', position_role:'', client_address:'' })
+  const [form, setForm] = useState({
+    client_company:'', sector:'', city:'', state:'', additional_cities:'', pincode:'',
+    spoc_name:'', spoc_contact:'', spoc_email:'',
+    bd_name:'', bd_mobile:'',
+    fee_type:'Flat', flat_value:'', percentage_value:'',
+    stage:'Lead', remarks:''
+  })
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/'); return }
-      loadData(session.user)
+      loadData()
     })
   }, [router])
 
-  async function loadData(u: any) {
-    const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
-    setAppUser(au)
-    const { data: ds } = await supabase.from('bd_pipeline').select('*, assigned_user:app_users!bd_pipeline_assigned_to_fkey(full_name)').order('created_at', { ascending: false })
-    setDeals(ds || [])
-    const { data: us } = await supabase.from('app_users').select('id,full_name,role').in('role',['bd_manager','bd_executive','recruiter','admin','account_owner','individual_bd'])
-    setUsers(us || [])
+  async function loadData() {
+    setLoading(true)
+    const { data: ds, error } = await supabase.from('bd_pipeline').select('*').order('created_at', { ascending: false })
+    if (!error) setDeals(ds || [])
     setLoading(false)
   }
 
-  function openAdd() { setEditDeal(null); setForm({ client_name:'', client_email:'', client_phone:'', client_company:'', client_industry:'', stage:'Lead', deal_value:'', notes:'', assigned_to:'', follow_up_date:'', candidate_name:'', position_role:'', client_address:'' }); setShowModal(true) }
-
-  function openEdit(d: any) { setEditDeal(d); setForm({ client_name: d.client_name||'', client_email: d.client_email||'', client_phone: d.client_phone||'', client_company: d.client_company||'', client_industry: d.client_industry||'', stage: d.stage||'Lead', deal_value: d.deal_value||'', notes: d.notes||'', assigned_to: d.assigned_to||'', follow_up_date: d.follow_up_date||'', candidate_name: d.candidate_name||'', position_role: d.position_role||'', client_address: d.client_address||'' }); setShowModal(true) }
-
-  async function saveDeal() {
-    if (!form.client_name.trim() || !form.client_company.trim()) return alert("Client Name aur Company zaroori hai!")
+  const saveDeal = async () => {
+    if (!form.client_company) return alert("Company Name is mandatory!")
     setSaving(true)
-    const payload = { client_name: form.client_name, client_email: form.client_email, client_phone: form.client_phone, client_company: form.client_company, client_industry: form.client_industry, stage: form.stage, deal_value: form.deal_value ? parseFloat(form.deal_value) : 0, notes: form.notes, assigned_to: form.assigned_to || null, follow_up_date: form.follow_up_date || null, company_id: appUser?.company_id || null, created_by: appUser?.id, candidate_name: form.candidate_name, position_role: form.position_role, client_address: form.client_address }
-    if (editDeal) { await supabase.from('bd_pipeline').update(payload).eq('id', editDeal.id) } 
-    else { await supabase.from('bd_pipeline').insert(payload) }
-    setSaving(false); setShowModal(false); loadData({ id: appUser.id })
+    const { error } = await supabase.from('bd_pipeline').insert([form])
+    if (error) alert("Error saving: " + error.message)
+    setSaving(false); setShowModal(false); loadData();
   }
 
   async function updateStage(id: string, stage: string) {
-    await supabase.from('bd_pipeline').update({ stage }).eq('id', id)
-    setDeals(prev => prev.map(d => d.id === id ? { ...d, stage } : d))
+    const { error } = await supabase.from('bd_pipeline').update({ stage }).eq('id', id)
+    if (!error) {
+      setDeals(prev => prev.map(d => d.id === id ? { ...d, stage } : d))
+    } else {
+      alert("Update failed: " + error.message)
+    }
   }
 
-  async function deleteDeal(id: string) {
-    if (!confirm('Delete this deal?')) return
-    await supabase.from('bd_pipeline').delete().eq('id', id)
-    setDeals(prev => prev.filter(d => d.id !== id))
-  }
-
-  const filtered = deals.filter(d => {
-    const matchStage = filterStage === 'All' || d.stage === filterStage
-    const matchSearch = !search || d.client_name?.toLowerCase().includes(search.toLowerCase()) || d.client_company?.toLowerCase().includes(search.toLowerCase())
-    return matchStage && matchSearch
-  })
-
-  const S: any = {
-    page: { minHeight:'100vh', background:'var(--bg)', color:'var(--tx)', fontFamily:'Outfit,sans-serif' },
-    nav: { background:'var(--nb)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky' as any, top:0, zIndex:50 },
-    card: { background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:12, padding:'20px' },
-    btn: { background:'#3dd68c', color:'#000', border:'none', borderRadius:8, padding:'10px 20px', fontSize:14, fontWeight:700, cursor:'pointer' },
-    inp: { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', fontSize:13, color:'var(--tx)', outline:'none', marginBottom:10 },
-    lbl: { fontSize:11, color:'var(--mu)', marginBottom:4, display:'block', fontWeight:600, textTransform:'uppercase' as any, letterSpacing:'0.8px' },
-  }
-
-  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)'}}>Loading BD Pipeline...</div>
+  if (loading) return <div style={{padding:50, background:'#0f1115', color:'#3dd68c', minHeight:'100vh'}}>Loading Enterprise ERP...</div>
 
   return (
-    <div style={S.page}>
+    <div style={{minHeight:'100vh', background:'#0f1115', color:'#e2e8f0', fontFamily:'Outfit, sans-serif'}}>
       <DashboardNav />
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
-
-      <div style={{maxWidth:1300,margin:'0 auto',padding:'24px 20px'}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
-          <div><h1 style={{margin:0,fontSize:24}}>BD Pipeline</h1></div> 
-          <button onClick={openAdd} style={S.btn}>+ Add New Deal</button>
+      <div style={{maxWidth:1400, margin:'0 auto', padding:'30px 20px'}}>
+        
+        <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:30}}>
+          <div>
+            <h1 style={{margin:0, fontSize:28, fontWeight:700, color:'#fff'}}>BD Mandates & Clients</h1>
+            <p style={{margin:5, color:'#94a3b8', fontSize:14}}>Manage company onboarding, SPOC details, and commercials.</p>
+          </div>
+          <button onClick={() => setShowModal(true)} style={{background:'#3dd68c', color:'#000', padding:'12px 28px', borderRadius:10, fontWeight:700, border:'none', cursor:'pointer', boxShadow:'0 4px 15px rgba(61,214,140,0.3)'}}>+ New Mandate</button>
         </div>
 
-        <div style={S.card}>
-          <div style={{overflowX:'auto' as any}}>
-            <table style={{width:'100%',borderCollapse:'collapse' as any,fontSize:13}}>
-              <thead>
-                <tr style={{borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-                  {['Client','Stage','Actions'].map(h=><th key={h} style={{textAlign:'left',padding:'8px 10px',color:'var(--mu2)'}}>{h}</th>)}
+        <div style={{background:'#1a1d24', borderRadius:16, overflow:'hidden', border:'1px solid #2d333d', boxShadow:'0 10px 30px rgba(0,0,0,0.2)'}}>
+          <table style={{width:'100%', borderCollapse:'collapse', textAlign:'left'}}>
+            <thead>
+              <tr style={{background:'#252932', color:'#94a3b8', fontSize:11, textTransform:'uppercase', letterSpacing:'1px'}}>
+                <th style={{padding:15}}>Company & Location</th>
+                <th style={{padding:15}}>SPOC Details</th>
+                <th style={{padding:15}}>Commercials</th>
+                <th style={{padding:15}}>BD Owner</th>
+                <th style={{padding:15}}>Stage</th>
+              </tr>
+            </thead>
+            <tbody>
+              {deals.map(d => (
+                <tr key={d.id} style={{borderBottom:'1px solid #2d333d', transition:'0.2s'}} onMouseEnter={e=>e.currentTarget.style.background='#22262f'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                  <td style={{padding:15}}>
+                    <div style={{fontWeight:700, color:'#fff', fontSize:14}}>{d.client_company}</div>
+                    <div style={{fontSize:11, color:'#64748b', marginTop:3}}>{d.city}, {d.state} {d.additional_cities && `| +${d.additional_cities}`}</div>
+                  </td>
+                  <td style={{padding:15}}>
+                    <div style={{fontSize:13}}>{d.spoc_name}</div>
+                    <div style={{fontSize:11, color:'#64748b'}}>{d.spoc_contact}</div>
+                  </td>
+                  <td style={{padding:15}}>
+                    <div style={{color:'#ffd60a', fontWeight:600}}>{d.fee_type === 'Flat' ? `₹${Number(d.flat_value).toLocaleString()}` : `${d.percentage_value}% of CTC`}</div>
+                    <div style={{fontSize:10, color:'#64748b'}}>{d.sector}</div>
+                  </td>
+                  <td style={{padding:15, fontSize:13}}>{d.bd_name}</td>
+                  <td style={{padding:15}}>
+                    <select value={d.stage} onChange={e => updateStage(d.id, e.target.value)} style={{background:'#0f1115', color: d.stage === 'Won' ? '#3dd68c' : '#fff', border:'1px solid #333', padding:'6px 10px', borderRadius:6, fontSize:12, fontWeight:600, cursor:'pointer'}}>
+                      {STAGES.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map(d => (
-                  <tr key={d.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                    <td style={{padding:'10px'}}>{d.client_company || d.client_name}</td>
-                    <td style={{padding:'10px'}}>
-                      <select value={d.stage} onChange={e=>updateStage(d.id,e.target.value)} style={{background:'#22262f',color:'#fff',padding:'4px 8px',borderRadius:6}}>
-                        {STAGES.map(s=><option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </td>
-                    <td style={{padding:'10px'}}>
-                      <button onClick={()=>openEdit(d)} style={{background:'transparent',color:'#6c8cff',border:'none',cursor:'pointer'}}>Edit</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
+          {deals.length === 0 && <div style={{padding:50, textAlign:'center', color:'#64748b'}}>No mandates found. Start by adding a new one.</div>}
         </div>
       </div>
 
       {showModal && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.8)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
-          <div style={{background:'var(--bg2)',padding:28,borderRadius:16,width:'100%',maxWidth:500}}>
-            <h2>{editDeal ? 'Edit Deal' : '+ Add Deal'}</h2>
-            <input placeholder="Client Name" value={form.client_name} onChange={e=>setForm(p=>({...p,client_name:e.target.value}))} style={S.inp} />
-            <input placeholder="Company Name" value={form.client_company} onChange={e=>setForm(p=>({...p,client_company:e.target.value}))} style={S.inp} />
-            <button onClick={saveDeal} disabled={saving} style={{...S.btn, width:'100%', marginTop:10}}>{saving ? 'Saving...' : 'Save'}</button>
-            <button onClick={()=>setShowModal(false)} style={{width:'100%',marginTop:10,background:'transparent',border:'1px solid gray',color:'white',padding:'10px',borderRadius:8}}>Cancel</button>
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.85)', backdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20}}>
+          <div style={{background:'#1a1d24', padding:35, borderRadius:20, width:'100%', maxWidth:900, maxHeight:'90vh', overflowY:'auto', border:'1px solid #3dd68c33'}}>
+            <div style={{display:'flex', justifyContent:'space-between', marginBottom:25}}>
+              <h2 style={{margin:0, color:'#3dd68c'}}>New Client Mandate Form</h2>
+              <button onClick={() => setShowModal(false)} style={{background:'none', border:'none', color:'#64748b', fontSize:20, cursor:'pointer'}}>✕</button>
+            </div>
+            
+            <div style={{display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:20}}>
+               <div style={{gridColumn:'span 2'}}>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>COMPANY NAME *</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="e.g. Reliance Industries" value={form.client_company} onChange={e=>setForm({...form, client_company:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>SECTOR</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="e.g. IT/Manufacturing" value={form.sector} onChange={e=>setForm({...form, sector:e.target.value})} />
+               </div>
+
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>PRIMARY CITY</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="Mumbai" value={form.city} onChange={e=>setForm({...form, city:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>STATE</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="Maharashtra" value={form.state} onChange={e=>setForm({...form, state:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>PINCODE</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="400001" value={form.pincode} onChange={e=>setForm({...form, pincode:e.target.value})} />
+               </div>
+
+               <div style={{gridColumn:'span 3'}}>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>ADDITIONAL RECRUITMENT CITIES</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="Pune, Bangalore, Delhi (Comma separated)" value={form.additional_cities} onChange={e=>setForm({...form, additional_cities:e.target.value})} />
+               </div>
+
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>SPOC NAME</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="HR Manager Name" value={form.spoc_name} onChange={e=>setForm({...form, spoc_name:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>SPOC CONTACT</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="Phone Number" value={form.spoc_contact} onChange={e=>setForm({...form, spoc_contact:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>SPOC EMAIL</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="hr@company.com" value={form.spoc_email} onChange={e=>setForm({...form, spoc_email:e.target.value})} />
+               </div>
+
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>BD OWNER</label>
+                 <input style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder="Your Name" value={form.bd_name} onChange={e=>setForm({...form, bd_name:e.target.value})} />
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>FEE STRUCTURE</label>
+                 <select style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} value={form.fee_type} onChange={e=>setForm({...form, fee_type:e.target.value})}>
+                   <option value="Flat">Flat Fee (₹)</option>
+                   <option value="Percentage">Percentage (% of CTC)</option>
+                 </select>
+               </div>
+               <div>
+                 <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>COMMERCIAL VALUE</label>
+                 <input type="number" style={{width:'100%', padding:12, background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff'}} placeholder={form.fee_type === 'Flat' ? "50000" : "8.33"} value={form.fee_type === 'Flat' ? form.flat_value : form.percentage_value} onChange={e => setForm({...form, [form.fee_type === 'Flat' ? 'flat_value' : 'percentage_value']: e.target.value})} />
+               </div>
+            </div>
+            
+            <div style={{marginTop:20}}>
+              <label style={{fontSize:11, color:'#94a3b8', display:'block', marginBottom:8}}>AGREEMENT TERMS / REMARKS</label>
+              <textarea style={{width:'100%', background:'#0f1115', border:'1px solid #2d333d', borderRadius:8, color:'#fff', padding:12}} rows={3} placeholder="Add any special conditions or remarks..." value={form.remarks} onChange={e=>setForm({...form, remarks:e.target.value})} />
+            </div>
+            
+            <div style={{marginTop:30, display:'flex', gap:15}}>
+              <button onClick={() => setShowModal(false)} style={{flex:1, background:'transparent', border:'1px solid #2d333d', color:'#fff', padding:15, borderRadius:10, cursor:'pointer'}}>Cancel</button>
+              <button onClick={saveDeal} disabled={saving} style={{flex:2, background:'#3dd68c', color:'#000', border:'none', padding:15, borderRadius:10, fontWeight:700, cursor:'pointer'}}>{saving ? 'Saving...' : 'Confirm & Save Mandate'}</button>
+            </div>
           </div>
         </div>
       )}
