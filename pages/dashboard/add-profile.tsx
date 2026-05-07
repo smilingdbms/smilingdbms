@@ -3,20 +3,19 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
-// --- DATA CONSTANTS ---
 const indianLocations = {
-  "Delhi": ["New Delhi", "Dwarka", "Rohini"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane", "Navi Mumbai"], "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"], "Telangana": ["Hyderabad", "Warangal"], "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli"], "Uttar Pradesh": ["Noida", "Greater Noida", "Ghaziabad", "Lucknow", "Kanpur", "Agra", "Varanasi"], "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala"], "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Siliguri"], "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"], "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota"], "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"], "Punjab": ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar"], "Madhya Pradesh": ["Indore", "Bhopal", "Gwalior", "Jabalpur"], "Bihar": ["Patna", "Gaya"], "Odisha": ["Bhubaneswar", "Cuttack"], "Assam": ["Guwahati"]
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"], "Assam": ["Guwahati", "Silchar"], "Bihar": ["Patna", "Gaya"], "Chandigarh": ["Chandigarh"], "Delhi": ["New Delhi", "Dwarka", "Rohini"], "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"], "Haryana": ["Gurugram", "Faridabad", "Panipat"], "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"], "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"], "Madhya Pradesh": ["Indore", "Bhopal", "Gwalior"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Navi Mumbai"], "Odisha": ["Bhubaneswar", "Cuttack"], "Punjab": ["Ludhiana", "Amritsar", "Jalandhar"], "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"], "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"], "Telangana": ["Hyderabad", "Warangal"], "Uttar Pradesh": ["Noida", "Greater Noida", "Ghaziabad", "Lucknow", "Kanpur"], "West Bengal": ["Kolkata", "Howrah"]
 };
+const allCities = Object.values(indianLocations).flat();
 
-const rolesList = ["Software Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer", "QA Engineer", "DevOps Engineer", "Data Scientist", "Data Analyst", "Machine Learning Engineer", "Product Manager", "Project Manager", "Scrum Master", "UI/UX Designer", "Graphic Designer", "HR Executive", "HR Manager", "Talent Acquisition Specialist", "IT Recruiter", "Business Development Executive", "Business Development Manager", "Sales Executive", "Sales Manager", "Marketing Executive", "Digital Marketing Specialist", "SEO Specialist", "Content Writer", "Financial Analyst", "Accountant", "Operations Manager", "Customer Support Executive", "Technical Support Engineer", "System Administrator", "Network Engineer", "Other"];
+const rolesList = ["Software Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer", "Mobile App Developer", "QA Engineer", "Automation Tester", "DevOps Engineer", "Cloud Architect", "Data Scientist", "Data Analyst", "Data Engineer", "Machine Learning Engineer", "Product Manager", "Project Manager", "Scrum Master", "Business Analyst", "UI/UX Designer", "Graphic Designer", "HR Executive", "HR Manager", "Talent Acquisition", "IT Recruiter", "Non-IT Recruiter", "Business Development Executive", "Business Development Manager", "Sales Executive", "Sales Manager", "Marketing Executive", "Digital Marketing", "SEO Specialist", "Content Writer", "Financial Analyst", "Accountant", "Operations Executive", "Supply Chain Manager", "Customer Support", "Technical Support", "System Admin", "Network Engineer"];
 
-const industriesList = ["Information Technology (IT)", "Software Services", "Hardware & Networking", "Recruitment/Staffing", "Human Resources", "BPO/KPO", "Telecommunications", "E-Learning/EdTech", "Financial Services", "Banking", "Insurance", "E-commerce", "Retail", "Manufacturing", "Automobile", "Healthcare", "Pharmaceuticals", "Real Estate", "Construction", "Logistics/Supply Chain", "Travel/Tourism", "Media/Entertainment", "Advertising/PR", "FMCG", "Agriculture", "Energy/Power", "Consulting", "Other"];
+const industriesList = ["Information Technology (IT)", "Software Services", "Hardware & Networking", "Internet/E-commerce", "Recruitment/Staffing", "Human Resources", "BPO/KPO/ITES", "Telecommunications", "E-Learning/EdTech", "Education/Training", "Financial Services", "Banking", "Insurance", "Accounting/Auditing", "Retail", "FMCG", "Manufacturing", "Automobile", "Healthcare/Hospitals", "Pharmaceuticals", "Real Estate", "Construction/Engineering", "Logistics/Supply Chain", "Travel/Tourism", "Media/Entertainment", "Advertising/PR", "Agriculture/Dairy", "Energy/Power", "Consulting", "Legal"];
 
 const courseBranchMap = {
-  "B.Tech/B.E": ["Computer Science", "Information Technology", "Electronics & Communication", "Mechanical", "Civil", "Electrical", "Chemical", "Other"], "M.Tech/M.E": ["Computer Science", "VLSI", "Structural", "Thermal", "Other"], "BCA": ["General", "Cloud Computing", "Data Science"], "MCA": ["General", "Software Engineering", "AI"], "B.Sc": ["Computer Science", "IT", "Mathematics", "Physics", "Chemistry", "Biology", "Nursing", "Other"], "M.Sc": ["Computer Science", "IT", "Mathematics", "Physics", "Chemistry", "Other"], "BBA": ["General", "HR", "Finance", "Marketing", "International Business"], "MBA/PGDM": ["Human Resources", "Marketing", "Finance", "Operations", "IT", "Supply Chain", "Other"], "B.Com": ["General", "Honours", "Accounting & Finance", "Taxation"], "M.Com": ["General", "Accounting", "Finance"], "BA": ["English", "History", "Economics", "Political Science", "Psychology", "Other"], "MA": ["English", "History", "Economics", "Political Science", "Other"], "Diploma": ["Mechanical", "Civil", "Electrical", "Computer Science", "Other"], "Ph.D": ["Engineering", "Science", "Arts", "Management"], "CA/CS/ICWA": ["General"], "LLB/LLM": ["General", "Corporate Law", "Criminal Law"], "MBBS/BDS": ["General Medicine", "Dental"], "B.Pharm/M.Pharm": ["General", "Pharmaceutics"], "B.Des/M.Des": ["Fashion", "Interior", "Graphic", "Industrial"], "B.Arch": ["Architecture"], "Other": ["General"]
+  "B.Tech/B.E": ["Computer Science", "IT", "Electronics", "Electrical", "Mechanical", "Civil", "Chemical", "Automobile", "Biotech"], "M.Tech/M.E": ["Computer Science", "VLSI", "Embedded", "Structural", "Thermal"], "BCA": ["General", "Cloud Computing", "AI"], "MCA": ["General", "Software Engineering"], "B.Sc": ["Computer Science", "IT", "Maths", "Physics", "Chemistry", "Biology", "Nursing", "Agriculture"], "M.Sc": ["Computer Science", "IT", "Data Science", "Maths"], "BBA": ["General", "HR", "Finance", "Marketing"], "MBA/PGDM": ["HR", "Marketing", "Finance", "Operations", "IT", "Supply Chain"], "B.Com": ["General", "Honours", "Accounting"], "M.Com": ["General", "Finance"], "BA": ["English", "History", "Economics", "Pol Science"], "MA": ["English", "History", "Economics"], "Diploma": ["Mechanical", "Civil", "Electrical", "CS"], "CA": ["General"], "CS": ["General"], "LLB": ["General", "Corporate"], "MBBS": ["General Medicine"], "B.Pharm": ["General"], "B.Des": ["Fashion", "Interior", "Graphic"], "B.Arch": ["Architecture"], "Other": ["General"]
 };
 
-// --- SMART MULTI-SELECT COMPONENT ---
 const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
   const [inputValue, setInputValue] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -45,7 +44,7 @@ const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
       <input value={inputValue} onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''} style={{ flex: 1, minWidth: '150px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', padding: '4px' }} />
       {showDropdown && (inputValue || options.length > 0) && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add</div>)}
         </div>
       )}
     </div>
@@ -57,18 +56,17 @@ export default function AddProfile() {
   const [saving, setSaving] = useState(false);
   const cvInputRef = useRef(null);
 
-  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', currentLoc: '', prefLoc: [], gender: '', dob: '', expYears: '0', expMonths: '0', ctcLakhs: '', ctcThousand: '', notice: '' });
+  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', currentLoc: '', prefLoc: [], gender: '', dob: '', expYears: '0', expMonths: '0', ctcLakhs: '', ctcThousand: '', expCtcLakhs: '', expCtcThousand: '', notice: '' });
   const [professional, setProfessional] = useState({ headline: '', summary: '', skills: [] });
   const [preferences, setPreferences] = useState({ role: '', industry: '', empType: '', workMode: '' });
   
-  const [employments, setEmployments] = useState([{ company: '', designation: '', start: '', end: '', current: false, details: '' }]);
+  const [employments, setEmployments] = useState([{ company: '', designation: '', start: '', end: '', current: false, achievements: '' }]);
   const [educations, setEducations] = useState([{ course: '', branch: '', institute: '', year: '' }]);
   
   const [uploadedCVName, setUploadedCVName] = useState("");
   const [cvUrl, setCvUrl] = useState("");
 
-  const allCities = Object.values(indianLocations).flat();
-  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Lead Generation', 'Client Acquisition', 'B2B Sales', 'CRM'];
+  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Java', 'AWS', 'Lead Generation', 'Client Acquisition', 'B2B Sales', 'CRM', 'Cold Calling', 'Negotiation'];
 
   const handleCVUpload = async (e) => {
     const file = e.target.files[0];
@@ -77,7 +75,7 @@ export default function AddProfile() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('/api/cv-parser-core', { method: 'POST', body: formData });
+      const res = await fetch('/api/parse-cv', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
@@ -89,13 +87,19 @@ export default function AddProfile() {
   };
 
   const handleSave = async () => {
-    if (!basic.name || !basic.mobile) return alert("Full Name and Mobile Number are required!");
+    if (!basic.name || !basic.mobile) return alert("Full Name and Mobile Number are required.");
     setSaving(true);
+    
+    const cleanEmp = employments.filter(e => e.company || e.designation);
+    const cleanEdu = educations.filter(e => e.course || e.institute);
+
     const { error } = await supabase.from('placements').insert([{
       candidate_name: basic.name, candidate_mobile: basic.mobile, candidate_email: basic.email, gender: basic.gender, location: basic.currentLoc, pref_location: basic.prefLoc.join(', '), dob: basic.dob, experience: `${basic.expYears}.${basic.expMonths}`,
-      current_ctc: (parseInt(basic.ctcLakhs || 0)*100000 + parseInt(basic.ctcThousand || 0)*1000) || null, notice_period: basic.notice, headline: professional.headline, summary: professional.summary, skills: professional.skills.join(', '),
-      employments, educations, preferences, resume_url: cvUrl, status: 'New'
+      current_ctc: (parseInt(basic.ctcLakhs || 0)*100000 + parseInt(basic.ctcThousand || 0)*1000) || null, expected_ctc: (parseInt(basic.expCtcLakhs || 0)*100000 + parseInt(basic.expCtcThousand || 0)*1000) || null, notice_period: basic.notice,
+      headline: professional.headline, summary: professional.summary, skills: professional.skills.join(', '),
+      employments: cleanEmp, educations: cleanEdu, resume_url: cvUrl, status: 'New'
     }]);
+    
     if (error) alert("Database Error: " + error.message); else router.push('/dashboard');
     setSaving(false);
   };
@@ -121,7 +125,6 @@ export default function AddProfile() {
 
       <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
         
-        {/* PERSONAL DETAILS */}
         <div style={sectionStyle}>
           <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Personal Details</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
@@ -135,41 +138,44 @@ export default function AddProfile() {
                 {Object.keys(indianLocations).map(state => (<optgroup key={state} label={state}>{indianLocations[state].map(city => <option key={city} value={city}>{city}</option>)}</optgroup>))}
               </select>
             </div>
-            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Preferred Locations (Multi-Select)</label><SmartMultiSelect options={allCities} selected={basic.prefLoc} onChange={(val) => setBasic({...basic, prefLoc: val})} placeholder="Select multiple cities..." /></div>
+            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Preferred Cities (Multi-Select)</label><SmartMultiSelect options={allCities} selected={basic.prefLoc} onChange={(val) => setBasic({...basic, prefLoc: val})} placeholder="Type & select multiple cities..." /></div>
             
             <div><label style={labelStyle}>Gender</label><select style={inputStyle} value={basic.gender} onChange={e=>setBasic({...basic, gender: e.target.value})}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
             <div><label style={labelStyle}>Date of Birth</label><input type="date" style={inputStyle} value={basic.dob} onChange={e=>setBasic({...basic, dob: e.target.value})} /></div>
             <div><label style={labelStyle}>Total Experience</label><div style={{display:'flex', gap:'10px'}}><select style={inputStyle} value={basic.expYears} onChange={e=>setBasic({...basic, expYears: e.target.value})}>{Array.from({length:30},(_,i)=><option key={i} value={i}>{i} Yrs</option>)}</select><select style={inputStyle} value={basic.expMonths} onChange={e=>setBasic({...basic, expMonths: e.target.value})}>{Array.from({length:12},(_,i)=><option key={i} value={i}>{i} Mos</option>)}</select></div></div>
             
-            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Current Salary (CTC) (Per Year)</label><div style={{display:'flex', gap:'10px'}}>
-              <select style={inputStyle} value={basic.ctcLakhs} onChange={e=>setBasic({...basic, ctcLakhs: e.target.value})}><option value="">Lakhs</option>{Array.from({length:100},(_,i)=><option key={i} value={i}>{i} Lakhs</option>)}</select>
-              <select style={inputStyle} value={basic.ctcThousand} onChange={e=>setBasic({...basic, ctcThousand: e.target.value})}><option value="">Thousands</option>{Array.from({length:20},(_,i)=><option key={i*5} value={i*5}>{i*5} Thousands</option>)}</select>
+            <div><label style={labelStyle}>Current Salary (CTC) (Per Year)</label><div style={{display:'flex', gap:'10px'}}>
+              <select style={inputStyle} value={basic.ctcLakhs} onChange={e=>setBasic({...basic, ctcLakhs: e.target.value})}><option value="">Lakhs</option>{Array.from({length:100},(_,i)=><option key={i} value={i}>{i} L</option>)}</select>
+              <select style={inputStyle} value={basic.ctcThousand} onChange={e=>setBasic({...basic, ctcThousand: e.target.value})}><option value="">Thousands</option>{Array.from({length:20},(_,i)=><option key={i*5} value={i*5}>{i*5} K</option>)}</select>
+            </div></div>
+            <div><label style={labelStyle}>Expected Salary (Per Year)</label><div style={{display:'flex', gap:'10px'}}>
+              <select style={inputStyle} value={basic.expCtcLakhs} onChange={e=>setBasic({...basic, expCtcLakhs: e.target.value})}><option value="">Lakhs</option>{Array.from({length:100},(_,i)=><option key={i} value={i}>{i} L</option>)}</select>
+              <select style={inputStyle} value={basic.expCtcThousand} onChange={e=>setBasic({...basic, expCtcThousand: e.target.value})}><option value="">Thousands</option>{Array.from({length:20},(_,i)=><option key={i*5} value={i*5}>{i*5} K</option>)}</select>
             </div></div>
             <div><label style={labelStyle}>Notice Period</label><select style={inputStyle} value={basic.notice} onChange={e=>setBasic({...basic, notice: e.target.value})}><option value="">Select</option><option>Immediate</option><option>15 Days</option><option>30 Days</option><option>60 Days</option><option>90+ Days</option></select></div>
           </div>
         </div>
 
-        {/* PROFESSIONAL */}
         <div style={sectionStyle}>
           <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Professional Details & Preferences</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Headline</label><input style={inputStyle} value={professional.headline} onChange={e=>setProfessional({...professional, headline: e.target.value})} /></div>
-            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Key Skills</label><SmartMultiSelect options={suggestedSkills} selected={professional.skills} onChange={(val) => setProfessional({...professional, skills: val})} placeholder="Type skill and press Enter..." /></div>
-            <div><label style={labelStyle}>Desired Role</label><select style={inputStyle} value={preferences.role} onChange={e=>setPreferences({...preferences, role: e.target.value})}><option value="">Select Role</option>{rolesList.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
-            <div><label style={labelStyle}>Preferred Industry</label><select style={inputStyle} value={preferences.industry} onChange={e=>setPreferences({...preferences, industry: e.target.value})}><option value="">Select Industry</option>{industriesList.map(i=><option key={i} value={i}>{i}</option>)}</select></div>
+            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Smart Key Skills</label><SmartMultiSelect options={suggestedSkills} selected={professional.skills} onChange={(val) => setProfessional({...professional, skills: val})} placeholder="Type skill and press Enter..." /></div>
+            <div><label style={labelStyle}>Desired Role</label><select style={inputStyle} value={preferences.role} onChange={e=>setPreferences({...preferences, role: e.target.value})}><option value="">Select</option>{rolesList.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+            <div><label style={labelStyle}>Preferred Industry</label><select style={inputStyle} value={preferences.industry} onChange={e=>setPreferences({...preferences, industry: e.target.value})}><option value="">Select</option>{industriesList.map(i=><option key={i} value={i}>{i}</option>)}</select></div>
             <div><label style={labelStyle}>Employment Type</label><select style={inputStyle} value={preferences.empType} onChange={e=>setPreferences({...preferences, empType: e.target.value})}><option value="">Select</option><option>Full Time</option><option>Contract</option><option>Freelance</option></select></div>
             <div><label style={labelStyle}>Work Mode</label><select style={inputStyle} value={preferences.workMode} onChange={e=>setPreferences({...preferences, workMode: e.target.value})}><option value="">Select</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div>
           </div>
         </div>
 
-        {/* INLINE EMPLOYMENT */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Employment History</h2>
-            <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false, details: '' }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add More Employment</button>
+            <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false, achievements: '' }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
           </div>
           {employments.map((emp, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151' }}>
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151', position: 'relative' }}>
+              {employments.length > 1 && <button onClick={() => setEmployments(employments.filter((_, i) => i !== idx))} style={{position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer'}}>✖</button>}
               <div><label style={labelStyle}>Company</label><input style={inputStyle} value={emp.company} onChange={e=>updateEmp(idx, 'company', e.target.value)} /></div>
               <div><label style={labelStyle}>Designation</label><input style={inputStyle} value={emp.designation} onChange={e=>updateEmp(idx, 'designation', e.target.value)} /></div>
               <div><label style={labelStyle}>Start Date</label><input type="month" style={inputStyle} value={emp.start} onChange={e=>updateEmp(idx, 'start', e.target.value)} /></div>
@@ -179,23 +185,23 @@ export default function AddProfile() {
           ))}
         </div>
 
-        {/* INLINE EDUCATION */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Education</h2>
-            <button type="button" onClick={() => setEducations([...educations, { course: '', branch: '', institute: '', year: '' }])} style={{ background: 'transparent', color: '#3dd68c', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add More Education</button>
+            <button type="button" onClick={() => setEducations([...educations, { course: '', branch: '', institute: '', year: '' }])} style={{ background: 'transparent', color: '#3dd68c', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
           </div>
           {educations.map((edu, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151' }}>
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151', position: 'relative' }}>
+              {educations.length > 1 && <button onClick={() => setEducations(educations.filter((_, i) => i !== idx))} style={{position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer'}}>✖</button>}
               <div><label style={labelStyle}>Course</label>
                 <select style={inputStyle} value={edu.course} onChange={e=>{updateEdu(idx, 'course', e.target.value); updateEdu(idx, 'branch', '');}}>
-                  <option value="">Select Course</option>
+                  <option value="">Select</option>
                   {Object.keys(courseBranchMap).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
-              <div><label style={labelStyle}>Branch/Specialization</label>
+              <div><label style={labelStyle}>Branch</label>
                 <select style={inputStyle} value={edu.branch} disabled={!edu.course} onChange={e=>updateEdu(idx, 'branch', e.target.value)}>
-                  <option value="">Select Branch</option>
+                  <option value="">Select</option>
                   {(courseBranchMap[edu.course] || []).map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
