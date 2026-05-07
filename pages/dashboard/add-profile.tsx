@@ -7,87 +7,167 @@ export default function AddProfile() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const cvInputRef = useRef(null);
+  const imgInputRef = useRef(null);
 
-  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', dob: '', gender: '', currentLoc: '', prefLoc: '', expYears: '0', expMonths: '0', ctcLakhs: '', ctcThousand: '', expCtcLakhs: '', expCtcThousand: '', notice: '' });
+  // States for all fields
+  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', dob: '', gender: '', currentLoc: '', prefLoc: '', experience: '', ctc: '', expected_ctc: '', notice: '' });
   const [professional, setProfessional] = useState({ headline: '', summary: '', skills: '' });
+  const [links, setLinks] = useState({ linkedin: '', github: '' });
+  const [profileImg, setProfileImg] = useState(null);
   const [uploadedCVName, setUploadedCVName] = useState("");
-  const [cvUrl, setCvUrl] = useState("");
 
-  const handleCVUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploadedCVName("AI is reading CV & Saving to Drive... ⏳");
-    setSaving(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/parse-cv', { method: 'POST', body: formData });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error);
+  // Modals state
+  const [showEmpModal, setShowEmpModal] = useState(false);
+  const [showEduModal, setShowEduModal] = useState(false);
+  const [employments, setEmployments] = useState([]);
+  const [educations, setEducations] = useState([]);
 
-      setCvUrl(data.cv_url);
-      setBasic(prev => ({ ...prev, name: data.name, mobile: data.mobile, email: data.email, currentLoc: data.location, expYears: data.experienceYears?.toString(), expMonths: data.experienceMonths?.toString(), ctcLakhs: data.ctcLakhs?.toString(), ctcThousand: data.ctcThousands?.toString(), notice: data.noticePeriod }));
-      setProfessional(prev => ({ ...prev, headline: data.headline, summary: data.summary, skills: data.skills }));
-      setUploadedCVName("✅ CV Auto-Fill Success!");
-    } catch (err) { alert("AI Error: " + err.message); setUploadedCVName("❌ Parsing Failed");
-    } finally { setSaving(false); }
-  };
+  // Form for Modals
+  const [empForm, setEmpForm] = useState({ company: '', designation: '', start: '', end: '', current: false });
+  const [eduForm, setEduForm] = useState({ level: '', institute: '', year: '', score: '' });
 
   const handleSave = async () => {
-    if(!basic.name || !basic.mobile) return alert("Name/Mobile required!");
+    if (!basic.name || !basic.mobile) return alert("Candidate Name and Mobile are mandatory!");
     setSaving(true);
+
     const { error } = await supabase.from('placements').insert([{
-      candidate_name: basic.name, candidate_mobile: basic.mobile, candidate_email: basic.email,
-      location: basic.currentLoc, experience: `${basic.expYears}.${basic.expMonths}`,
-      current_ctc: (parseInt(basic.ctcLakhs || 0)*100000 + parseInt(basic.ctcThousand || 0)*1000),
-      resume_url: cvUrl, status: 'New', headline: professional.headline, summary: professional.summary, skills: professional.skills
+      candidate_name: basic.name,
+      candidate_mobile: basic.mobile,
+      candidate_email: basic.email,
+      gender: basic.gender,
+      location: basic.currentLoc,
+      pref_location: basic.prefLoc,
+      dob: basic.dob,
+      experience: basic.experience,
+      current_ctc: basic.ctc,
+      expected_ctc: basic.expected_ctc,
+      notice_period: basic.notice,
+      headline: professional.headline,
+      summary: professional.summary,
+      skills: professional.skills,
+      linkedin_url: links.linkedin,
+      github_url: links.github,
+      employments: employments,
+      educations: educations,
+      status: 'New'
     }]);
-    if (error) alert(error.message); else router.push('/dashboard');
+
+    if (error) {
+      alert("Database Error: " + error.message);
+    } else {
+      alert("Profile Created Successfully!");
+      router.push('/dashboard');
+    }
     setSaving(false);
   };
 
-  const inputStyle = { width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '15px', borderRadius: '10px', fontSize: '14px', outline: 'none', colorScheme: 'dark' };
-  const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '800', color: '#9ca3af', marginBottom: '10px', letterSpacing: '1px' };
+  const addEmployment = () => {
+    setEmployments([...employments, empForm]);
+    setEmpForm({ company: '', designation: '', start: '', end: '', current: false });
+    setShowEmpModal(false);
+  };
+
+  const addEducation = () => {
+    setEducations([...educations, eduForm]);
+    setEduForm({ level: '', institute: '', year: '', score: '' });
+    setShowEduModal(false);
+  };
+
+  const inputStyle = { width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '14px', outline: 'none' };
+  const labelStyle = { display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' };
 
   return (
     <Layout>
-      <header style={{ padding: '25px 40px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0b0e14', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div><h1 style={{ color: '#fff', fontSize: '24px', margin: 0 }}>Add New Profile</h1><p style={{color: '#6b7280', fontSize: '12px', marginTop: '4px'}}>AI will automatically extract data from uploaded PDF.</p></div>
-        <div style={{ display: 'flex', gap: '15px' }}>
-          <button onClick={() => cvInputRef.current.click()} style={{ padding: '12px 25px', borderRadius: '10px', cursor: 'pointer', background: '#1f2937', color: '#3b82f6', border: '1px solid #3b82f6', fontWeight: '700' }}>{uploadedCVName || "📄 Upload CV (AI Fill)"}</button>
-          <button onClick={handleSave} disabled={saving} style={{ padding: '12px 35px', borderRadius: '10px', cursor: 'pointer', background: '#3dd68c', color: '#000', border: 'none', fontWeight: '800' }}>{saving ? "Processing..." : "Save Candidate"}</button>
+      <header style={{ padding: '20px 40px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0b0e14' }}>
+        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>New Profile</h1>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => cvInputRef.current.click()} style={{ background: '#1f2937', color: '#fff', border: '1px solid #374151', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer' }}>
+            {uploadedCVName || "📄 Upload CV (Auto-Fill)"}
+          </button>
+          <button onClick={handleSave} style={{ background: '#3dd68c', color: '#000', border: 'none', padding: '10px 30px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>
+            {saving ? "Saving..." : "Save & Build Profile"}
+          </button>
         </div>
       </header>
 
-      <input type="file" ref={cvInputRef} onChange={handleCVUpload} style={{ display: 'none' }} />
+      <input type="file" ref={cvInputRef} style={{ display: 'none' }} onChange={(e) => setUploadedCVName(e.target.files[0].name)} />
+      <input type="file" ref={imgInputRef} style={{ display: 'none' }} onChange={(e) => setProfileImg(URL.createObjectURL(e.target.files[0]))} />
 
-      <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 350px', gap: '30px' }}>
-        <div style={{ backgroundColor: '#111827', padding: '40px', borderRadius: '20px', border: '1px solid #1f2937' }}>
-          <h3 style={{color: '#fff', marginBottom: '30px', borderBottom: '1px solid #1f2937', paddingBottom: '15px'}}>Basic Information</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
-            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>FULL NAME *</label><input style={inputStyle} value={basic.name} onChange={e=>setBasic({...basic, name: e.target.value})} /></div>
-            <div><label style={labelStyle}>MOBILE NUMBER *</label><input style={inputStyle} value={basic.mobile} onChange={e=>setBasic({...basic, mobile: e.target.value})} /></div>
-            <div><label style={labelStyle}>EMAIL ID</label><input style={inputStyle} value={basic.email} onChange={e=>setBasic({...basic, email: e.target.value})} /></div>
-            <div><label style={labelStyle}>EXPERIENCE (YEARS & MONTHS)</label><div style={{display: 'flex', gap: '10px'}}><select style={inputStyle} value={basic.expYears} onChange={e=>setBasic({...basic, expYears: e.target.value})}>{Array.from({length: 25}, (_, i) => <option key={i} value={i}>{i} Yrs</option>)}</select><select style={inputStyle} value={basic.expMonths} onChange={e=>setBasic({...basic, expMonths: e.target.value})}>{Array.from({length: 12}, (_, i) => <option key={i} value={i}>{i} Mos</option>)}</select></div></div>
-            <div><label style={labelStyle}>NOTICE PERIOD</label><select style={inputStyle} value={basic.notice} onChange={e=>setBasic({...basic, notice: e.target.value})}><option value="">Select</option><option>Immediate</option><option>15 Days</option><option>30 Days</option><option>90 Days</option></select></div>
-            <div><label style={labelStyle}>CURRENT CTC (LAKHS / THOUSANDS)</label><div style={{display: 'flex', gap: '10px'}}><input style={inputStyle} placeholder="Lakhs" value={basic.ctcLakhs} onChange={e=>setBasic({...basic, ctcLakhs: e.target.value})} /><input style={inputStyle} placeholder="Thousands" value={basic.ctcThousand} onChange={e=>setBasic({...basic, ctcThousand: e.target.value})} /></div></div>
-            <div><label style={labelStyle}>DATE OF BIRTH</label><input type="date" style={inputStyle} value={basic.dob} onChange={e=>setBasic({...basic, dob: e.target.value})} /></div>
-          </div>
+      <div style={{ padding: '40px', display: 'flex', gap: '40px' }}>
+        <div style={{ flex: 1 }}>
+          <section style={{ background: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937', marginBottom: '30px' }}>
+            <h3 style={{ color: '#fff', marginBottom: '20px', borderBottom: '1px solid #374151', paddingBottom: '10px' }}>Basic Profile Information</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              <div style={{ gridColumn: '1 / span 2' }}>
+                <label style={labelStyle}>Full Name *</label>
+                <input style={inputStyle} value={basic.name} onChange={e => setBasic({ ...basic, name: e.target.value })} />
+              </div>
+              <div><label style={labelStyle}>Mobile Number *</label><input style={inputStyle} value={basic.mobile} onChange={e => setBasic({ ...basic, mobile: e.target.value })} /></div>
+              <div><label style={labelStyle}>Email ID</label><input style={inputStyle} value={basic.email} onChange={e => setBasic({ ...basic, email: e.target.value })} /></div>
+              <div><label style={labelStyle}>Current Location</label><input style={inputStyle} value={basic.currentLoc} onChange={e => setBasic({ ...basic, currentLoc: e.target.value })} /></div>
+              <div><label style={labelStyle}>Preferred Location</label><input style={inputStyle} value={basic.prefLoc} onChange={e => setBasic({ ...basic, prefLoc: e.target.value })} /></div>
+              <div><label style={labelStyle}>Total Experience</label><input style={inputStyle} value={basic.experience} onChange={e => setBasic({ ...basic, experience: e.target.value })} /></div>
+              <div><label style={labelStyle}>Notice Period</label><input style={inputStyle} value={basic.notice} onChange={e => setBasic({ ...basic, notice: e.target.value })} /></div>
+            </div>
+          </section>
+
+          <section style={{ background: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937' }}>
+            <h3 style={{ color: '#fff', marginBottom: '20px' }}>Professional Details</h3>
+            <label style={labelStyle}>Headline</label>
+            <input style={{ ...inputStyle, marginBottom: '20px' }} value={professional.headline} onChange={e => setProfessional({ ...professional, headline: e.target.value })} />
+            <label style={labelStyle}>Skills (Comma Separated)</label>
+            <textarea style={{ ...inputStyle, minHeight: '100px' }} value={professional.skills} onChange={e => setProfessional({ ...professional, skills: e.target.value })} />
+            
+            <div style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+              <button onClick={() => setShowEmpModal(true)} style={{ flex: 1, background: '#1f2937', color: '#fff', border: '1px solid #374151', padding: '15px', borderRadius: '10px', cursor: 'pointer' }}>+ Add Employment</button>
+              <button onClick={() => setShowEduModal(true)} style={{ flex: 1, background: '#1f2937', color: '#fff', border: '1px solid #374151', padding: '15px', borderRadius: '10px', cursor: 'pointer' }}>+ Add Education</button>
+            </div>
+          </section>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-          <div style={{ backgroundColor: '#111827', padding: '30px', borderRadius: '20px', border: '1px solid #1f2937', textAlign: 'center' }}>
-            <div style={{width: '100px', height: '100px', borderRadius: '50%', background: '#1f2937', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px'}}>👤</div>
-            <button style={{background: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer'}}>Upload Photo</button>
+        <div style={{ width: '350px' }}>
+          <div style={{ background: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937', textAlign: 'center', marginBottom: '30px' }}>
+            <div style={{ width: '120px', height: '120px', borderRadius: '60px', backgroundColor: '#1f2937', margin: '0 auto 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+              {profileImg ? <img src={profileImg} style={{ width: '100%' }} /> : <span style={{ fontSize: '40px' }}>👤</span>}
+            </div>
+            <button onClick={() => imgInputRef.current.click()} style={{ background: 'transparent', color: '#3dd68c', border: '1px solid #3dd68c', padding: '8px 20px', borderRadius: '8px', cursor: 'pointer' }}>Upload Photo</button>
           </div>
-          <div style={{ backgroundColor: '#111827', padding: '30px', borderRadius: '20px', border: '1px solid #1f2937' }}>
-            <label style={labelStyle}>HEADLINE</label>
-            <textarea style={{...inputStyle, height: '80px', resize: 'none'}} value={professional.headline} onChange={e=>setProfessional({...professional, headline: e.target.value})} />
-            <label style={labelStyle}>SKILLS</label>
-            <textarea style={{...inputStyle, height: '120px', resize: 'none'}} value={professional.skills} onChange={e=>setProfessional({...professional, skills: e.target.value})} />
+          
+          <div style={{ background: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937' }}>
+            <label style={labelStyle}>LinkedIn URL</label><input style={{ ...inputStyle, marginBottom: '15px' }} value={links.linkedin} onChange={e => setLinks({ ...links, linkedin: e.target.value })} />
+            <label style={labelStyle}>GitHub URL</label><input style={inputStyle} value={links.github} onChange={e => setLinks({ ...links, github: e.target.value })} />
           </div>
         </div>
       </div>
+
+      {/* MODALS */}
+      {showEmpModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#0b0e14', padding: '30px', borderRadius: '16px', width: '400px', border: '1px solid #374151' }}>
+            <h2 style={{ color: '#fff', marginBottom: '20px' }}>Add Employment</h2>
+            <input placeholder="Company Name" style={{ ...inputStyle, marginBottom: '10px' }} onChange={e => setEmpForm({ ...empForm, company: e.target.value })} />
+            <input placeholder="Designation" style={{ ...inputStyle, marginBottom: '10px' }} onChange={e => setEmpForm({ ...empForm, designation: e.target.value })} />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowEmpModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={addEmployment} style={{ flex: 1, background: '#3dd68c', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEduModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#0b0e14', padding: '30px', borderRadius: '16px', width: '400px', border: '1px solid #374151' }}>
+            <h2 style={{ color: '#fff', marginBottom: '20px' }}>Add Education</h2>
+            <input placeholder="Institute Name" style={{ ...inputStyle, marginBottom: '10px' }} onChange={e => setEduForm({ ...eduForm, institute: e.target.value })} />
+            <input placeholder="Degree/Course" style={{ ...inputStyle, marginBottom: '10px' }} onChange={e => setEduForm({ ...eduForm, course: e.target.value })} />
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setShowEduModal(false)} style={{ flex: 1, padding: '10px', borderRadius: '8px', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={addEducation} style={{ flex: 1, background: '#3dd68c', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Save</button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
