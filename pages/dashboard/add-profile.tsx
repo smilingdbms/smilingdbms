@@ -3,6 +3,20 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
+// --- DATA CONSTANTS ---
+const indianLocations = {
+  "Delhi": ["New Delhi", "Dwarka", "Rohini"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Thane", "Navi Mumbai"], "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"], "Telangana": ["Hyderabad", "Warangal"], "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli"], "Uttar Pradesh": ["Noida", "Greater Noida", "Ghaziabad", "Lucknow", "Kanpur", "Agra", "Varanasi"], "Haryana": ["Gurugram", "Faridabad", "Panipat", "Ambala"], "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Siliguri"], "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"], "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota"], "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"], "Punjab": ["Chandigarh", "Ludhiana", "Amritsar", "Jalandhar"], "Madhya Pradesh": ["Indore", "Bhopal", "Gwalior", "Jabalpur"], "Bihar": ["Patna", "Gaya"], "Odisha": ["Bhubaneswar", "Cuttack"], "Assam": ["Guwahati"]
+};
+
+const rolesList = ["Software Developer", "Frontend Developer", "Backend Developer", "Full Stack Developer", "QA Engineer", "DevOps Engineer", "Data Scientist", "Data Analyst", "Machine Learning Engineer", "Product Manager", "Project Manager", "Scrum Master", "UI/UX Designer", "Graphic Designer", "HR Executive", "HR Manager", "Talent Acquisition Specialist", "IT Recruiter", "Business Development Executive", "Business Development Manager", "Sales Executive", "Sales Manager", "Marketing Executive", "Digital Marketing Specialist", "SEO Specialist", "Content Writer", "Financial Analyst", "Accountant", "Operations Manager", "Customer Support Executive", "Technical Support Engineer", "System Administrator", "Network Engineer", "Other"];
+
+const industriesList = ["Information Technology (IT)", "Software Services", "Hardware & Networking", "Recruitment/Staffing", "Human Resources", "BPO/KPO", "Telecommunications", "E-Learning/EdTech", "Financial Services", "Banking", "Insurance", "E-commerce", "Retail", "Manufacturing", "Automobile", "Healthcare", "Pharmaceuticals", "Real Estate", "Construction", "Logistics/Supply Chain", "Travel/Tourism", "Media/Entertainment", "Advertising/PR", "FMCG", "Agriculture", "Energy/Power", "Consulting", "Other"];
+
+const courseBranchMap = {
+  "B.Tech/B.E": ["Computer Science", "Information Technology", "Electronics & Communication", "Mechanical", "Civil", "Electrical", "Chemical", "Other"], "M.Tech/M.E": ["Computer Science", "VLSI", "Structural", "Thermal", "Other"], "BCA": ["General", "Cloud Computing", "Data Science"], "MCA": ["General", "Software Engineering", "AI"], "B.Sc": ["Computer Science", "IT", "Mathematics", "Physics", "Chemistry", "Biology", "Nursing", "Other"], "M.Sc": ["Computer Science", "IT", "Mathematics", "Physics", "Chemistry", "Other"], "BBA": ["General", "HR", "Finance", "Marketing", "International Business"], "MBA/PGDM": ["Human Resources", "Marketing", "Finance", "Operations", "IT", "Supply Chain", "Other"], "B.Com": ["General", "Honours", "Accounting & Finance", "Taxation"], "M.Com": ["General", "Accounting", "Finance"], "BA": ["English", "History", "Economics", "Political Science", "Psychology", "Other"], "MA": ["English", "History", "Economics", "Political Science", "Other"], "Diploma": ["Mechanical", "Civil", "Electrical", "Computer Science", "Other"], "Ph.D": ["Engineering", "Science", "Arts", "Management"], "CA/CS/ICWA": ["General"], "LLB/LLM": ["General", "Corporate Law", "Criminal Law"], "MBBS/BDS": ["General Medicine", "Dental"], "B.Pharm/M.Pharm": ["General", "Pharmaceutics"], "B.Des/M.Des": ["Fashion", "Interior", "Graphic", "Industrial"], "B.Arch": ["Architecture"], "Other": ["General"]
+};
+
+// --- SMART MULTI-SELECT COMPONENT ---
 const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
   const [inputValue, setInputValue] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -27,11 +41,11 @@ const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
 
   return (
     <div ref={wrapperRef} style={{ position: 'relative', width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', borderRadius: '8px', minHeight: '48px', padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-      {selected.map((tag, idx) => (<span key={idx} style={{ backgroundColor: 'rgba(61, 214, 140, 0.15)', color: '#3dd68c', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>{tag} <span onClick={() => onChange(selected.filter(t => t !== tag))} style={{ cursor: 'pointer', color: '#fff' }}>×</span></span>))}
+      {selected.map((tag, idx) => (<span key={idx} style={{ backgroundColor: '#1f2937', color: '#60a5fa', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>{tag} <span onClick={() => onChange(selected.filter(t => t !== tag))} style={{ cursor: 'pointer', color: '#fff' }}>×</span></span>))}
       <input value={inputValue} onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''} style={{ flex: 1, minWidth: '150px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', padding: '4px' }} />
       {showDropdown && (inputValue || options.length > 0) && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}>
-          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '12px 15px', color: '#d1d5db', fontSize: '14px', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '12px 15px', color: '#9ca3af', fontSize: '14px', fontStyle: 'italic' }}>Press Enter to add custom skill</div>)}
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
         </div>
       )}
     </div>
@@ -43,37 +57,53 @@ export default function AddProfile() {
   const [saving, setSaving] = useState(false);
   const cvInputRef = useRef(null);
 
-  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', currentLoc: '', prefLoc: '', gender: '', dob: '', expYears: '0', expMonths: '0', ctcLakhs: '', ctcThousand: '', expCtcLakhs: '', expCtcThousand: '', notice: '' });
+  const [basic, setBasic] = useState({ name: '', mobile: '', email: '', currentLoc: '', prefLoc: [], gender: '', dob: '', expYears: '0', expMonths: '0', ctcLakhs: '', ctcThousand: '', notice: '' });
   const [professional, setProfessional] = useState({ headline: '', summary: '', skills: [] });
-  const [preferences, setPreferences] = useState({ role: '', industry: '', empType: '', shift: '', workMode: '' });
+  const [preferences, setPreferences] = useState({ role: '', industry: '', empType: '', workMode: '' });
+  
+  const [employments, setEmployments] = useState([{ company: '', designation: '', start: '', end: '', current: false, details: '' }]);
+  const [educations, setEducations] = useState([{ course: '', branch: '', institute: '', year: '' }]);
+  
   const [uploadedCVName, setUploadedCVName] = useState("");
   const [cvUrl, setCvUrl] = useState("");
 
-  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Lead Generation', 'Client Acquisition', 'Cold Calling', 'B2B Sales', 'CRM', 'LinkedIn Outreach'];
+  const allCities = Object.values(indianLocations).flat();
+  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Lead Generation', 'Client Acquisition', 'B2B Sales', 'CRM'];
 
   const handleCVUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploadedCVName("Reading with AI & Saving to Drive... ⏳");
+    setUploadedCVName("Parsing Data... ⏳");
     try {
       const formData = new FormData();
       formData.append('file', file);
-      // Targeting the new cache-bypassing endpoint
-      const res = await fetch('/api/process-resume', { method: 'POST', body: formData });
+      const res = await fetch('/api/cv-parser-core', { method: 'POST', body: formData });
       const data = await res.json();
       if (data.error) throw new Error(data.error);
 
       setCvUrl(data.cv_url);
-      setBasic(prev => ({ ...prev, name: data.name || prev.name, mobile: data.mobile || prev.mobile, email: data.email || prev.email, currentLoc: data.location || prev.currentLoc, expYears: data.experienceYears?.toString() || prev.expYears, notice: data.noticePeriod || prev.notice }));
+      setBasic(prev => ({ ...prev, name: data.name || prev.name, mobile: data.mobile || prev.mobile, email: data.email || prev.email, currentLoc: data.location || prev.currentLoc, expYears: data.experienceYears?.toString() || prev.expYears, ctcLakhs: data.ctcLakhs?.toString() || prev.ctcLakhs, notice: data.noticePeriod || prev.notice }));
       setProfessional(prev => ({ ...prev, headline: data.headline || prev.headline, summary: data.summary || prev.summary, skills: data.skills ? data.skills.split(',').map(s=>s.trim()) : prev.skills }));
-      setUploadedCVName("✅ CV Auto-Fill Success!");
-    } catch (err) { 
-      alert("Parsing Failed: " + err.message); 
-      setUploadedCVName("❌ Parsing Failed"); 
-    }
+      setUploadedCVName("✅ Parse Successful");
+    } catch (err) { alert("Parsing Error: " + err.message); setUploadedCVName("❌ Parsing Failed"); }
   };
 
-  const inputStyle = { width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '14px', borderRadius: '8px', fontSize: '14px', outline: 'none' };
+  const handleSave = async () => {
+    if (!basic.name || !basic.mobile) return alert("Full Name and Mobile Number are required!");
+    setSaving(true);
+    const { error } = await supabase.from('placements').insert([{
+      candidate_name: basic.name, candidate_mobile: basic.mobile, candidate_email: basic.email, gender: basic.gender, location: basic.currentLoc, pref_location: basic.prefLoc.join(', '), dob: basic.dob, experience: `${basic.expYears}.${basic.expMonths}`,
+      current_ctc: (parseInt(basic.ctcLakhs || 0)*100000 + parseInt(basic.ctcThousand || 0)*1000) || null, notice_period: basic.notice, headline: professional.headline, summary: professional.summary, skills: professional.skills.join(', '),
+      employments, educations, preferences, resume_url: cvUrl, status: 'New'
+    }]);
+    if (error) alert("Database Error: " + error.message); else router.push('/dashboard');
+    setSaving(false);
+  };
+
+  const updateEmp = (idx, field, val) => { const newEmp = [...employments]; newEmp[idx][field] = val; setEmployments(newEmp); };
+  const updateEdu = (idx, field, val) => { const newEdu = [...educations]; newEdu[idx][field] = val; setEducations(newEdu); };
+
+  const inputStyle = { width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '14px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '800', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' };
   const sectionStyle = { backgroundColor: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937', marginBottom: '30px' };
 
@@ -82,40 +112,99 @@ export default function AddProfile() {
       <header style={{ padding: '20px 40px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0b0e14' }}>
         <h1 style={{ color: '#fff', fontSize: '24px', margin: 0 }}>Create Candidate Profile</h1>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <button type="button" onClick={() => cvInputRef.current.click()} style={{ padding: '12px 24px', borderRadius: '8px', cursor: 'pointer', background: '#1f2937', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: '700' }}>{uploadedCVName || "📄 Upload CV (Auto-Fill)"}</button>
+          <button type="button" onClick={() => cvInputRef.current.click()} style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: '#1f2937', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 'bold' }}>{uploadedCVName || "📄 Upload CV & Parse"}</button>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: '10px 30px', borderRadius: '8px', cursor: 'pointer', background: '#3dd68c', color: '#000', border: 'none', fontWeight: 'bold' }}>{saving ? "Saving..." : "Save Profile"}</button>
         </div>
       </header>
 
       <input type="file" ref={cvInputRef} onChange={handleCVUpload} style={{ display: 'none' }} accept=".pdf,.doc,.docx" />
 
-      <div style={{ padding: '40px', maxWidth: '1000px', margin: '0 auto' }}>
+      <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
+        
+        {/* PERSONAL DETAILS */}
         <div style={sectionStyle}>
-          <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: '800', marginBottom: '25px', borderBottom: '1px solid #1f2937', paddingBottom: '15px' }}>Personal Details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Full Name</label><input style={inputStyle} value={basic.name} onChange={e=>setBasic({...basic, name: e.target.value})} /></div>
+          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Personal Details</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+            <div><label style={labelStyle}>Full Name</label><input style={inputStyle} value={basic.name} onChange={e=>setBasic({...basic, name: e.target.value})} /></div>
             <div><label style={labelStyle}>Mobile Number</label><input style={inputStyle} value={basic.mobile} onChange={e=>setBasic({...basic, mobile: e.target.value})} /></div>
             <div><label style={labelStyle}>Email ID</label><input style={inputStyle} value={basic.email} onChange={e=>setBasic({...basic, email: e.target.value})} /></div>
+            
+            <div><label style={labelStyle}>Current Location</label>
+              <select style={inputStyle} value={basic.currentLoc} onChange={e=>setBasic({...basic, currentLoc: e.target.value})}>
+                <option value="">Select Location</option>
+                {Object.keys(indianLocations).map(state => (<optgroup key={state} label={state}>{indianLocations[state].map(city => <option key={city} value={city}>{city}</option>)}</optgroup>))}
+              </select>
+            </div>
+            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Preferred Locations (Multi-Select)</label><SmartMultiSelect options={allCities} selected={basic.prefLoc} onChange={(val) => setBasic({...basic, prefLoc: val})} placeholder="Select multiple cities..." /></div>
+            
             <div><label style={labelStyle}>Gender</label><select style={inputStyle} value={basic.gender} onChange={e=>setBasic({...basic, gender: e.target.value})}><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+            <div><label style={labelStyle}>Date of Birth</label><input type="date" style={inputStyle} value={basic.dob} onChange={e=>setBasic({...basic, dob: e.target.value})} /></div>
+            <div><label style={labelStyle}>Total Experience</label><div style={{display:'flex', gap:'10px'}}><select style={inputStyle} value={basic.expYears} onChange={e=>setBasic({...basic, expYears: e.target.value})}>{Array.from({length:30},(_,i)=><option key={i} value={i}>{i} Yrs</option>)}</select><select style={inputStyle} value={basic.expMonths} onChange={e=>setBasic({...basic, expMonths: e.target.value})}>{Array.from({length:12},(_,i)=><option key={i} value={i}>{i} Mos</option>)}</select></div></div>
+            
+            <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>Current Salary (CTC) (Per Year)</label><div style={{display:'flex', gap:'10px'}}>
+              <select style={inputStyle} value={basic.ctcLakhs} onChange={e=>setBasic({...basic, ctcLakhs: e.target.value})}><option value="">Lakhs</option>{Array.from({length:100},(_,i)=><option key={i} value={i}>{i} Lakhs</option>)}</select>
+              <select style={inputStyle} value={basic.ctcThousand} onChange={e=>setBasic({...basic, ctcThousand: e.target.value})}><option value="">Thousands</option>{Array.from({length:20},(_,i)=><option key={i*5} value={i*5}>{i*5} Thousands</option>)}</select>
+            </div></div>
             <div><label style={labelStyle}>Notice Period</label><select style={inputStyle} value={basic.notice} onChange={e=>setBasic({...basic, notice: e.target.value})}><option value="">Select</option><option>Immediate</option><option>15 Days</option><option>30 Days</option><option>60 Days</option><option>90+ Days</option></select></div>
           </div>
         </div>
 
+        {/* PROFESSIONAL */}
         <div style={sectionStyle}>
-          <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: '800', marginBottom: '25px', borderBottom: '1px solid #1f2937', paddingBottom: '15px' }}>Professional Details</h2>
-          <div style={{ display: 'grid', gap: '20px' }}>
-            <div><label style={labelStyle}>Headline</label><input style={inputStyle} value={professional.headline} onChange={e=>setProfessional({...professional, headline: e.target.value})} /></div>
-            <div><label style={labelStyle}>Key Skills (Multi-Select)</label><SmartMultiSelect options={suggestedSkills} selected={professional.skills} onChange={(val) => setProfessional({...professional, skills: val})} placeholder="Type skill and press Enter..." /></div>
+          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Professional Details & Preferences</h2>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Headline</label><input style={inputStyle} value={professional.headline} onChange={e=>setProfessional({...professional, headline: e.target.value})} /></div>
+            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Key Skills</label><SmartMultiSelect options={suggestedSkills} selected={professional.skills} onChange={(val) => setProfessional({...professional, skills: val})} placeholder="Type skill and press Enter..." /></div>
+            <div><label style={labelStyle}>Desired Role</label><select style={inputStyle} value={preferences.role} onChange={e=>setPreferences({...preferences, role: e.target.value})}><option value="">Select Role</option>{rolesList.map(r=><option key={r} value={r}>{r}</option>)}</select></div>
+            <div><label style={labelStyle}>Preferred Industry</label><select style={inputStyle} value={preferences.industry} onChange={e=>setPreferences({...preferences, industry: e.target.value})}><option value="">Select Industry</option>{industriesList.map(i=><option key={i} value={i}>{i}</option>)}</select></div>
+            <div><label style={labelStyle}>Employment Type</label><select style={inputStyle} value={preferences.empType} onChange={e=>setPreferences({...preferences, empType: e.target.value})}><option value="">Select</option><option>Full Time</option><option>Contract</option><option>Freelance</option></select></div>
+            <div><label style={labelStyle}>Work Mode</label><select style={inputStyle} value={preferences.workMode} onChange={e=>setPreferences({...preferences, workMode: e.target.value})}><option value="">Select</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div>
           </div>
         </div>
 
+        {/* INLINE EMPLOYMENT */}
         <div style={sectionStyle}>
-          <h2 style={{ color: '#fff', fontSize: '20px', fontWeight: '800', marginBottom: '25px', borderBottom: '1px solid #1f2937', paddingBottom: '15px' }}>Preferred Job Details</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-            <div><label style={labelStyle}>Employment Type</label><select style={inputStyle} value={preferences.empType} onChange={e=>setPreferences({...preferences, empType: e.target.value})}><option value="">Select</option><option>Full Time</option><option>Contract</option><option>Freelance</option></select></div>
-            <div><label style={labelStyle}>Shift Preference</label><select style={inputStyle} value={preferences.shift} onChange={e=>setPreferences({...preferences, shift: e.target.value})}><option value="">Select</option><option>Day Shift</option><option>Night Shift</option><option>Flexible</option></select></div>
-            <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Work Mode</label><select style={inputStyle} value={preferences.workMode} onChange={e=>setPreferences({...preferences, workMode: e.target.value})}><option value="">Select</option><option>Remote</option><option>Hybrid</option><option>On-site</option></select></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
+            <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Employment History</h2>
+            <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false, details: '' }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add More Employment</button>
           </div>
+          {employments.map((emp, idx) => (
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151' }}>
+              <div><label style={labelStyle}>Company</label><input style={inputStyle} value={emp.company} onChange={e=>updateEmp(idx, 'company', e.target.value)} /></div>
+              <div><label style={labelStyle}>Designation</label><input style={inputStyle} value={emp.designation} onChange={e=>updateEmp(idx, 'designation', e.target.value)} /></div>
+              <div><label style={labelStyle}>Start Date</label><input type="month" style={inputStyle} value={emp.start} onChange={e=>updateEmp(idx, 'start', e.target.value)} /></div>
+              <div><label style={labelStyle}>End Date</label><input type="month" style={inputStyle} value={emp.end} disabled={emp.current} onChange={e=>updateEmp(idx, 'end', e.target.value)} /></div>
+              <div style={{ gridColumn: '1/-1' }}><label style={{color: '#d1d5db', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px'}}><input type="checkbox" checked={emp.current} onChange={e=>updateEmp(idx, 'current', e.target.checked)} /> Currently Working Here</label></div>
+            </div>
+          ))}
         </div>
+
+        {/* INLINE EDUCATION */}
+        <div style={sectionStyle}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
+            <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Education</h2>
+            <button type="button" onClick={() => setEducations([...educations, { course: '', branch: '', institute: '', year: '' }])} style={{ background: 'transparent', color: '#3dd68c', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add More Education</button>
+          </div>
+          {educations.map((edu, idx) => (
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '20px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151' }}>
+              <div><label style={labelStyle}>Course</label>
+                <select style={inputStyle} value={edu.course} onChange={e=>{updateEdu(idx, 'course', e.target.value); updateEdu(idx, 'branch', '');}}>
+                  <option value="">Select Course</option>
+                  {Object.keys(courseBranchMap).map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div><label style={labelStyle}>Branch/Specialization</label>
+                <select style={inputStyle} value={edu.branch} disabled={!edu.course} onChange={e=>updateEdu(idx, 'branch', e.target.value)}>
+                  <option value="">Select Branch</option>
+                  {(courseBranchMap[edu.course] || []).map(b => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div><label style={labelStyle}>Institute</label><input style={inputStyle} value={edu.institute} onChange={e=>updateEdu(idx, 'institute', e.target.value)} /></div>
+              <div><label style={labelStyle}>Year of Passing</label><input style={inputStyle} type="number" placeholder="YYYY" value={edu.year} onChange={e=>updateEdu(idx, 'year', e.target.value)} /></div>
+            </div>
+          ))}
+        </div>
+
       </div>
     </Layout>
   );
