@@ -1,31 +1,110 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 
+// --- CUSTOM SMART MULTI-SELECT COMPONENT ---
+const SmartMultiSelect = ({ options, selected, onChange, placeholder, allowCustom = true }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const wrapperRef = useRef(null);
+
+  const filteredOptions = options.filter(
+    (opt) => opt.toLowerCase().includes(inputValue.toLowerCase()) && !selected.includes(opt)
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowDropdown(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (val) => {
+    onChange([...selected, val]);
+    setInputValue('');
+    setShowDropdown(false);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && inputValue.trim() !== '') {
+      e.preventDefault();
+      const match = filteredOptions.find(o => o.toLowerCase() === inputValue.toLowerCase());
+      if (match) {
+        handleSelect(match);
+      } else if (allowCustom) {
+        handleSelect(inputValue.trim()); // Auto-learn new tag
+      }
+    }
+  };
+
+  const removeTag = (tagToRemove) => {
+    onChange(selected.filter((tag) => tag !== tagToRemove));
+  };
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', minHeight: '44px', padding: '4px 8px', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+      {selected.map((tag, idx) => (
+        <span key={idx} style={{ backgroundColor: 'rgba(61, 214, 140, 0.15)', color: '#3dd68c', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {tag} <span onClick={() => removeTag(tag)} style={{ cursor: 'pointer', color: '#fff' }}>×</span>
+        </span>
+      ))}
+      <input
+        value={inputValue}
+        onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }}
+        onFocus={() => setShowDropdown(true)}
+        onKeyDown={handleKeyDown}
+        placeholder={selected.length === 0 ? placeholder : ''}
+        style={{ flex: 1, minWidth: '120px', background: 'transparent', border: 'none', color: '#fff', fontSize: '13px', outline: 'none', padding: '6px' }}
+      />
+      {showDropdown && (inputValue || options.length > 0) && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.5)' }}>
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (
+            <div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#d1d5db', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#374151'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+              {opt}
+            </div>
+          )) : (
+            <div style={{ padding: '10px 15px', color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>
+              {allowCustom ? 'Press Enter to add this new option' : 'No matches found'}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// --- MAIN DASHBOARD COMPONENT ---
 export default function RebuiltDashboard() {
   const router = useRouter();
   const [candidates, setCandidates] = useState([]);
   
-  // Basic Filters
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Advanced Filters State & Panel Toggle
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  // Advanced Multi-Select Filters
   const [advFilters, setAdvFilters] = useState({
-    location: '',
-    industry: '',
-    education: '',
+    locations: [],
+    designations: [],
+    skills: [],
+    industries: [],
     gender: 'All',
-    designation: '',
-    skills: '',
-    company: '',
-    expMin: '',
-    expMax: '',
-    ctcMin: '',
-    ctcMax: '',
-    ageMin: '',
-    ageMax: ''
+    expMin: 'All',
+    expMax: 'All',
+    ctcMin: 'All',
+    ctcMax: 'All',
+    education: []
   });
+
+  // Standard Options Base (System will auto-add custom ones typed by user)
+  const cityOptions = ['Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur', 'Lucknow', 'Kanpur', 'Nagpur', 'Indore', 'Thane', 'Bhopal', 'Visakhapatnam', 'Pimpri-Chinchwad', 'Patna', 'Vadodara', 'Ghaziabad', 'Ludhiana', 'Agra', 'Nashik', 'Faridabad', 'Meerut', 'Rajkot', 'Kalyan-Dombivli', 'Vasai-Virar', 'Varanasi', 'Srinagar', 'Aurangabad', 'Dhanbad', 'Amritsar', 'Navi Mumbai', 'Allahabad', 'Howrah', 'Ranchi', 'Gwalior', 'Jabalpur', 'Coimbatore', 'Vijayawada', 'Jodhpur', 'Madurai', 'Raipur', 'Kota', 'Chandigarh', 'Guwahati', 'Solapur', 'Hubli-Dharwad', 'Bareilly', 'Moradabad', 'Mysore', 'Gurgaon', 'Aligarh', 'Jalandhar', 'Tiruchirappalli', 'Bhubaneswar', 'Salem', 'Warangal', 'Mira-Bhayandar', 'Thiruvananthapuram', 'Bhiwandi', 'Saharanpur', 'Guntur', 'Amravati', 'Bikaner', 'Noida', 'Jamshedpur', 'Bhilai', 'Cuttack', 'Firozabad', 'Kochi', 'Bhavnagar', 'Dehradun', 'Durgapur', 'Asansol', 'Nanded', 'Kolhapur', 'Ajmer', 'Gulbarga', 'Jamnagar', 'Ujjain', 'Loni', 'Siliguri', 'Jhansi', 'Ulhasnagar', 'Nellore', 'Jammu', 'Sangli-Miraj & Kupwad', 'Belgaum', 'Mangalore', 'Ambattur', 'Tirunelveli', 'Malegaon', 'Gaya', 'Jalgaon', 'Udaipur', 'Maheshtala'];
+  const skillOptions = ['React', 'Node.js', 'Python', 'Java', 'SQL', 'Sales', 'Business Development', 'Marketing', 'Figma', 'AWS'];
+  const desigOptions = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'HR Manager', 'Sales Executive', 'Project Manager'];
+  const indOptions = ['IT / Software', 'Banking / Finance', 'Healthcare', 'Manufacturing', 'EdTech', 'E-Commerce'];
+  const eduOptions = ['B.Tech / B.E.', 'MBA / PGDM', 'MCA', 'BCA', 'B.Sc', 'B.Com', 'Any Graduate'];
+
+  const expRanges = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '15', '20+'];
+  const ctcRanges = ['1L', '3L', '5L', '8L', '10L', '15L', '20L', '30L', '50L+'];
 
   useEffect(() => {
     async function loadData() {
@@ -36,32 +115,28 @@ export default function RebuiltDashboard() {
   }, []);
 
   const fallbackData = [
-    { id: '1', candidate_name: 'Rahul Sharma', candidate_mobile: '9876543210', designation: 'Frontend Developer', experience: '3.5', expected_ctc: '1200000', status: 'Interview Scheduled', location: 'Delhi', gender: 'Male' },
-    { id: '2', candidate_name: 'Priya Singh', candidate_mobile: '8765432109', designation: 'Backend Developer', experience: '5', expected_ctc: '1800000', status: 'Screening', location: 'Mumbai', gender: 'Female' },
-    { id: '3', candidate_name: 'Amit Kumar', candidate_mobile: '7654321098', designation: 'UI/UX Designer', experience: '2', expected_ctc: '800000', status: 'New', location: 'Pune', gender: 'Male' }
+    { id: '1', candidate_name: 'Rahul Sharma', candidate_mobile: '9876543210', designation: 'Frontend Developer', experience: '3', expected_ctc: '12', status: 'Interview Scheduled', location: 'Delhi', gender: 'Male', skills: 'React, Node.js' },
+    { id: '2', candidate_name: 'Priya Singh', candidate_mobile: '8765432109', designation: 'Backend Developer', experience: '5', expected_ctc: '18', status: 'Screening', location: 'Mumbai', gender: 'Female', skills: 'Python, AWS' },
+    { id: '3', candidate_name: 'Amit Kumar', candidate_mobile: '7654321098', designation: 'Sales Executive', experience: '2', expected_ctc: '8', status: 'New', location: 'Bhubaneswar', gender: 'Male', skills: 'Sales, Marketing' }
   ];
 
   const displayData = candidates.length > 0 ? candidates : fallbackData;
 
-  // Basic Filter Logic (Can be expanded as real DB columns are added)
   const filteredCandidates = displayData.filter(c => {
-    const matchesSearch = c.candidate_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.designation?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          c.candidate_mobile?.includes(searchTerm);
-                          
-    // Example of how advanced filters will hook in (using gender as test if it exists)
-    const matchesGender = advFilters.gender === 'All' ? true : c.gender === advFilters.gender;
-    
-    return matchesSearch && matchesGender;
+    const searchMatch = c.candidate_name?.toLowerCase().includes(searchTerm.toLowerCase()) || c.candidate_mobile?.includes(searchTerm);
+    return searchMatch;
   });
 
-  const handleAdvFilterChange = (e) => {
-    const { name, value } = e.target;
-    setAdvFilters(prev => ({ ...prev, [name]: value }));
+  const updateMultiFilter = (key, valArray) => {
+    setAdvFilters(prev => ({ ...prev, [key]: valArray }));
+  };
+
+  const updateFilter = (key, val) => {
+    setAdvFilters(prev => ({ ...prev, [key]: val }));
   };
 
   const clearAdvFilters = () => {
-    setAdvFilters({ location: '', industry: '', education: '', gender: 'All', designation: '', skills: '', company: '', expMin: '', expMax: '', ctcMin: '', ctcMax: '', ageMin: '', ageMax: '' });
+    setAdvFilters({ locations: [], designations: [], skills: [], industries: [], education: [], gender: 'All', expMin: 'All', expMax: 'All', ctcMin: 'All', ctcMax: 'All' });
   };
 
   return (
@@ -71,41 +146,23 @@ export default function RebuiltDashboard() {
       <aside style={{ width: '260px', backgroundColor: '#121822', borderRight: '1px solid #1f2937', display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto', position: 'fixed', zIndex: 50 }}>
         <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '36px', height: '36px', backgroundColor: '#3dd68c', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: '900', fontSize: '20px' }}>R</div>
-          <div>
-            <div style={{ fontSize: '20px', fontWeight: '800', color: '#fff', lineHeight: '1' }}>RecruitBase</div>
-            <div style={{ fontSize: '10px', color: '#8b949e', letterSpacing: '1px', marginTop: '4px' }}>RECRUITMENT OS</div>
-          </div>
+          <div><div style={{ fontSize: '20px', fontWeight: '800', color: '#fff', lineHeight: '1' }}>RecruitBase</div><div style={{ fontSize: '10px', color: '#8b949e', letterSpacing: '1px', marginTop: '4px' }}>RECRUITMENT OS</div></div>
         </div>
-
         <div style={{ padding: '0 20px 20px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #1f2937' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1e293b', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold', fontSize: '16px' }}>P</div>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Pravin</div>
-            <div style={{ fontSize: '12px', color: '#9ca3af' }}>Super Admin</div>
-            <div style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '700', marginTop: '2px' }}>⭐ 65 pts</div>
-          </div>
+          <div><div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Pravin</div><div style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '700' }}>⭐ 65 pts</div></div>
         </div>
-
         <nav style={{ flex: 1, padding: '10px 0' }}>
           <div style={{ padding: '10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>MAIN MENU</div>
           {[
             { name: 'Dashboard', icon: '📊', path: '/dashboard', active: true },
-            { name: 'Job Seekers', icon: '👥', path: '/dashboard/candidates' },
-            { name: 'Jobs', icon: '💼', path: '/dashboard/jobs' },
+            { name: 'Job Seekers', icon: '👥', path: '/dashboard' },
             { name: 'BD Pipeline', icon: '👔', path: '/dashboard/bd' },
             { name: 'Interviews', icon: '📅', path: '/dashboard/interviews' },
-            { name: 'Communications', icon: '💬', path: '/dashboard/communications' },
             { name: 'Placements', icon: '🏆', path: '/dashboard/placements' },
-            { name: 'Team Member', icon: '🛡️', path: '/dashboard/team' },
           ].map((item, i) => (
-            <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', margin: '2px 10px', borderRadius: '8px', cursor: 'pointer', backgroundColor: item.active ? 'rgba(61, 214, 140, 0.1)' : 'transparent', color: item.active ? '#3dd68c' : '#9ca3af', fontWeight: item.active ? '700' : '500', fontSize: '14px', transition: 'all 0.2s ease' }} onMouseOver={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; } }} onMouseOut={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}>
+            <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', margin: '2px 10px', borderRadius: '8px', cursor: 'pointer', backgroundColor: item.active ? 'rgba(61, 214, 140, 0.1)' : 'transparent', color: item.active ? '#3dd68c' : '#9ca3af', fontWeight: item.active ? '700' : '500', fontSize: '14px', transition: '0.2s' }} onMouseOver={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; } }} onMouseOut={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}>
               <span style={{ fontSize: '18px' }}>{item.icon}</span> {item.name}
-            </div>
-          ))}
-          <div style={{ padding: '20px 20px 10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>REPORTS</div>
-          {['Applications', 'Analytics', 'My Company'].map((name, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 20px', margin: '0 10px', cursor: 'pointer', color: '#9ca3af', fontSize: '14px', fontWeight: '500', borderRadius: '8px', transition: 'all 0.2s ease' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}>
-              <span style={{ fontSize: '16px' }}>📁</span> {name}
             </div>
           ))}
         </nav>
@@ -114,178 +171,141 @@ export default function RebuiltDashboard() {
       {/* MAIN CONTENT AREA */}
       <main style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column' }}>
         
-        {/* TOP HEADER */}
         <header style={{ height: '70px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', backgroundColor: '#0b0e14', position: 'sticky', top: 0, zIndex: 10 }}>
           <div style={{ display: 'flex', gap: '30px', height: '100%' }}>
             {['Dashboard', 'Jobs', 'Applications', 'Team'].map((tab, i) => (
-              <div key={tab} style={{ display: 'flex', alignItems: 'center', color: i === 0 ? '#3dd68c' : '#9ca3af', fontWeight: '600', fontSize: '14px', borderBottom: i === 0 ? '2px solid #3dd68c' : 'none', cursor: 'pointer', padding: '0 5px', transition: 'color 0.2s' }} onMouseOver={(e) => { if (i !== 0) e.currentTarget.style.color = '#fff'; }} onMouseOut={(e) => { if (i !== 0) e.currentTarget.style.color = '#9ca3af'; }}>
-                {tab}
-              </div>
+              <div key={tab} style={{ display: 'flex', alignItems: 'center', color: i === 0 ? '#3dd68c' : '#9ca3af', fontWeight: '600', fontSize: '14px', borderBottom: i === 0 ? '2px solid #3dd68c' : 'none', cursor: 'pointer', padding: '0 5px' }}>{tab}</div>
             ))}
           </div>
           <div style={{ display: 'flex', gap: '15px' }}>
-            <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#1f2937'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>Upload CV</button>
-            <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'} onMouseOut={(e) => e.currentTarget.style.opacity = '1'}>+ Add Profile</button>
+            <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
+            <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
           </div>
         </header>
 
-        {/* DASHBOARD BODY */}
         <div style={{ padding: '40px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px' }}>
             <div>
               <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Job Seekers</h1>
               <p style={{ color: '#9ca3af', fontSize: '14px' }}>Master database for all candidates and potential placements.</p>
             </div>
-            {/* COMPACT SEARCH & ADVANCED FILTER TOGGLE */}
             <div style={{ display: 'flex', gap: '12px' }}>
               <div style={{ position: 'relative', width: '300px' }}>
-                <input 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Quick search name, role..." 
-                  style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px 15px 10px 40px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} 
-                />
+                <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Quick search name, mobile..." style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px 15px 10px 40px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
                 <span style={{ position: 'absolute', left: '12px', top: '9px', fontSize: '14px' }}>🔍</span>
               </div>
-              <button 
-                onClick={() => setIsFilterOpen(true)}
-                style={{ backgroundColor: '#1f2937', color: '#fff', border: '1px solid #374151', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', transition: '0.2s' }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#374151'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
-              >
-                <span>⚙️</span> Advanced Filters
+              <button onClick={() => setIsFilterOpen(true)} style={{ backgroundColor: '#1f2937', color: '#3dd68c', border: '1px solid #3dd68c', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>⚡</span> Smart Filters
               </button>
             </div>
           </div>
 
-          {/* STATS CARDS */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '15px', marginBottom: '40px' }}>
-            {[
-              { label: 'TOTAL', count: displayData.length, color: '#3dd68c' },
-              { label: 'FRESHERS', count: 0, color: '#a855f7' },
-              { label: 'EXPERIENCED', count: displayData.length, color: '#f59e0b' },
-              { label: 'TEAM', count: 0, color: '#0ea5e9' },
-              { label: 'CLIENTS', count: 1, color: '#f43f5e' },
-              { label: 'SHORTLISTED', count: displayData.filter(c => c.status === 'Shortlisted').length || 1, color: '#10b981' },
-              { label: 'PLACED', count: 0, color: '#3dd68c' }
-            ].map((stat, i) => (
-              <div key={i} style={{ backgroundColor: '#111827', border: '1px solid #1f2937', padding: '24px 10px', borderRadius: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '900', color: stat.color, marginBottom: '8px' }}>{stat.count}</div>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px' }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* DATA TABLE */}
+          {/* TABLE */}
           <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ backgroundColor: '#1f2937', color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 <tr>
                   <th style={{ padding: '20px 24px' }}>NAME / CONTACT</th>
-                  <th>SEGMENT</th>
-                  <th>ROLE</th>
-                  <th>EXP</th>
-                  <th>CTC</th>
+                  <th>ROLE & SKILLS</th>
+                  <th>EXP / CTC</th>
+                  <th>LOCATION</th>
                   <th>STATUS</th>
                   <th style={{ textAlign: 'right', paddingRight: '24px' }}>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCandidates.length > 0 ? filteredCandidates.map((c) => (
-                  <tr key={c.id} style={{ borderBottom: '1px solid #1f2937', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                {filteredCandidates.map((c) => (
+                  <tr key={c.id} style={{ borderBottom: '1px solid #1f2937' }}>
                     <td style={{ padding: '20px 24px' }}>
                       <div style={{ fontWeight: '700', color: '#fff', fontSize: '15px' }}>{c.candidate_name}</div>
-                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ color: '#3dd68c' }}>📞</span> {c.candidate_mobile}
-                      </div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>📞 {c.candidate_mobile}</div>
                     </td>
-                    <td><span style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '#c084fc', padding: '6px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: '700' }}>EXPERIENCED</span></td>
-                    <td style={{ color: '#d1d5db', fontSize: '14px' }}>{c.designation || 'IT Developer'}</td>
-                    <td style={{ color: '#d1d5db', fontSize: '14px' }}>{c.experience || '3.5 Yrs'}</td>
-                    <td style={{ fontWeight: '800', color: '#fff', fontSize: '14px' }}>₹{c.expected_ctc || '12L'}</td>
+                    <td>
+                      <div style={{ color: '#d1d5db', fontSize: '14px', fontWeight: '600' }}>{c.designation || 'N/A'}</div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>{c.skills || 'React, SQL'}</div>
+                    </td>
+                    <td>
+                      <div style={{ color: '#d1d5db', fontSize: '14px' }}>{c.experience || '0'} Yrs</div>
+                      <div style={{ fontWeight: '800', color: '#fff', fontSize: '13px', marginTop: '4px' }}>₹{c.expected_ctc || '0'} LPA</div>
+                    </td>
+                    <td style={{ color: '#9ca3af', fontSize: '13px' }}>{c.location || 'Remote'}</td>
                     <td><span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#3dd68c', padding: '6px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>{c.status || 'New'}</span></td>
                     <td style={{ textAlign: 'right', paddingRight: '24px' }}>
-                      <button style={{ backgroundColor: '#1f2937', border: '1px solid #374151', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>View Detail →</button>
+                      <button style={{ backgroundColor: '#1f2937', border: 'none', color: '#fff', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '12px' }}>View Detail →</button>
                     </td>
                   </tr>
-                )) : (
-                  <tr><td colSpan="7" style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No candidates found.</td></tr>
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       </main>
 
-      {/* ADVANCED FILTERS SLIDE-OUT PANEL */}
+      {/* SMART ADVANCED FILTERS PANEL */}
       {isFilterOpen && (
         <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
-          <div style={{ width: '450px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
+          <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
             
-            {/* Panel Header */}
             <div style={{ padding: '24px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0 }}>Advanced Filters</h2>
+              <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span>⚡</span> Smart Filters</h2>
               <button onClick={() => setIsFilterOpen(false)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '24px', cursor: 'pointer' }}>×</button>
             </div>
 
-            {/* Filter Content */}
             <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* Professional Section */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#4b5563', letterSpacing: '1px', marginBottom: '12px' }}>PROFESSIONAL DETAILS</div>
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <input name="designation" value={advFilters.designation} onChange={handleAdvFilterChange} placeholder="Designation (e.g. Developer)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <input name="skills" value={advFilters.skills} onChange={handleAdvFilterChange} placeholder="Key Skills (e.g. React, Python)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <input name="industry" value={advFilters.industry} onChange={handleAdvFilterChange} placeholder="Industry (e.g. IT, Finance)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                </div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>LOCATIONS (T1, T2, T3)</div>
+                <SmartMultiSelect options={cityOptions} selected={advFilters.locations} onChange={(v) => updateMultiFilter('locations', v)} placeholder="Type city (e.g. Bhub...)" />
               </div>
 
-              {/* Experience & Salary Range */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#4b5563', letterSpacing: '1px', marginBottom: '12px' }}>EXPERIENCE & CTC</div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <input name="expMin" type="number" value={advFilters.expMin} onChange={handleAdvFilterChange} placeholder="Min Exp (Yrs)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <input name="expMax" type="number" value={advFilters.expMax} onChange={handleAdvFilterChange} placeholder="Max Exp (Yrs)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                  <input name="ctcMin" type="number" value={advFilters.ctcMin} onChange={handleAdvFilterChange} placeholder="Min CTC (₹)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <input name="ctcMax" type="number" value={advFilters.ctcMax} onChange={handleAdvFilterChange} placeholder="Max CTC (₹)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                </div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>KEY SKILLS (Auto-learn enabled)</div>
+                <SmartMultiSelect options={skillOptions} selected={advFilters.skills} onChange={(v) => updateMultiFilter('skills', v)} placeholder="Type skill & press Enter" />
               </div>
 
-              {/* Demographics & Education */}
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#4b5563', letterSpacing: '1px', marginBottom: '12px' }}>DEMOGRAPHICS & LOCATION</div>
-                <div style={{ display: 'grid', gap: '12px' }}>
-                  <input name="location" value={advFilters.location} onChange={handleAdvFilterChange} placeholder="Location / City" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <input name="education" value={advFilters.education} onChange={handleAdvFilterChange} placeholder="Education (e.g. B.Tech, MBA)" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <select name="gender" value={advFilters.gender} onChange={handleAdvFilterChange} style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#9ca3af', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}>
-                      <option value="All">All Genders</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>DESIGNATIONS</div>
+                <SmartMultiSelect options={desigOptions} selected={advFilters.designations} onChange={(v) => updateMultiFilter('designations', v)} placeholder="Type role..." />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EXPERIENCE (YRS)</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select value={advFilters.expMin} onChange={(e) => updateFilter('expMin', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}>
+                      <option value="All">Min</option>{expRanges.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input name="ageMin" type="number" value={advFilters.ageMin} onChange={handleAdvFilterChange} placeholder="Min Age" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                      <input name="ageMax" type="number" value={advFilters.ageMax} onChange={handleAdvFilterChange} placeholder="Max Age" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
-                    </div>
+                    <select value={advFilters.expMax} onChange={(e) => updateFilter('expMax', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}>
+                      <option value="All">Max</option>{expRanges.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>CTC (LPA)</div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select value={advFilters.ctcMin} onChange={(e) => updateFilter('ctcMin', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}>
+                      <option value="All">Min</option>{ctcRanges.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                    <select value={advFilters.ctcMax} onChange={(e) => updateFilter('ctcMax', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}>
+                      <option value="All">Max</option>{ctcRanges.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
                   </div>
                 </div>
               </div>
-              
-              {/* Company Specific */}
+
               <div>
-                <div style={{ fontSize: '12px', fontWeight: '800', color: '#4b5563', letterSpacing: '1px', marginBottom: '12px' }}>BD PIPELINE TARGET</div>
-                <input name="company" value={advFilters.company} onChange={handleAdvFilterChange} placeholder="Target Company" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px 15px', borderRadius: '8px', fontSize: '13px', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EDUCATION & INDUSTRY</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <SmartMultiSelect options={eduOptions} selected={advFilters.education} onChange={(v) => updateMultiFilter('education', v)} placeholder="Select Education..." />
+                  <SmartMultiSelect options={indOptions} selected={advFilters.industries} onChange={(v) => updateMultiFilter('industries', v)} placeholder="Select Industry..." />
+                </div>
               </div>
 
             </div>
 
-            {/* Panel Footer / Actions */}
             <div style={{ padding: '24px', borderTop: '1px solid #1f2937', display: 'flex', gap: '15px' }}>
-              <button onClick={clearAdvFilters} style={{ flex: 1, backgroundColor: 'transparent', color: '#f43f5e', border: '1px solid #f43f5e', padding: '12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Reset All</button>
-              <button onClick={() => setIsFilterOpen(false)} style={{ flex: 2, backgroundColor: '#3dd68c', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>Apply Filters</button>
+              <button onClick={clearAdvFilters} style={{ flex: 1, backgroundColor: 'transparent', color: '#f43f5e', border: '1px solid #f43f5e', padding: '12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Clear All</button>
+              <button onClick={() => setIsFilterOpen(false)} style={{ flex: 2, backgroundColor: '#3dd68c', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>Apply Smart Filters</button>
             </div>
           </div>
         </div>
