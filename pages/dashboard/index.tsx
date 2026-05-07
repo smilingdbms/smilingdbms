@@ -115,7 +115,6 @@ export default function RebuiltDashboard() {
   const updateFilter = (key, val) => setAdvFilters(prev => ({ ...prev, [key]: val }));
   const clearAdvFilters = () => setAdvFilters({ locations: [], designations: [], skills: [], industries: [], education: [], gender: 'All', expMin: 'All', expMax: 'All', ctcMin: 'All', ctcMax: 'All' });
 
-  // Helpers for standardizing Look
   const maskPhone = (phone) => {
     if (!phone || phone.length < 5) return 'N/A';
     return '+91 ••••• ••' + phone.slice(-3);
@@ -132,39 +131,37 @@ export default function RebuiltDashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0e14', color: '#e2e8f0', fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", overflowX: 'hidden' }}>
       
-      {/* FULL RESTORED SIDEBAR WITH ALL MENUS AND THEMES */}
+      {/* SIDEBAR WITH ALL MENUS RESTORED & LINKED */}
       <aside style={{ width: '260px', backgroundColor: '#121822', borderRight: '1px solid #1f2937', display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto', position: 'fixed', zIndex: 50 }}>
         
-        {/* Logo Section */}
         <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ width: '36px', height: '36px', backgroundColor: '#3b82f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '900', fontSize: '20px' }}>R</div>
           <div><div style={{ fontSize: '20px', fontWeight: '800', color: '#fff', lineHeight: '1' }}>RecruitBase</div><div style={{ fontSize: '10px', color: '#8b949e', letterSpacing: '1px', marginTop: '4px' }}>RECRUITMENT OS</div></div>
         </div>
         
-        {/* Profile Section */}
         <div style={{ padding: '0 20px 20px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #1f2937' }}>
           <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1e293b', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold', fontSize: '16px' }}>P</div>
           <div><div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Pravin</div><div style={{ fontSize: '12px', color: '#9ca3af' }}>Super Admin</div><div style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '700' }}>⭐ 65 pts</div></div>
         </div>
         
-        {/* All Menus */}
         <nav style={{ flex: 1, padding: '10px 0' }}>
           
-          {/* MAIN MENU */}
           <div style={{ padding: '10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>MAIN</div>
           {[
+            { name: 'Dashboard', icon: '📊', path: '/dashboard/overview' },
             { name: 'Job Seekers', icon: '👥', path: '/dashboard', active: true },
             { name: 'Jobs', icon: '💼', path: '/dashboard/jobs' },
             { name: 'BD Pipeline', icon: '👔', path: '/dashboard/bd' },
             { name: 'Interviews', icon: '📅', path: '/dashboard/interviews' },
             { name: 'Communications', icon: '💬', path: '/dashboard/communications' },
+            { name: 'Placements', icon: '🏆', path: '/dashboard/placements' },
+            { name: 'Team Member', icon: '🛡️', path: '/dashboard/team' },
           ].map((item, i) => (
             <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', backgroundColor: item.active ? 'rgba(59, 130, 246, 0.1)' : 'transparent', color: item.active ? '#60a5fa' : '#9ca3af', borderRight: item.active ? '3px solid #60a5fa' : '3px solid transparent', fontWeight: item.active ? '700' : '500', fontSize: '14px', transition: '0.2s' }} onMouseOver={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; } }} onMouseOut={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}>
               <span style={{ fontSize: '18px' }}>{item.icon}</span> {item.name}
             </div>
           ))}
 
-          {/* REPORTS MENU */}
           <div style={{ padding: '20px 20px 10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>REPORTS</div>
           {[
             { name: 'Applications', icon: '📥', path: '/dashboard/applications' },
@@ -177,7 +174,6 @@ export default function RebuiltDashboard() {
             </div>
           ))}
 
-          {/* SYSTEM MENU */}
           <div style={{ padding: '20px 20px 10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>SYSTEM</div>
           {[
             { name: 'Admin Panel', icon: '👑', path: '/dashboard/admin' },
@@ -190,7 +186,6 @@ export default function RebuiltDashboard() {
           ))}
         </nav>
 
-        {/* Theme & Logout Section */}
         <div style={{ padding: '20px', borderTop: '1px solid #1f2937' }}>
           <div style={{ color: '#4b5563', fontSize: '11px', fontWeight: '800', marginBottom: '12px', letterSpacing: '1.5px' }}>THEME</div>
           <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
@@ -238,7 +233,6 @@ export default function RebuiltDashboard() {
             </div>
           </div>
 
-          {/* STATS CARDS */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '15px', marginBottom: '30px' }}>
             {[
               { label: 'TOTAL', count: displayData.length, color: '#3dd68c' },
@@ -256,7 +250,6 @@ export default function RebuiltDashboard() {
             ))}
           </div>
 
-          {/* DETAILED STANDARD ATS TABLE */}
           <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ backgroundColor: '#1a2230', color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -332,7 +325,6 @@ export default function RebuiltDashboard() {
         </div>
       </main>
 
-      {/* SMART ADVANCED FILTERS PANEL */}
       {isFilterOpen && (
         <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
           <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
