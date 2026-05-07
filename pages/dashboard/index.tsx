@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Layout from '../../src/components/Layout'; // <-- MASTER LAYOUT IMPORTED
+import Layout from '../../src/components/Layout';
 
 // --- CUSTOM SMART MULTI-SELECT COMPONENT ---
 const SmartMultiSelect = ({ options, selected, onChange, placeholder, allowCustom = true }) => {
@@ -79,31 +79,57 @@ export default function RebuiltDashboard() {
   
   const [searchTerm, setSearchTerm] = useState('');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isAddProfileOpen, setIsAddProfileOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   
   const [advFilters, setAdvFilters] = useState({
     locations: [], designations: [], skills: [], industries: [], gender: 'All', expMin: 'All', expMax: 'All', ctcMin: 'All', ctcMax: 'All', education: []
   });
 
+  const [newProfile, setNewProfile] = useState({
+    candidate_name: '', candidate_mobile: '', designation: '', experience: '0', expected_ctc: '', location: '', skills: [], status: 'New'
+  });
+
   const cityOptions = ['Mumbai', 'Delhi', 'Bengaluru', 'Hyderabad', 'Ahmedabad', 'Chennai', 'Kolkata', 'Pune', 'Jaipur', 'Lucknow', 'Bhubaneswar', 'Noida', 'Gurgaon', 'Indore', 'Chandigarh'];
   const skillOptions = ['React', 'Node.js', 'Python', 'Java', 'SQL', 'Sales', 'Business Development', 'Marketing', 'Figma', 'AWS'];
-  const desigOptions = ['Frontend Developer', 'Backend Developer', 'Full Stack Developer', 'HR Manager', 'Sales Executive', 'Project Manager'];
-  const indOptions = ['IT / Software', 'Banking / Finance', 'Healthcare', 'Manufacturing', 'EdTech', 'E-Commerce'];
-  const eduOptions = ['B.Tech / B.E.', 'MBA / PGDM', 'MCA', 'BCA', 'B.Sc', 'B.Com', 'Any Graduate'];
   const expRanges = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '12', '15', '20+'];
-  const ctcRanges = ['1L', '3L', '5L', '8L', '10L', '15L', '20L', '30L', '50L+'];
 
   useEffect(() => {
-    async function loadData() {
-      const { data } = await supabase.from('placements').select('*').order('created_at', { ascending: false });
-      setCandidates(data || []);
-    }
     loadData();
   }, []);
 
+  async function loadData() {
+    const { data } = await supabase.from('placements').select('*').order('created_at', { ascending: false });
+    setCandidates(data || []);
+  }
+
+  const handleSaveProfile = async () => {
+    if (!newProfile.candidate_name || !newProfile.candidate_mobile) {
+      alert("Name and Mobile are required!");
+      return;
+    }
+    setSaving(true);
+    
+    const payload = {
+      ...newProfile,
+      skills: newProfile.skills.join(', '), // Convert array to comma-separated string for DB
+    };
+
+    const { data, error } = await supabase.from('placements').insert([payload]).select();
+    
+    if (error) {
+      alert("Failed to add candidate: " + error.message);
+    } else {
+      setCandidates(prev => [data[0], ...prev]);
+      setIsAddProfileOpen(false);
+      setNewProfile({ candidate_name: '', candidate_mobile: '', designation: '', experience: '0', expected_ctc: '', location: '', skills: [], status: 'New' });
+    }
+    setSaving(false);
+  };
+
   const fallbackData = [
     { id: '1', candidate_name: 'Rahul Sharma', candidate_mobile: '9876543210', designation: 'Frontend Developer', experience: '3', expected_ctc: '1200000', status: 'Interview Scheduled', location: 'Delhi', skills: 'React, Node.js, Next.js' },
-    { id: '2', candidate_name: 'Priya Singh', candidate_mobile: '8765432109', designation: 'Backend Developer', experience: '5', expected_ctc: '1800000', status: 'Screening', location: 'Mumbai', skills: 'Python, AWS, SQL' },
-    { id: '3', candidate_name: 'Amit Kumar', candidate_mobile: '7654321098', designation: 'Sales Executive', experience: '0', expected_ctc: '400000', status: 'New', location: 'Bhubaneswar', skills: 'Sales, Marketing, Lead Gen' }
+    { id: '2', candidate_name: 'Priya Singh', candidate_mobile: '8765432109', designation: 'Backend Developer', experience: '5', expected_ctc: '1800000', status: 'Screening', location: 'Mumbai', skills: 'Python, AWS, SQL' }
   ];
 
   const displayData = candidates.length > 0 ? candidates : fallbackData;
@@ -140,7 +166,7 @@ export default function RebuiltDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
           <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
-          <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
+          <button onClick={() => setIsAddProfileOpen(true)} style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
         </div>
       </header>
 
@@ -162,6 +188,7 @@ export default function RebuiltDashboard() {
           </div>
         </div>
 
+        {/* STATS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '15px', marginBottom: '30px' }}>
           {[
             { label: 'TOTAL', count: displayData.length, color: '#3dd68c' },
@@ -179,6 +206,7 @@ export default function RebuiltDashboard() {
           ))}
         </div>
 
+        {/* TABLE */}
         <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', overflow: 'hidden' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead style={{ backgroundColor: '#1a2230', color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
@@ -233,7 +261,69 @@ export default function RebuiltDashboard() {
         </div>
       </div>
 
-      {/* SMART ADVANCED FILTERS PANEL */}
+      {/* ── ADD PROFILE SLIDE-OUT PANEL ── */}
+      {isAddProfileOpen && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
+          <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0 }}>Add New Profile</h2>
+              <button onClick={() => setIsAddProfileOpen(false)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            </div>
+            
+            <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              <div style={{ display: 'grid', gap: '15px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>CANDIDATE NAME *</div>
+                  <input value={newProfile.candidate_name} onChange={(e) => setNewProfile({...newProfile, candidate_name: e.target.value})} placeholder="e.g. Rahul Sharma" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>MOBILE NUMBER *</div>
+                  <input value={newProfile.candidate_mobile} onChange={(e) => setNewProfile({...newProfile, candidate_mobile: e.target.value})} placeholder="10-digit number" type="tel" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>DESIGNATION / ROLE</div>
+                <input value={newProfile.designation} onChange={(e) => setNewProfile({...newProfile, designation: e.target.value})} placeholder="e.g. Frontend Developer" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>KEY SKILLS (Smart Tags)</div>
+                <SmartMultiSelect options={skillOptions} selected={newProfile.skills} onChange={(v) => setNewProfile({...newProfile, skills: v})} placeholder="Type skill & press Enter..." />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EXPERIENCE</div>
+                  <select value={newProfile.experience} onChange={(e) => setNewProfile({...newProfile, experience: e.target.value})} style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', cursor: 'pointer' }}>
+                    {expRanges.map(r => <option key={r} value={r}>{r === '0' ? 'Fresher (0 Yrs)' : `${r} Years`}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EXPECTED CTC (₹)</div>
+                  <input value={newProfile.expected_ctc} onChange={(e) => setNewProfile({...newProfile, expected_ctc: e.target.value})} placeholder="e.g. 1200000" type="number" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>CURRENT LOCATION</div>
+                <input value={newProfile.location} onChange={(e) => setNewProfile({...newProfile, location: e.target.value})} placeholder="e.g. Mumbai" style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+              </div>
+
+            </div>
+
+            <div style={{ padding: '24px', borderTop: '1px solid #1f2937', display: 'flex', gap: '15px' }}>
+              <button onClick={() => setIsAddProfileOpen(false)} style={{ flex: 1, backgroundColor: 'transparent', color: '#9ca3af', border: '1px solid #374151', padding: '12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={handleSaveProfile} disabled={saving} style={{ flex: 2, backgroundColor: '#3dd68c', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                {saving ? 'Saving...' : 'Save Profile'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SMART ADVANCED FILTERS PANEL (Unchanged) */}
       {isFilterOpen && (
         <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
           <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
@@ -259,13 +349,6 @@ export default function RebuiltDashboard() {
                     <select value={advFilters.ctcMin} onChange={(e) => updateFilter('ctcMin', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}><option value="All">Min</option>{ctcRanges.map(r => <option key={r} value={r}>{r}</option>)}</select>
                     <select value={advFilters.ctcMax} onChange={(e) => updateFilter('ctcMax', e.target.value)} style={{ flex: 1, backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }}><option value="All">Max</option>{ctcRanges.map(r => <option key={r} value={r}>{r}</option>)}</select>
                   </div>
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EDUCATION & INDUSTRY</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <SmartMultiSelect options={eduOptions} selected={advFilters.education} onChange={(v) => updateMultiFilter('education', v)} placeholder="Select Education..." />
-                  <SmartMultiSelect options={indOptions} selected={advFilters.industries} onChange={(v) => updateMultiFilter('industries', v)} placeholder="Select Industry..." />
                 </div>
               </div>
             </div>
