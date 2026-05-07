@@ -46,7 +46,7 @@ export default function RebuiltDashboard() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [advFilters, setAdvFilters] = useState({ locations: [], designations: [], skills: [], industries: [], gender: 'All', expMin: 'All', expMax: 'All', ctcMin: 'All', ctcMax: 'All', education: [] });
 
-  // NEW STATE FOR RESUME MODAL
+  // STATE FOR RESUME MODAL
   const [viewCandidate, setViewCandidate] = useState(null);
 
   const cityOptions = ['Mumbai', 'Delhi', 'Bengaluru', 'Pune'];
@@ -84,7 +84,8 @@ export default function RebuiltDashboard() {
           {['Dashboard', 'Jobs', 'Applications', 'Team'].map((tab, i) => (<div key={tab} style={{ display: 'flex', alignItems: 'center', color: i === 0 ? '#3dd68c' : '#9ca3af', fontWeight: '600', fontSize: '14px', borderBottom: i === 0 ? '2px solid #3dd68c' : 'none', cursor: 'pointer', padding: '0 5px' }}>{tab}</div>))}
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
+          {/* BOTH BUTTONS NOW CORRECTLY LINK TO THE ADD PROFILE PAGE */}
+          <button onClick={() => router.push('/dashboard/add-profile')} style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
           <button onClick={() => router.push('/dashboard/add-profile')} style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
         </div>
       </header>
@@ -119,8 +120,6 @@ export default function RebuiltDashboard() {
                     <td><div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>{skillArr.slice(0, 2).map((skill, i) => (<span key={i} style={{ backgroundColor: '#1f2937', color: '#d1d5db', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', border: '1px solid #374151' }}>{skill}</span>))}{skillArr.length > 2 && <span style={{ color: '#6b7280', fontSize: '11px', alignSelf: 'center' }}>+{skillArr.length - 2}</span>}</div></td>
                     <td style={{ color: '#d1d5db', fontSize: '13px' }}>📍 {c.location || 'Remote'}</td>
                     <td><span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#3dd68c', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>{c.status || 'New'}</span></td>
-                    
-                    {/* CRITICAL CHANGE: Click to open Resume Modal */}
                     <td style={{ textAlign: 'right', paddingRight: '24px' }}>
                       <button onClick={() => setViewCandidate(c)} style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(61, 214, 140, 0.2)' }}>View CV →</button>
                     </td>
@@ -132,16 +131,30 @@ export default function RebuiltDashboard() {
         </div>
       </div>
 
+      {/* ── SMART FILTERS MODAL ── */}
+      {isFilterOpen && (
+        <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
+          <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
+            <div style={{ padding: '24px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span>⚡</span> Smart Filters</h2>
+              <button onClick={() => setIsFilterOpen(false)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '24px', cursor: 'pointer' }}>×</button>
+            </div>
+            <div style={{ padding: '24px', flex: 1 }}>
+              <p style={{color: '#9ca3af', fontSize: '14px'}}>Filters functionality will go here.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── ATS DIGITAL RESUME MODAL ── */}
       {viewCandidate && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '20px' }} onClick={(e) => { if(e.target === e.currentTarget) setViewCandidate(null); }}>
           <div style={{ backgroundColor: '#0b0e14', border: '1px solid #374151', borderRadius: '16px', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
             
-            {/* Header Area */}
             <div style={{ padding: '30px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#111827', position: 'sticky', top: 0, zIndex: 10 }}>
               <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#1f2937', border: '2px solid #374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '30px', color: '#fff' }}>
-                  {viewCandidate.candidate_name[0].toUpperCase()}
+                  {viewCandidate.candidate_name?.[0]?.toUpperCase() || 'C'}
                 </div>
                 <div>
                   <h2 style={{ margin: 0, fontSize: '24px', color: '#fff', fontWeight: '800' }}>{viewCandidate.candidate_name}</h2>
@@ -159,10 +172,7 @@ export default function RebuiltDashboard() {
               </div>
             </div>
 
-            {/* Resume Body */}
             <div style={{ padding: '30px', display: 'flex', gap: '30px', alignItems: 'flex-start' }}>
-              
-              {/* Left Column: Contact & Details */}
               <div style={{ width: '280px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div style={{ backgroundColor: '#111827', padding: '20px', borderRadius: '12px', border: '1px solid #1f2937' }}>
                   <div style={{ fontSize: '12px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '15px' }}>CONTACT INFO</div>
@@ -185,16 +195,13 @@ export default function RebuiltDashboard() {
                 </div>
               </div>
 
-              {/* Right Column: Summary, Skills, Work, Edu */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '25px' }}>
-                
                 {viewCandidate.summary && (
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginBottom: '12px', borderBottom: '1px solid #1f2937', paddingBottom: '8px' }}>Profile Summary</div>
                     <div style={{ fontSize: '14px', color: '#d1d5db', lineHeight: '1.6' }}>{viewCandidate.summary}</div>
                   </div>
                 )}
-
                 {viewCandidate.skills && (
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginBottom: '12px', borderBottom: '1px solid #1f2937', paddingBottom: '8px' }}>Key Skills</div>
@@ -205,7 +212,6 @@ export default function RebuiltDashboard() {
                     </div>
                   </div>
                 )}
-
                 {parseJSON(viewCandidate.employments).length > 0 && (
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginBottom: '12px', borderBottom: '1px solid #1f2937', paddingBottom: '8px' }}>Employment History</div>
@@ -221,7 +227,6 @@ export default function RebuiltDashboard() {
                     </div>
                   </div>
                 )}
-
                 {parseJSON(viewCandidate.educations).length > 0 && (
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: '800', color: '#fff', marginBottom: '12px', borderBottom: '1px solid #1f2937', paddingBottom: '8px' }}>Education & Certifications</div>
@@ -239,7 +244,6 @@ export default function RebuiltDashboard() {
                     </div>
                   </div>
                 )}
-
               </div>
             </div>
           </div>

@@ -3,31 +3,73 @@ import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
+// --- SMART MULTI-SELECT COMPONENT ---
+const SmartMultiSelect = ({ options, selected, onChange, placeholder, allowCustom = true }) => {
+  const [inputValue, setInputValue] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const wrapperRef = useRef(null);
+
+  const filteredOptions = options.filter(opt => opt.toLowerCase().includes(inputValue.toLowerCase()) && !selected.includes(opt));
+
+  React.useEffect(() => {
+    function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setShowDropdown(false); }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (val) => { onChange([...selected, val]); setInputValue(''); setShowDropdown(false); };
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && inputValue.trim() !== '') {
+      e.preventDefault();
+      const match = filteredOptions.find(o => o.toLowerCase() === inputValue.toLowerCase());
+      if (match) handleSelect(match); else if (allowCustom) handleSelect(inputValue.trim());
+    }
+  };
+
+  return (
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', minHeight: '44px', padding: '4px 8px', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+      {selected.map((tag, idx) => (<span key={idx} style={{ backgroundColor: 'rgba(61, 214, 140, 0.15)', color: '#3dd68c', padding: '4px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>{tag} <span onClick={() => onChange(selected.filter(t => t !== tag))} style={{ cursor: 'pointer', color: '#fff' }}>×</span></span>))}
+      <input value={inputValue} onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''} style={{ flex: 1, minWidth: '120px', background: 'transparent', border: 'none', color: '#fff', fontSize: '13px', outline: 'none', padding: '6px' }} />
+      {showDropdown && (inputValue || options.length > 0) && (
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#d1d5db', fontSize: '13px', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontSize: '13px', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export default function AddProfile() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
+  // Hidden File Input Refs
   const cvInputRef = useRef(null);
   const imgInputRef = useRef(null);
 
+  // Basic States
   const [basic, setBasic] = useState({ name: '', mobile: '', email: '', dob: '', gender: '', currentLoc: '', prefLoc: '', exp: '', ctc: '', expCtc: '', notice: '' });
-  const [professional, setProfessional] = useState({ headline: '', summary: '', skills: '' });
+  const [professional, setProfessional] = useState({ headline: '', summary: '', skills: [] });
   const [links, setLinks] = useState({ linkedin: '', github: '', portfolio: '' });
   const [settings, setSettings] = useState({ activeLooking: true, recruiterVis: true });
   const [profileImg, setProfileImg] = useState(null);
 
+  // Dynamic Lists & Modals
   const [employments, setEmployments] = useState([]);
   const [educations, setEducations] = useState([]);
   const [showEmpModal, setShowEmpModal] = useState(false);
   const [showEduModal, setShowEduModal] = useState(false);
 
+  // Temporary Form States
   const [empForm, setEmpForm] = useState({ company: '', designation: '', joinDate: '', endDate: '', current: false, achievements: '' });
   const [eduForm, setEduForm] = useState({ level: 'Graduation', institute: '', board: '', course: '', year: '', score: '' });
+
+  const skillOptions = ['React', 'Node.js', 'Python', 'Java', 'SQL', 'Sales', 'Business Development', 'Marketing', 'Figma', 'AWS'];
 
   // --- REAL SUPABASE SAVE LOGIC ---
   const handleSave = async () => {
     if (!basic.name || !basic.mobile) {
-      alert("Name and Mobile Number are mandatory!");
+      alert("Please enter Candidate Name and Mobile Number.");
       return;
     }
     setSaving(true);
@@ -46,7 +88,7 @@ export default function AddProfile() {
       notice_period: basic.notice,
       headline: professional.headline,
       summary: professional.summary,
-      skills: professional.skills,
+      skills: professional.skills.join(', '), 
       linkedin_url: links.linkedin,
       github_url: links.github,
       employments: employments, 
@@ -61,6 +103,7 @@ export default function AddProfile() {
       setSaving(false);
     } else {
       setSaving(false);
+      alert("Profile Saved Successfully!");
       router.push('/dashboard');
     }
   };
@@ -73,20 +116,21 @@ export default function AddProfile() {
   const handleCVUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setBasic(prev => ({ ...prev, name: file.name.split('.')[0].replace(/_/g, ' '), mobile: '9876543210', email: 'auto.extracted@cv.com' }));
-      setProfessional(prev => ({ ...prev, skills: 'React, Node.js, SQL' }));
+      alert(`CV Uploaded: ${file.name}\nAuto-filling data...`);
+      setBasic(prev => ({ ...prev, name: file.name.split('.')[0].replace(/_/g, ' '), mobile: '9876543210', email: 'extracted@resume.com' }));
+      setProfessional(prev => ({ ...prev, skills: ['React', 'Node.js', 'SQL'] }));
     }
   };
 
   const addEmployment = () => {
-    if (!empForm.company || !empForm.designation) return alert("Company & Designation required");
+    if (!empForm.company || !empForm.designation) return alert("Company & Designation are required!");
     setEmployments([...employments, empForm]);
     setEmpForm({ company: '', designation: '', joinDate: '', endDate: '', current: false, achievements: '' });
     setShowEmpModal(false);
   };
 
   const addEducation = () => {
-    if (!eduForm.institute || !eduForm.course) return alert("Institute & Course required");
+    if (!eduForm.institute || !eduForm.course) return alert("Institute & Course are required!");
     setEducations([...educations, eduForm]);
     setEduForm({ level: 'Graduation', institute: '', board: '', course: '', year: '', score: '' });
     setShowEduModal(false);
@@ -95,7 +139,9 @@ export default function AddProfile() {
   const inputStyle = { width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px', textTransform: 'uppercase' };
   const sectionStyle = { backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', padding: '30px', marginBottom: '25px' };
-  const modalStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' };
+  
+  // Bulletproof Modal Overlay
+  const modalOverlayStyle = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(5px)' };
 
   return (
     <Layout>
@@ -104,7 +150,7 @@ export default function AddProfile() {
 
       <header style={{ height: '70px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', backgroundColor: '#0b0e14', position: 'sticky', top: 0, zIndex: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={() => router.back()} style={{ background: 'transparent', border: '1px solid #374151', color: '#9ca3af', width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+          <button onClick={() => router.back()} style={{ background: 'transparent', border: '1px solid #374151', color: '#9ca3af', width: '36px', height: '36px', borderRadius: '8px', cursor: 'pointer' }}>←</button>
           <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff' }}>Create New Profile</div>
         </div>
         <div style={{ display: 'flex', gap: '15px' }}>
@@ -136,7 +182,7 @@ export default function AddProfile() {
             <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '15px' }}>Professional Headline & Summary</div>
             <div style={{ display: 'grid', gap: '20px' }}>
               <div><label style={labelStyle}>Headline (Very Important) *</label><input style={inputStyle} value={professional.headline} onChange={e=>setProfessional({...professional, headline:e.target.value})} /></div>
-              <div><label style={labelStyle}>Key Skills (Comma Separated) *</label><textarea style={{...inputStyle, minHeight: '80px'}} value={professional.skills} onChange={e=>setProfessional({...professional, skills:e.target.value})} /></div>
+              <div><label style={labelStyle}>Key Skills (Smart Tags) *</label><SmartMultiSelect options={skillOptions} selected={professional.skills} onChange={(v) => setProfessional({...professional, skills: v})} placeholder="Type skill & press Enter..." /></div>
               <div><label style={labelStyle}>Profile Summary / About</label><textarea style={{...inputStyle, minHeight: '120px'}} value={professional.summary} onChange={e=>setProfessional({...professional, summary:e.target.value})} /></div>
             </div>
           </div>
@@ -174,8 +220,9 @@ export default function AddProfile() {
         </div>
       </div>
 
+      {/* --- EMPLOYMENT MODAL --- */}
       {showEmpModal && (
-        <div style={modalStyle}>
+        <div style={modalOverlayStyle}>
           <div style={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '16px', padding: '30px', width: '100%', maxWidth: '600px' }}>
             <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '20px' }}>Add Employment</div>
             <div style={{ display: 'grid', gap: '15px' }}>
@@ -193,8 +240,9 @@ export default function AddProfile() {
         </div>
       )}
 
+      {/* --- EDUCATION MODAL --- */}
       {showEduModal && (
-        <div style={modalStyle}>
+        <div style={modalOverlayStyle}>
           <div style={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '16px', padding: '30px', width: '100%', maxWidth: '600px' }}>
             <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '20px' }}>Add Education</div>
             <div style={{ display: 'grid', gap: '15px' }}>
