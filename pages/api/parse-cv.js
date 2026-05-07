@@ -11,12 +11,19 @@ export default async function handler(req, res) {
   
   const form = new IncomingForm();
   form.parse(req, async (err, fields, files) => {
-    if (err) return res.status(500).json({ error: 'File upload failed' });
+    if (err) return res.status(500).json({ error: 'File upload parsing failed' });
     
     try {
       const file = Array.isArray(files.file) ? files.file[0] : files.file;
       
-      const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+      // 1. Google Drive Auth & Upload with strict error handling
+      let credentials;
+      try {
+        credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+      } catch (e) {
+        throw new Error("Invalid GOOGLE_CREDENTIALS format in Vercel. Must be strict JSON.");
+      }
+
       const auth = new google.auth.GoogleAuth({ credentials, scopes: ['https://www.googleapis.com/auth/drive.file'] });
       const drive = google.drive({ version: 'v3', auth });
       
@@ -26,19 +33,28 @@ export default async function handler(req, res) {
         fields: 'id, webViewLink'
       });
       
+      // 2. Read PDF
       const pdfData = await pdfParse(fs.readFileSync(file.filepath));
       
+      // 3. Gemini Parsing
       const apiKey = process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || process.env.NEXT_PUBLIC_GEMINI_KEY;
-      if (!apiKey) throw new Error("API Key missing in Vercel.");
+      if (!apiKey) throw new Error("Gemini API Key missing in Vercel Environment Variables.");
 
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = `Extract details from this resume. Return ONLY valid JSON. Required keys: name, mobile, email, location, experienceYears, experienceMonths, ctcLakhs, ctcThousands, noticePeriod, headline, summary, skills (comma separated). Resume Text: ${pdfData.text.substring(0, 15000)}`;
+      const prompt = `Extract details from this resume text. Return ONLY a valid JSON object. Do not use markdown blocks. Keys must be exactly: name, mobile, email, location, experienceYears, experienceMonths, ctcLakhs, ctcThousands, noticePeriod, headline, summary, skills. Skills should be a comma separated string. Text: ${pdfData.text.substring(0, 15000)}`;
       
       const result = await model.generateContent(prompt);
       let responseText = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
       
-      res.status(200).json({ ...JSON.parse(responseText), cv_url: driveRes.data.webViewLink });
+      let parsedJson;
+      try {
+        parsedJson = JSON.parse(responseText);
+      } catch (e) {
+        throw new Error("AI returned invalid JSON format.");
+      }
+      
+      res.status(200).json({ ...parsedJson, cv_url: driveRes.data.webViewLink });
     } catch (error) { 
       res.status(500).json({ error: error.message }); 
     }

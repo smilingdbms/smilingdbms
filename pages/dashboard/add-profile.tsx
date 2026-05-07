@@ -1,11 +1,13 @@
 // @ts-nocheck
+/* eslint-disable */
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
+// --- DATA CONSTANTS ---
 const indianLocations = {
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"], "Assam": ["Guwahati", "Silchar"], "Bihar": ["Patna", "Gaya"], "Chandigarh": ["Chandigarh"], "Delhi": ["New Delhi", "Dwarka", "Rohini"], "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"], "Haryana": ["Gurugram", "Faridabad", "Panipat"], "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"], "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"], "Madhya Pradesh": ["Indore", "Bhopal", "Gwalior"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Navi Mumbai"], "Odisha": ["Bhubaneswar", "Cuttack"], "Punjab": ["Ludhiana", "Amritsar", "Jalandhar"], "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"], "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"], "Telangana": ["Hyderabad", "Warangal"], "Uttar Pradesh": ["Noida", "Greater Noida", "Ghaziabad", "Lucknow", "Kanpur"], "West Bengal": ["Kolkata", "Howrah"]
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore"], "Assam": ["Guwahati", "Silchar"], "Bihar": ["Patna", "Gaya"], "Chandigarh": ["Chandigarh"], "Delhi": ["New Delhi", "Dwarka", "Rohini", "Connaught Place"], "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot"], "Haryana": ["Gurugram", "Faridabad", "Panipat"], "Karnataka": ["Bengaluru", "Mysuru", "Hubballi", "Mangaluru"], "Kerala": ["Kochi", "Thiruvananthapuram", "Kozhikode"], "Madhya Pradesh": ["Indore", "Bhopal", "Gwalior"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Navi Mumbai"], "Odisha": ["Bhubaneswar", "Cuttack"], "Punjab": ["Ludhiana", "Amritsar", "Jalandhar"], "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur"], "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"], "Telangana": ["Hyderabad", "Warangal"], "Uttar Pradesh": ["Noida", "Greater Noida", "Ghaziabad", "Lucknow", "Kanpur"], "West Bengal": ["Kolkata", "Howrah"]
 };
 const allCities = Object.values(indianLocations).flat();
 
@@ -17,6 +19,7 @@ const courseBranchMap = {
   "B.Tech/B.E": ["Computer Science", "IT", "Electronics", "Electrical", "Mechanical", "Civil", "Chemical", "Automobile", "Biotech"], "M.Tech/M.E": ["Computer Science", "VLSI", "Embedded", "Structural", "Thermal"], "BCA": ["General", "Cloud Computing", "AI"], "MCA": ["General", "Software Engineering"], "B.Sc": ["Computer Science", "IT", "Maths", "Physics", "Chemistry", "Biology", "Nursing", "Agriculture"], "M.Sc": ["Computer Science", "IT", "Data Science", "Maths"], "BBA": ["General", "HR", "Finance", "Marketing"], "MBA/PGDM": ["HR", "Marketing", "Finance", "Operations", "IT", "Supply Chain"], "B.Com": ["General", "Honours", "Accounting"], "M.Com": ["General", "Finance"], "BA": ["English", "History", "Economics", "Pol Science"], "MA": ["English", "History", "Economics"], "Diploma": ["Mechanical", "Civil", "Electrical", "CS"], "CA": ["General"], "CS": ["General"], "LLB": ["General", "Corporate"], "MBBS": ["General Medicine"], "B.Pharm": ["General"], "B.Des": ["Fashion", "Interior", "Graphic"], "B.Arch": ["Architecture"], "Other": ["General"]
 };
 
+// --- SMART MULTI-SELECT COMPONENT ---
 const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
   const [inputValue, setInputValue] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -45,7 +48,7 @@ const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
       <input value={inputValue} onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''} style={{ flex: 1, minWidth: '150px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', padding: '4px' }} />
       {showDropdown && (inputValue || options.length > 0) && (
         <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add</div>)}
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
         </div>
       )}
     </div>
@@ -61,13 +64,14 @@ export default function AddProfile() {
   const [professional, setProfessional] = useState({ headline: '', summary: '', skills: [] });
   const [preferences, setPreferences] = useState({ role: '', industry: '', empType: '', workMode: '' });
   
-  const [employments, setEmployments] = useState([{ company: '', designation: '', start: '', end: '', current: false, achievements: '' }]);
+  // Initialize with exactly 1 empty row
+  const [employments, setEmployments] = useState([{ company: '', designation: '', start: '', end: '', current: false }]);
   const [educations, setEducations] = useState([{ course: '', branch: '', institute: '', year: '' }]);
   
   const [uploadedCVName, setUploadedCVName] = useState("");
   const [cvUrl, setCvUrl] = useState("");
 
-  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Java', 'AWS', 'Lead Generation', 'Client Acquisition', 'B2B Sales', 'CRM', 'Cold Calling', 'Negotiation'];
+  const suggestedSkills = ['React.js', 'Next.js', 'TypeScript', 'SQL', 'Node.js', 'Python', 'Java', 'Lead Generation', 'Client Acquisition', 'B2B Sales', 'CRM', 'Cold Calling', 'Negotiation'];
 
   const handleCVUpload = async (e) => {
     const file = e.target.files[0];
@@ -78,30 +82,35 @@ export default function AddProfile() {
       formData.append('file', file);
       const res = await fetch('/api/parse-cv', { method: 'POST', body: formData });
       const data = await res.json();
-      if (data.error) throw new Error(data.error);
+      
+      if (!res.ok) throw new Error(data.error || "Unknown Server Error");
 
       setCvUrl(data.cv_url);
       setBasic(prev => ({ ...prev, name: data.name || prev.name, mobile: data.mobile || prev.mobile, email: data.email || prev.email, currentLoc: data.location || prev.currentLoc, expYears: data.experienceYears?.toString() || prev.expYears, ctcLakhs: data.ctcLakhs?.toString() || prev.ctcLakhs, notice: data.noticePeriod || prev.notice }));
       setProfessional(prev => ({ ...prev, headline: data.headline || prev.headline, summary: data.summary || prev.summary, skills: data.skills ? data.skills.split(',').map(s=>s.trim()) : prev.skills }));
       setUploadedCVName("✅ Parse Successful");
-    } catch (err) { alert("Parsing Error: " + err.message); setUploadedCVName("❌ Parsing Failed"); }
+    } catch (err) { 
+      alert("Error Details: " + err.message); 
+      setUploadedCVName("❌ Parsing Failed"); 
+    }
   };
 
   const handleSave = async () => {
     if (!basic.name || !basic.mobile) return alert("Full Name and Mobile Number are required.");
     setSaving(true);
     
-    const cleanEmp = employments.filter(e => e.company || e.designation);
-    const cleanEdu = educations.filter(e => e.course || e.institute);
+    // Filter out completely empty rows before pushing to database
+    const cleanEmp = employments.filter(e => e.company !== '' || e.designation !== '');
+    const cleanEdu = educations.filter(e => e.course !== '' || e.institute !== '');
 
     const { error } = await supabase.from('placements').insert([{
       candidate_name: basic.name, candidate_mobile: basic.mobile, candidate_email: basic.email, gender: basic.gender, location: basic.currentLoc, pref_location: basic.prefLoc.join(', '), dob: basic.dob, experience: `${basic.expYears}.${basic.expMonths}`,
       current_ctc: (parseInt(basic.ctcLakhs || 0)*100000 + parseInt(basic.ctcThousand || 0)*1000) || null, expected_ctc: (parseInt(basic.expCtcLakhs || 0)*100000 + parseInt(basic.expCtcThousand || 0)*1000) || null, notice_period: basic.notice,
       headline: professional.headline, summary: professional.summary, skills: professional.skills.join(', '),
-      employments: cleanEmp, educations: cleanEdu, resume_url: cvUrl, status: 'New'
+      employments: cleanEmp, educations: cleanEdu, preferences: preferences, resume_url: cvUrl, status: 'New'
     }]);
     
-    if (error) alert("Database Error: " + error.message); else router.push('/dashboard');
+    if (error) alert("Database Save Error: " + error.message); else router.push('/dashboard');
     setSaving(false);
   };
 
@@ -126,6 +135,7 @@ export default function AddProfile() {
 
       <div style={{ padding: '40px', maxWidth: '1200px', margin: '0 auto' }}>
         
+        {/* PERSONAL DETAILS */}
         <div style={sectionStyle}>
           <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Personal Details</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
@@ -157,6 +167,7 @@ export default function AddProfile() {
           </div>
         </div>
 
+        {/* PROFESSIONAL */}
         <div style={sectionStyle}>
           <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Professional Details & Preferences</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
@@ -169,10 +180,11 @@ export default function AddProfile() {
           </div>
         </div>
 
+        {/* INLINE EMPLOYMENT */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Employment History</h2>
-            <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false, achievements: '' }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
+            <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
           </div>
           {employments.map((emp, idx) => (
             <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151', position: 'relative' }}>
@@ -186,6 +198,7 @@ export default function AddProfile() {
           ))}
         </div>
 
+        {/* INLINE EDUCATION */}
         <div style={sectionStyle}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Education</h2>
