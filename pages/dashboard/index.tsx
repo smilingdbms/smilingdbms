@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
+import Layout from '../../src/components/Layout'; // <-- MASTER LAYOUT IMPORTED
 
 // --- CUSTOM SMART MULTI-SELECT COMPONENT ---
 const SmartMultiSelect = ({ options, selected, onChange, placeholder, allowCustom = true }) => {
@@ -129,202 +130,110 @@ export default function RebuiltDashboard() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0e14', color: '#e2e8f0', fontFamily: "'Inter', 'Plus Jakarta Sans', sans-serif", overflowX: 'hidden' }}>
-      
-      {/* SIDEBAR WITH ALL MENUS RESTORED & LINKED */}
-      <aside style={{ width: '260px', backgroundColor: '#121822', borderRight: '1px solid #1f2937', display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto', position: 'fixed', zIndex: 50 }}>
-        
-        <div style={{ padding: '24px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '36px', height: '36px', backgroundColor: '#3b82f6', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '900', fontSize: '20px' }}>R</div>
-          <div><div style={{ fontSize: '20px', fontWeight: '800', color: '#fff', lineHeight: '1' }}>RecruitBase</div><div style={{ fontSize: '10px', color: '#8b949e', letterSpacing: '1px', marginTop: '4px' }}>RECRUITMENT OS</div></div>
+    <Layout>
+      {/* TOP HEADER */}
+      <header style={{ height: '70px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', backgroundColor: '#0b0e14', position: 'sticky', top: 0, zIndex: 10 }}>
+        <div style={{ display: 'flex', gap: '30px', height: '100%' }}>
+          {['Dashboard', 'Jobs', 'Applications', 'Team'].map((tab, i) => (
+            <div key={tab} style={{ display: 'flex', alignItems: 'center', color: i === 0 ? '#3dd68c' : '#9ca3af', fontWeight: '600', fontSize: '14px', borderBottom: i === 0 ? '2px solid #3dd68c' : 'none', cursor: 'pointer', padding: '0 5px' }}>{tab}</div>
+          ))}
         </div>
-        
-        <div style={{ padding: '0 20px 20px 20px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #1f2937' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#1e293b', border: '1px solid #3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#60a5fa', fontWeight: 'bold', fontSize: '16px' }}>P</div>
-          <div><div style={{ fontSize: '14px', fontWeight: '700', color: '#fff' }}>Pravin</div><div style={{ fontSize: '12px', color: '#9ca3af' }}>Super Admin</div><div style={{ fontSize: '12px', color: '#fbbf24', fontWeight: '700' }}>⭐ 65 pts</div></div>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
+          <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
         </div>
-        
-        <nav style={{ flex: 1, padding: '10px 0' }}>
-          
-          <div style={{ padding: '10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>MAIN</div>
+      </header>
+
+      {/* MAIN DASHBOARD CONTENT */}
+      <div style={{ padding: '40px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px' }}>
+          <div>
+            <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Job Seekers</h1>
+            <p style={{ color: '#9ca3af', fontSize: '14px' }}>Master database for all candidates and potential placements.</p>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ position: 'relative', width: '300px' }}>
+              <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Quick search name, mobile..." style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px 15px 10px 40px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
+              <span style={{ position: 'absolute', left: '12px', top: '9px', fontSize: '14px' }}>🔍</span>
+            </div>
+            <button onClick={() => setIsFilterOpen(true)} style={{ backgroundColor: '#1f2937', color: '#3dd68c', border: '1px solid #3dd68c', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>⚡</span> Smart Filters
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '15px', marginBottom: '30px' }}>
           {[
-            { name: 'Dashboard', icon: '📊', path: '/dashboard/overview' },
-            { name: 'Job Seekers', icon: '👥', path: '/dashboard', active: true },
-            { name: 'Jobs', icon: '💼', path: '/dashboard/jobs' },
-            { name: 'BD Pipeline', icon: '👔', path: '/dashboard/bd' },
-            { name: 'Interviews', icon: '📅', path: '/dashboard/interviews' },
-            { name: 'Communications', icon: '💬', path: '/dashboard/communications' },
-            { name: 'Placements', icon: '🏆', path: '/dashboard/placements' },
-            { name: 'Team Member', icon: '🛡️', path: '/dashboard/team' },
-          ].map((item, i) => (
-            <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', backgroundColor: item.active ? 'rgba(59, 130, 246, 0.1)' : 'transparent', color: item.active ? '#60a5fa' : '#9ca3af', borderRight: item.active ? '3px solid #60a5fa' : '3px solid transparent', fontWeight: item.active ? '700' : '500', fontSize: '14px', transition: '0.2s' }} onMouseOver={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; } }} onMouseOut={(e) => { if (!item.active) { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; } }}>
-              <span style={{ fontSize: '18px' }}>{item.icon}</span> {item.name}
+            { label: 'TOTAL', count: displayData.length, color: '#3dd68c' },
+            { label: 'FRESHERS', count: displayData.filter(c => { const e = c.experience !== undefined ? String(c.experience) : '0'; return e === '0' || e.toLowerCase() === '0 yrs' || e.toLowerCase() === 'fresher'; }).length, color: '#a855f7' },
+            { label: 'EXPERIENCED', count: displayData.filter(c => { const e = c.experience !== undefined ? String(c.experience) : '0'; return !(e === '0' || e.toLowerCase() === '0 yrs' || e.toLowerCase() === 'fresher'); }).length, color: '#f59e0b' },
+            { label: 'TEAM', count: 0, color: '#0ea5e9' },
+            { label: 'CLIENTS', count: 1, color: '#f43f5e' },
+            { label: 'SHORTLISTED', count: displayData.filter(c => c.status === 'Shortlisted' || c.status === 'Interview Scheduled').length, color: '#10b981' },
+            { label: 'PLACED', count: 0, color: '#3dd68c' }
+          ].map((stat, i) => (
+            <div key={i} style={{ backgroundColor: '#111827', border: '1px solid #1f2937', padding: '24px 10px', borderRadius: '16px', textAlign: 'center' }}>
+              <div style={{ fontSize: '28px', fontWeight: '900', color: stat.color, marginBottom: '8px' }}>{stat.count}</div>
+              <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px' }}>{stat.label}</div>
             </div>
           ))}
-
-          <div style={{ padding: '20px 20px 10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>REPORTS</div>
-          {[
-            { name: 'Applications', icon: '📥', path: '/dashboard/applications' },
-            { name: 'Analytics', icon: '📊', path: '/dashboard/analytics' },
-            { name: 'My Company', icon: '🏢', path: '/dashboard/company' },
-            { name: 'Stakeholders', icon: '🤝', path: '/dashboard/stakeholders' },
-          ].map((item, i) => (
-            <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', color: '#9ca3af', borderRight: '3px solid transparent', fontWeight: '500', fontSize: '14px', transition: '0.2s' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}>
-              <span style={{ fontSize: '18px' }}>{item.icon}</span> {item.name}
-            </div>
-          ))}
-
-          <div style={{ padding: '20px 20px 10px 20px', fontSize: '11px', fontWeight: '800', color: '#4b5563', letterSpacing: '1.5px' }}>SYSTEM</div>
-          {[
-            { name: 'Admin Panel', icon: '👑', path: '/dashboard/admin' },
-            { name: 'Settings', icon: '⚙️', path: '/dashboard/settings' },
-            { name: 'Job Board', icon: '🎯', path: '/dashboard/jobboard' },
-          ].map((item, i) => (
-            <div key={i} onClick={() => router.push(item.path)} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px 20px', cursor: 'pointer', color: '#9ca3af', borderRight: '3px solid transparent', fontWeight: '500', fontSize: '14px', transition: '0.2s' }} onMouseOver={(e) => { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = '#fff'; }} onMouseOut={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.color = '#9ca3af'; }}>
-              <span style={{ fontSize: '18px' }}>{item.icon}</span> {item.name}
-            </div>
-          ))}
-        </nav>
-
-        <div style={{ padding: '20px', borderTop: '1px solid #1f2937' }}>
-          <div style={{ color: '#4b5563', fontSize: '11px', fontWeight: '800', marginBottom: '12px', letterSpacing: '1.5px' }}>THEME</div>
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-            {['#3b82f6', '#6366f1', '#0ea5e9', '#10b981', '#a855f7', '#f43f5e'].map((color, i) => (
-              <div key={i} style={{ width: '20px', height: '20px', borderRadius: '50%', backgroundColor: color, cursor: 'pointer', border: i === 0 ? '2px solid #fff' : 'none', outline: i === 0 ? '2px solid #3b82f6' : 'none', outlineOffset: '2px' }}></div>
-            ))}
-          </div>
-          <button style={{ width: '100%', backgroundColor: 'rgba(244, 63, 94, 0.1)', color: '#f43f5e', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(244, 63, 94, 0.2)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(244, 63, 94, 0.1)'}>
-            <span>🚪</span> Sign Out
-          </button>
-          <div style={{ textAlign: 'center', marginTop: '15px', fontSize: '11px', color: '#4b5563', fontWeight: '500' }}>v25 · Enterprise Plan</div>
         </div>
 
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <main style={{ flex: 1, marginLeft: '260px', display: 'flex', flexDirection: 'column' }}>
-        
-        <header style={{ height: '70px', borderBottom: '1px solid #1f2937', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px', backgroundColor: '#0b0e14', position: 'sticky', top: 0, zIndex: 10 }}>
-          <div style={{ display: 'flex', gap: '30px', height: '100%' }}>
-            {['Dashboard', 'Jobs', 'Applications', 'Team'].map((tab, i) => (
-              <div key={tab} style={{ display: 'flex', alignItems: 'center', color: i === 0 ? '#3dd68c' : '#9ca3af', fontWeight: '600', fontSize: '14px', borderBottom: i === 0 ? '2px solid #3dd68c' : 'none', cursor: 'pointer', padding: '0 5px' }}>{tab}</div>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: '15px' }}>
-            <button style={{ backgroundColor: 'transparent', border: '1px solid #374151', color: '#fff', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>Upload CV</button>
-            <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '800', cursor: 'pointer' }}>+ Add Profile</button>
-          </div>
-        </header>
-
-        <div style={{ padding: '40px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '35px' }}>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#fff', marginBottom: '8px' }}>Job Seekers</h1>
-              <p style={{ color: '#9ca3af', fontSize: '14px' }}>Master database for all candidates and potential placements.</p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <div style={{ position: 'relative', width: '300px' }}>
-                <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Quick search name, mobile..." style={{ width: '100%', backgroundColor: '#111827', border: '1px solid #374151', color: '#fff', padding: '10px 15px 10px 40px', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-                <span style={{ position: 'absolute', left: '12px', top: '9px', fontSize: '14px' }}>🔍</span>
-              </div>
-              <button onClick={() => setIsFilterOpen(true)} style={{ backgroundColor: '#1f2937', color: '#3dd68c', border: '1px solid #3dd68c', padding: '10px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span>⚡</span> Smart Filters
-              </button>
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '15px', marginBottom: '30px' }}>
-            {[
-              { label: 'TOTAL', count: displayData.length, color: '#3dd68c' },
-              { label: 'FRESHERS', count: displayData.filter(c => { const e = c.experience !== undefined ? String(c.experience) : '0'; return e === '0' || e.toLowerCase() === '0 yrs' || e.toLowerCase() === 'fresher'; }).length, color: '#a855f7' },
-              { label: 'EXPERIENCED', count: displayData.filter(c => { const e = c.experience !== undefined ? String(c.experience) : '0'; return !(e === '0' || e.toLowerCase() === '0 yrs' || e.toLowerCase() === 'fresher'); }).length, color: '#f59e0b' },
-              { label: 'TEAM', count: 0, color: '#0ea5e9' },
-              { label: 'CLIENTS', count: 1, color: '#f43f5e' },
-              { label: 'SHORTLISTED', count: displayData.filter(c => c.status === 'Shortlisted' || c.status === 'Interview Scheduled').length, color: '#10b981' },
-              { label: 'PLACED', count: 0, color: '#3dd68c' }
-            ].map((stat, i) => (
-              <div key={i} style={{ backgroundColor: '#111827', border: '1px solid #1f2937', padding: '24px 10px', borderRadius: '16px', textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '900', color: stat.color, marginBottom: '8px' }}>{stat.count}</div>
-                <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px' }}>{stat.label}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead style={{ backgroundColor: '#1a2230', color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                <tr>
-                  <th style={{ padding: '20px 24px' }}>CANDIDATE INFO</th>
-                  <th>EXPERIENCE & CTC</th>
-                  <th>KEY SKILLS</th>
-                  <th>LOCATION</th>
-                  <th>STATUS</th>
-                  <th style={{ textAlign: 'right', paddingRight: '24px' }}>ACTIONS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredCandidates.map((c) => {
-                  const expVal = c.experience !== undefined ? String(c.experience) : '0';
-                  const isFresher = expVal === '0' || expVal.toLowerCase() === '0 yrs' || expVal.toLowerCase() === 'fresher';
-                  const skillArr = c.skills ? c.skills.split(',').map(s => s.trim()) : ['N/A'];
-                  
-                  return (
-                    <tr key={c.id} style={{ borderBottom: '1px solid #1f2937', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                      
-                      <td style={{ padding: '20px 24px' }}>
-                        <div style={{ fontWeight: '700', color: '#fff', fontSize: '15px' }}>{c.candidate_name}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ color: '#9ca3af' }}>🔒</span> {maskPhone(c.candidate_mobile)}
-                        </div>
-                        <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{c.designation || 'Professional'}</div>
-                      </td>
-                      
-                      <td>
-                        <div style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '600' }}>
-                          {isFresher ? <span style={{ color: '#a855f7' }}>Fresher</span> : `${expVal} Years`}
-                        </div>
-                        <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>
-                          {formatCTC(c.expected_ctc)}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                          {skillArr.slice(0, 2).map((skill, i) => (
-                            <span key={i} style={{ backgroundColor: '#1f2937', color: '#d1d5db', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '500', border: '1px solid #374151' }}>
-                              {skill}
-                            </span>
-                          ))}
-                          {skillArr.length > 2 && (
-                            <span style={{ color: '#6b7280', fontSize: '11px', alignSelf: 'center' }}>+{skillArr.length - 2}</span>
-                          )}
-                        </div>
-                      </td>
-
-                      <td style={{ color: '#d1d5db', fontSize: '13px' }}>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>📍 {c.location || 'Remote'}</span>
-                      </td>
-
-                      <td>
-                        <span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#3dd68c', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>
-                          {c.status || 'New'}
-                        </span>
-                      </td>
-
-                      <td style={{ textAlign: 'right', paddingRight: '24px' }}>
-                        <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(61, 214, 140, 0.2)' }}>
-                          View CV →
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div style={{ backgroundColor: '#111827', border: '1px solid #1f2937', borderRadius: '16px', overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead style={{ backgroundColor: '#1a2230', color: '#9ca3af', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <tr>
+                <th style={{ padding: '20px 24px' }}>CANDIDATE INFO</th>
+                <th>EXPERIENCE & CTC</th>
+                <th>KEY SKILLS</th>
+                <th>LOCATION</th>
+                <th>STATUS</th>
+                <th style={{ textAlign: 'right', paddingRight: '24px' }}>ACTIONS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredCandidates.map((c) => {
+                const expVal = c.experience !== undefined ? String(c.experience) : '0';
+                const isFresher = expVal === '0' || expVal.toLowerCase() === '0 yrs' || expVal.toLowerCase() === 'fresher';
+                const skillArr = c.skills ? c.skills.split(',').map(s => s.trim()) : ['N/A'];
+                
+                return (
+                  <tr key={c.id} style={{ borderBottom: '1px solid #1f2937', transition: '0.2s' }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.5)'} onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                    <td style={{ padding: '20px 24px' }}>
+                      <div style={{ fontWeight: '700', color: '#fff', fontSize: '15px' }}>{c.candidate_name}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ color: '#9ca3af' }}>🔒</span> {maskPhone(c.candidate_mobile)}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>{c.designation || 'Professional'}</div>
+                    </td>
+                    <td>
+                      <div style={{ color: '#e2e8f0', fontSize: '14px', fontWeight: '600' }}>
+                        {isFresher ? <span style={{ color: '#a855f7' }}>Fresher</span> : `${expVal} Years`}
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#9ca3af', marginTop: '4px' }}>{formatCTC(c.expected_ctc)}</div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        {skillArr.slice(0, 2).map((skill, i) => (
+                          <span key={i} style={{ backgroundColor: '#1f2937', color: '#d1d5db', padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '500', border: '1px solid #374151' }}>{skill}</span>
+                        ))}
+                        {skillArr.length > 2 && <span style={{ color: '#6b7280', fontSize: '11px', alignSelf: 'center' }}>+{skillArr.length - 2}</span>}
+                      </div>
+                    </td>
+                    <td style={{ color: '#d1d5db', fontSize: '13px' }}><span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>📍 {c.location || 'Remote'}</span></td>
+                    <td><span style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#3dd68c', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: '700' }}>{c.status || 'New'}</span></td>
+                    <td style={{ textAlign: 'right', paddingRight: '24px' }}>
+                      <button style={{ backgroundColor: '#3dd68c', border: 'none', color: '#000', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '12px', boxShadow: '0 4px 6px -1px rgba(61, 214, 140, 0.2)' }}>View CV →</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
-      </main>
+      </div>
 
+      {/* SMART ADVANCED FILTERS PANEL */}
       {isFilterOpen && (
         <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100, display: 'flex', justifyContent: 'flex-end', backdropFilter: 'blur(4px)' }}>
           <div style={{ width: '480px', backgroundColor: '#0b0e14', borderLeft: '1px solid #1f2937', display: 'flex', flexDirection: 'column', animation: 'slideIn 0.3s ease-out' }}>
@@ -332,12 +241,10 @@ export default function RebuiltDashboard() {
               <h2 style={{ fontSize: '20px', fontWeight: '800', color: '#fff', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}><span>⚡</span> Smart Filters</h2>
               <button onClick={() => setIsFilterOpen(false)} style={{ background: 'transparent', border: 'none', color: '#9ca3af', fontSize: '24px', cursor: 'pointer' }}>×</button>
             </div>
-
             <div style={{ flex: 1, padding: '24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div><div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>LOCATIONS</div><SmartMultiSelect options={cityOptions} selected={advFilters.locations} onChange={(v) => updateMultiFilter('locations', v)} placeholder="Type city..." /></div>
               <div><div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>KEY SKILLS</div><SmartMultiSelect options={skillOptions} selected={advFilters.skills} onChange={(v) => updateMultiFilter('skills', v)} placeholder="Type skill & press Enter" /></div>
               <div><div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>DESIGNATIONS</div><SmartMultiSelect options={desigOptions} selected={advFilters.designations} onChange={(v) => updateMultiFilter('designations', v)} placeholder="Type role..." /></div>
-              
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
                   <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EXPERIENCE (YRS)</div>
@@ -354,7 +261,6 @@ export default function RebuiltDashboard() {
                   </div>
                 </div>
               </div>
-
               <div>
                 <div style={{ fontSize: '11px', fontWeight: '800', color: '#6b7280', letterSpacing: '1px', marginBottom: '8px' }}>EDUCATION & INDUSTRY</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -363,7 +269,6 @@ export default function RebuiltDashboard() {
                 </div>
               </div>
             </div>
-
             <div style={{ padding: '24px', borderTop: '1px solid #1f2937', display: 'flex', gap: '15px' }}>
               <button onClick={clearAdvFilters} style={{ flex: 1, backgroundColor: 'transparent', color: '#f43f5e', border: '1px solid #f43f5e', padding: '12px', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>Clear All</button>
               <button onClick={() => setIsFilterOpen(false)} style={{ flex: 2, backgroundColor: '#3dd68c', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: '800', cursor: 'pointer' }}>Apply Smart Filters</button>
@@ -373,6 +278,6 @@ export default function RebuiltDashboard() {
       )}
       
       <style>{`@keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }`}</style>
-    </div>
+    </Layout>
   );
 }
