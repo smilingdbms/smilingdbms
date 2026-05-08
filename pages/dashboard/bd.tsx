@@ -3,7 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
-import Confetti from 'react-confetti';
+import dynamic from 'next/dynamic';
+
+// CRITICAL FIX: Dynamically import Confetti to prevent Next.js SSR crashes
+const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 // --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
 const progressMessages = [
@@ -69,9 +72,8 @@ export default function BDPipeline() {
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState('add'); // 'add', 'edit', 'view'
+  const [modalMode, setModalMode] = useState('add');
 
-  // Confetti States
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
 
@@ -95,12 +97,14 @@ export default function BDPipeline() {
 
   const handleSave = async () => {
     const numericValue = parseFloat(formData.value) || 0;
+    const safeTags = Array.isArray(formData.tags) ? formData.tags : []; // Safe array parsing
+    
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
       spoc_contact: formData.spoc_contact, spoc_email: formData.spoc_email, city: formData.city, 
       state: formData.state, requirement_status: formData.requirement_status, sector: formData.sector, 
       lead_source: formData.lead_source, priority: formData.priority, next_followup: formData.next_followup, 
-      stage: formData.stage, notes: formData.notes, feedback: formData.feedback, tags: formData.tags, 
+      stage: formData.stage, notes: formData.notes, feedback: formData.feedback, tags: safeTags, 
       bd_owner: formData.bd_owner, commercial_type: formData.commercial_type, value: numericValue
     };
 
@@ -120,7 +124,6 @@ export default function BDPipeline() {
     const { error } = await supabase.from('bd_mandates').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
-      // Trigger Celebration on ANY progress
       const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
       setConfettiMessage(randomMsg);
       setShowConfetti(true);
@@ -131,7 +134,9 @@ export default function BDPipeline() {
   const openModal = (mode, mandate = null) => {
     setModalMode(mode);
     if (mandate) {
-      setFormData({ ...mandate, tags: mandate.tags || [] });
+      // Safe parsing to prevent map() crashes
+      const parsedTags = Array.isArray(mandate.tags) ? mandate.tags : (typeof mandate.tags === 'string' ? mandate.tags.split(',') : []);
+      setFormData({ ...mandate, tags: parsedTags });
     } else {
       setFormData({ 
         id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
@@ -146,23 +151,27 @@ export default function BDPipeline() {
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
-      if (!formData.tags.includes(tagInput.trim())) {
-        setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+      const currentTags = Array.isArray(formData.tags) ? formData.tags : [];
+      if (!currentTags.includes(tagInput.trim())) {
+        setFormData({ ...formData, tags: [...currentTags, tagInput.trim()] });
       }
       setTagInput('');
     }
   };
 
   const removeTag = (tagToRemove) => {
-    setFormData({ ...formData, tags: formData.tags.filter(t => t !== tagToRemove) });
+    const currentTags = Array.isArray(formData.tags) ? formData.tags : [];
+    setFormData({ ...formData, tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' };
 
+  // Safe fallback for UI rendering
+  const renderTags = Array.isArray(formData.tags) ? formData.tags : [];
+
   return (
     <Layout>
-      {/* FULL SCREEN CONFETTI & MESSAGE TOAST */}
       {showConfetti && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
@@ -183,7 +192,6 @@ export default function BDPipeline() {
           </button>
         </div>
 
-        {/* DATA TABLE */}
         <div style={{ background: '#11182D', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
@@ -234,7 +242,6 @@ export default function BDPipeline() {
         </div>
       </div>
 
-      {/* COMPREHENSIVE BD LEAD MODAL */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#11182D', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -248,24 +255,22 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
-              {/* SECTION 1: Basic Information */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
-                <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
-                <div><label style={labelStyle}>2. Contact Person Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_name} onChange={e=>setFormData({...formData, spoc_name: e.target.value})} /></div>
-                <div><label style={labelStyle}>3. Designation</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.designation} onChange={e=>setFormData({...formData, designation: e.target.value})}><option value="">Select</option>{designations.map(d=><option key={d}>{d}</option>)}</select></div>
-                <div><label style={labelStyle}>4. Mobile Number</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_contact} onChange={e=>setFormData({...formData, spoc_contact: e.target.value})} /></div>
-                <div><label style={labelStyle}>5. Official Email ID</label><input type="email" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_email} onChange={e=>setFormData({...formData, spoc_email: e.target.value})} /></div>
+                <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
+                <div><label style={labelStyle}>2. Contact Person Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_name || ''} onChange={e=>setFormData({...formData, spoc_name: e.target.value})} /></div>
+                <div><label style={labelStyle}>3. Designation</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.designation || ''} onChange={e=>setFormData({...formData, designation: e.target.value})}><option value="">Select</option>{designations.map(d=><option key={d}>{d}</option>)}</select></div>
+                <div><label style={labelStyle}>4. Mobile Number</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_contact || ''} onChange={e=>setFormData({...formData, spoc_contact: e.target.value})} /></div>
+                <div><label style={labelStyle}>5. Official Email ID</label><input type="email" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_email || ''} onChange={e=>setFormData({...formData, spoc_email: e.target.value})} /></div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={labelStyle}>6. Company Location</label>
-                  <select disabled={modalMode === 'view'} style={inputStyle} value={formData.city} onChange={e=>setFormData({...formData, city: e.target.value})}>
+                  <select disabled={modalMode === 'view'} style={inputStyle} value={formData.city || ''} onChange={e=>setFormData({...formData, city: e.target.value})}>
                     <option value="">Select City</option>
                     {Object.keys(indianLocations).map(st => <optgroup key={st} label={st} style={{background:'#0b0e14', color:'#A855F7'}}>{indianLocations[st].map(c => <option key={c} value={c} style={{color:'#fff'}}>{c}</option>)}</optgroup>)}
                   </select>
                 </div>
               </div>
 
-              {/* SECTION 2: Lead Intelligence */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: 'span 2' }}>
@@ -274,8 +279,8 @@ export default function BDPipeline() {
                     {requirementStatuses.map(s => <Pill key={s} label={s} selected={formData.requirement_status === s} onClick={() => modalMode !== 'view' && setFormData({...formData, requirement_status: s})} />)}
                   </div>
                 </div>
-                <div><label style={labelStyle}>8. Primary Industry</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.sector} onChange={e=>setFormData({...formData, sector: e.target.value})}><option value="">Select</option>{industries.map(i=><option key={i}>{i}</option>)}</select></div>
-                <div><label style={labelStyle}>9. Lead Source</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.lead_source} onChange={e=>setFormData({...formData, lead_source: e.target.value})}><option value="">Select</option>{leadSources.map(l=><option key={l}>{l}</option>)}</select></div>
+                <div><label style={labelStyle}>8. Primary Industry</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.sector || ''} onChange={e=>setFormData({...formData, sector: e.target.value})}><option value="">Select</option>{industries.map(i=><option key={i}>{i}</option>)}</select></div>
+                <div><label style={labelStyle}>9. Lead Source</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.lead_source || ''} onChange={e=>setFormData({...formData, lead_source: e.target.value})}><option value="">Select</option>{leadSources.map(l=><option key={l}>{l}</option>)}</select></div>
                 <div style={{ gridColumn: 'span 2' }}>
                   <label style={labelStyle}>10. Lead Priority</label>
                   <div style={{ display: 'flex', gap: '15px' }}>
@@ -284,21 +289,20 @@ export default function BDPipeline() {
                     <Pill label="❄️ Cold" colorMode="Cold" selected={formData.priority === 'Cold'} onClick={() => modalMode !== 'view' && setFormData({...formData, priority: 'Cold'})} />
                   </div>
                 </div>
-                <div><label style={labelStyle}>11. Team Member Assigned</label><input disabled={modalMode === 'view'} style={inputStyle} placeholder="e.g. Rahul Sharma" value={formData.bd_owner} onChange={e=>setFormData({...formData, bd_owner: e.target.value})} /></div>
-                <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
+                <div><label style={labelStyle}>11. Team Member Assigned</label><input disabled={modalMode === 'view'} style={inputStyle} placeholder="e.g. Rahul Sharma" value={formData.bd_owner || ''} onChange={e=>setFormData({...formData, bd_owner: e.target.value})} /></div>
+                <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
-              {/* SECTION 3: Actionables */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Feedback</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-                <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, width: '50%'}} value={formData.next_followup} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
-                <div><label style={labelStyle}>14. Feedback After Follow-up</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '80px', resize: 'vertical'}} value={formData.feedback} onChange={e=>setFormData({...formData, feedback: e.target.value})} placeholder="What was the outcome of the last call?" /></div>
-                <div><label style={labelStyle}>15. Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '100px', resize: 'vertical'}} value={formData.notes} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
+                <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, width: '50%'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
+                <div><label style={labelStyle}>14. Feedback After Follow-up</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '80px', resize: 'vertical'}} value={formData.feedback || ''} onChange={e=>setFormData({...formData, feedback: e.target.value})} placeholder="What was the outcome of the last call?" /></div>
+                <div><label style={labelStyle}>15. Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '100px', resize: 'vertical'}} value={formData.notes || ''} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
                 
                 <div>
                   <label style={labelStyle}>16. Custom Tags</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
-                    {formData.tags.map(t => (
+                    {renderTags.map(t => (
                       <span key={t} style={{ background: 'rgba(196,113,237,0.15)', color: '#e88bfa', border: '1px solid #c471ed', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
                         {t} {modalMode !== 'view' && <span style={{cursor:'pointer', marginLeft:'5px'}} onClick={()=>removeTag(t)}>✕</span>}
                       </span>
@@ -310,7 +314,6 @@ export default function BDPipeline() {
 
             </div>
 
-            {/* MODAL FOOTER */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
