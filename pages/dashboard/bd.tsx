@@ -1,30 +1,21 @@
 // @ts-nocheck
 /* eslint-disable */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 import dynamic from 'next/dynamic';
 
-// KAL WALA ORIGINAL CONFETTI (Safe mode)
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
-// --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
 const progressMessages = [
   "Boom! Great progress!", "Moving the needle!", "One step closer to closing!", "Keep that momentum!", 
   "Awesome work!", "You're on fire!", "Pipeline is heating up!", "Crushing those KPIs!", 
   "Next stop: Conversion!", "Stellar update!", "Making waves!", "That's how it's done!", 
   "Savage BD skills!", "Unstoppable!", "Another one moves up!", "Closing in on the deal!", 
   "Great follow-up!", "Solid traction!", "Lead is warming up!", "Excellent hustle!", 
-  "They can't resist your pitch!", "You're a BD machine!", "Level up!", "Big moves!", 
-  "Love to see it!", "Target locked!", "Keep pushing!", "Momentum = Money!", "Fantastic update!", 
-  "You've got this!", "Sales ninja in action!", "Prospects love you!", "That's a win!", 
-  "Progress tastes sweet!", "Right on track!", "Building that empire!", "Step by step to the top!", 
-  "Pipeline perfection!", "Masterful execution!", "Smooth operator!", "Deal dynamics improving!", 
-  "Incredible hustle!", "Way to drive it forward!", "Turning leads into gold!", "You're crushing it today!", 
-  "Phenomenal progress!", "Keep the wins coming!", "That's high-value action!", "Excellent momentum!", "Onwards and upwards!"
+  "They can't resist your pitch!", "You're a BD machine!", "Level up!", "Big moves!"
 ];
 
-// --- TAXONOMY DATA ---
 const indianLocations = {
   "Andhra Pradesh": ["Visakhapatnam", "Vijayawada"], "Delhi": ["New Delhi", "Dwarka", "Rohini"], 
   "Gujarat": ["Ahmedabad", "Surat"], "Haryana": ["Gurugram", "Faridabad"], 
@@ -38,8 +29,8 @@ const industries = ["IT Services", "Software Product", "E-commerce", "Finance", 
 const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email Campaign", "Website", "Existing Client"];
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
+const teamMembers = ["Pravin", "Rahul Sharma", "Neha Singh", "Amit Kumar", "Priya Desai", "Vikas Tech"]; // Mock team members
 
-// --- CUSTOM HOOK FOR WINDOW SIZE (For Confetti) ---
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
   useEffect(() => {
@@ -51,7 +42,6 @@ function useWindowSize() {
   return windowSize;
 }
 
-// --- INTERACTIVE PILL COMPONENT ---
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
   let background = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
   let border = selected ? '1px solid #3B82F6' : '1px solid #374151';
@@ -81,16 +71,20 @@ export default function BDPipeline() {
   const [formData, setFormData] = useState({
     id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
     city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-    next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: ''
+    next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: 'Pravin (Auto-Recorded)', tagged_members: []
   });
 
   const [tagInput, setTagInput] = useState('');
+  
+  // Mention Logic States
+  const feedbackRef = useRef(null);
+  const [showMentionMenu, setShowMentionMenu] = useState(false);
+  const [mentionFilter, setMentionFilter] = useState('');
 
   useEffect(() => { fetchMandates(); }, []);
 
   const fetchMandates = async () => {
     setLoading(true);
-    // FIXED: Table name changed to bd_pipeline
     const { data, error } = await supabase.from('bd_pipeline').select('*').order('created_at', { ascending: false });
     if (!error && data) setMandates(data);
     setLoading(false);
@@ -98,6 +92,7 @@ export default function BDPipeline() {
 
   const handleSave = async () => {
     const safeTags = Array.isArray(formData.tags) ? formData.tags : [];
+    const safeTaggedMembers = Array.isArray(formData.tagged_members) ? formData.tagged_members : [];
     
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
@@ -108,11 +103,9 @@ export default function BDPipeline() {
     };
 
     if (modalMode === 'edit' && formData.id) {
-      // FIXED: Table name changed to bd_pipeline
       const { error } = await supabase.from('bd_pipeline').update(payload).eq('id', formData.id);
       if (error) return alert("Database Error: " + error.message);
     } else {
-      // FIXED: Table name changed to bd_pipeline
       const { error } = await supabase.from('bd_pipeline').insert([payload]);
       if (error) return alert("Database Error: " + error.message);
     }
@@ -122,7 +115,6 @@ export default function BDPipeline() {
   };
 
   const handleStageChange = async (id, newStage) => {
-    // FIXED: Table name changed to bd_pipeline
     const { error } = await supabase.from('bd_pipeline').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
@@ -141,17 +133,18 @@ export default function BDPipeline() {
     setModalMode(mode);
     if (mandate) {
       const parsedTags = Array.isArray(mandate.tags) ? mandate.tags : (typeof mandate.tags === 'string' ? mandate.tags.split(',') : []);
-      setFormData({ ...mandate, tags: parsedTags });
+      setFormData({ ...mandate, tags: parsedTags, bd_owner: mandate.bd_owner || 'Pravin (Auto-Recorded)', tagged_members: [] });
     } else {
       setFormData({ 
         id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
         city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-        next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: '' 
+        next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: 'Pravin (Auto-Recorded)', tagged_members: []
       });
     }
     setIsModalOpen(true);
   };
 
+  // Standard Tag Handlers
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
@@ -168,14 +161,42 @@ export default function BDPipeline() {
     setFormData({ ...formData, tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
+  // Mention Handler Logic
+  const handleFeedbackChange = (e) => {
+    const val = e.target.value;
+    setFormData({ ...formData, feedback: val });
+
+    const cursorPosition = e.target.selectionStart;
+    const textBeforeCursor = val.slice(0, cursorPosition);
+    const match = textBeforeCursor.match(/@(\w*)$/);
+
+    if (match) {
+      setShowMentionMenu(true);
+      setMentionFilter(match[1].toLowerCase());
+    } else {
+      setShowMentionMenu(false);
+    }
+  };
+
+  const insertMention = (name) => {
+    const cursorPosition = feedbackRef.current?.selectionStart || formData.feedback.length;
+    const textBeforeCursor = formData.feedback.slice(0, cursorPosition);
+    const textAfterCursor = formData.feedback.slice(cursorPosition);
+    
+    const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${name} `);
+    setFormData({ ...formData, feedback: newTextBefore + textAfterCursor });
+    setShowMentionMenu(false);
+    feedbackRef.current?.focus();
+  };
+
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
 
   const renderTags = Array.isArray(formData.tags) ? formData.tags : [];
+  const filteredTeamMembers = teamMembers.filter(m => m.toLowerCase().includes(mentionFilter));
 
   return (
     <Layout>
-      {/* PERFECT CONFETTI OVERLAY */}
       {showConfetti && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
@@ -186,21 +207,27 @@ export default function BDPipeline() {
         </div>
       )}
 
+      {/* FIXED INVISIBLE CALENDAR ICON AND ADDED PREMIUM BACKGROUND */}
       <style dangerouslySetInnerHTML={{__html: `
-        .pipeline-container { padding: 30px; background: #070B1A; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
+        .premium-bg { background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.1) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 40%), #070B1A; }
+        .pipeline-container { padding: 30px; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
         .table-wrapper { background: #11182D; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
         .pipeline-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
         .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #9CA3AF; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         .pipeline-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
         .pipeline-table tr:hover td { background-color: rgba(255,255,255,0.02); }
         
+        /* FIX INVISIBLE CALENDAR ICON */
+        input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.8; transition: 0.2s; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
         @media (max-width: 768px) {
           .pipeline-container { padding: 15px; }
           .header-row { flex-direction: column; align-items: flex-start !important; gap: 15px; }
         }
       `}} />
 
-      <div className="pipeline-container">
+      <div className="pipeline-container premium-bg">
         
         <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
@@ -280,7 +307,6 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
-              {/* SECTION 1 */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
@@ -297,7 +323,6 @@ export default function BDPipeline() {
                 </div>
               </div>
 
-              {/* SECTION 2 */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -316,19 +341,68 @@ export default function BDPipeline() {
                     <Pill label="❄️ Cold" colorMode="Cold" selected={formData.priority === 'Cold'} onClick={() => modalMode !== 'view' && setFormData({...formData, priority: 'Cold'})} />
                   </div>
                 </div>
-                <div><label style={labelStyle}>11. Team Member Assigned</label><input disabled={modalMode === 'view'} style={inputStyle} placeholder="e.g. Rahul Sharma" value={formData.bd_owner || ''} onChange={e=>setFormData({...formData, bd_owner: e.target.value})} /></div>
+                
+                {/* AUTO RECORDED BD OWNER */}
+                <div>
+                  <label style={labelStyle}>11. BD Owner (Auto Recorded)</label>
+                  <div style={{ ...inputStyle, background: 'rgba(255,255,255,0.02)', color: '#60A5FA', cursor: 'not-allowed' }}>{formData.bd_owner}</div>
+                </div>
+                
                 <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
-              {/* SECTION 3 */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Feedback</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                 <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, maxWidth: '300px'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
-                <div><label style={labelStyle}>14. Feedback After Follow-up</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '80px', resize: 'vertical'}} value={formData.feedback || ''} onChange={e=>setFormData({...formData, feedback: e.target.value})} placeholder="What was the outcome of the last call?" /></div>
-                <div><label style={labelStyle}>15. Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '100px', resize: 'vertical'}} value={formData.notes || ''} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
                 
+                {/* 14 & 15 SWAPPED AS REQUESTED */}
+                <div><label style={labelStyle}>14. Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '100px', resize: 'vertical'}} value={formData.notes || ''} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
+                
+                {/* FEEDBACK FIELD WITH @ MENTION FUNCTIONALITY */}
+                <div style={{ position: 'relative' }}>
+                  <label style={labelStyle}>15. Feedback After Follow-up (Type @ to tag)</label>
+                  <textarea 
+                    ref={feedbackRef}
+                    disabled={modalMode === 'view'} 
+                    style={{...inputStyle, height: '80px', resize: 'vertical'}} 
+                    value={formData.feedback || ''} 
+                    onChange={handleFeedbackChange} 
+                    placeholder="Type @ to tag a team member..." 
+                  />
+                  
+                  {/* Mention Dropdown */}
+                  {showMentionMenu && filteredTeamMembers.length > 0 && (
+                    <div style={{ position: 'absolute', bottom: '100%', left: 0, background: '#1F2937', border: '1px solid #374151', borderRadius: '8px', overflow: 'hidden', zIndex: 10, width: '250px', boxShadow: '0 -5px 15px rgba(0,0,0,0.5)' }}>
+                      {filteredTeamMembers.map(member => (
+                        <div key={member} onClick={() => insertMention(member)} style={{ padding: '10px 15px', cursor: 'pointer', color: '#fff', fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>
+                          <span style={{ color: '#60A5FA', marginRight: '5px' }}>@</span>{member}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                {/* DIRECT TEAM TAGGING (ALTERNATIVE BOX) */}
                 <div>
-                  <label style={labelStyle}>16. Custom Tags</label>
+                  <label style={labelStyle}>16. Tag Team Members Directly</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
+                    {teamMembers.map(member => {
+                      const isTagged = (formData.tagged_members || []).includes(member);
+                      return (
+                        <button key={member} type="button" onClick={() => {
+                          if(modalMode === 'view') return;
+                          const tags = formData.tagged_members || [];
+                          setFormData({...formData, tagged_members: isTagged ? tags.filter(t => t !== member) : [...tags, member]});
+                        }} style={{ background: isTagged ? 'rgba(59,130,246,0.2)' : '#1F2937', color: isTagged ? '#60A5FA' : '#9CA3AF', border: isTagged ? '1px solid #3B82F6' : '1px solid #374151', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer', transition: '0.2s' }}>
+                          @ {member}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>17. Custom Tags</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '10px' }}>
                     {renderTags.map(t => (
                       <span key={t} style={{ background: 'rgba(196,113,237,0.15)', color: '#e88bfa', border: '1px solid #c471ed', padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold' }}>
@@ -342,7 +416,6 @@ export default function BDPipeline() {
 
             </div>
 
-            {/* ACTION FOOTERS */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
