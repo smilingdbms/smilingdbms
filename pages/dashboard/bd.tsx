@@ -4,22 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
-// --- 50+ MOTIVATIONAL MESSAGES ---
-const progressMessages = [
-  "Boom! Great progress!", "Moving the needle!", "One step closer to closing!", "Keep that momentum!", 
-  "Awesome work!", "You're on fire!", "Pipeline is heating up!", "Crushing those KPIs!", 
-  "Next stop: Conversion!", "Stellar update!", "Making waves!", "That's how it's done!", 
-  "Savage BD skills!", "Unstoppable!", "Another one moves up!", "Closing in on the deal!", 
-  "Great follow-up!", "Solid traction!", "Lead is warming up!", "Excellent hustle!", 
-  "They can't resist your pitch!", "You're a BD machine!", "Level up!", "Big moves!", 
-  "Love to see it!", "Target locked!", "Keep pushing!", "Momentum = Money!", "Fantastic update!", 
-  "You've got this!", "Sales ninja in action!", "Prospects love you!", "That's a win!", 
-  "Progress tastes sweet!", "Right on track!", "Building that empire!", "Step by step to the top!", 
-  "Pipeline perfection!", "Masterful execution!", "Smooth operator!", "Deal dynamics improving!", 
-  "Incredible hustle!", "Way to drive it forward!", "Turning leads into gold!", "You're crushing it today!", 
-  "Phenomenal progress!", "Keep the wins coming!", "That's high-value action!", "Excellent momentum!", "Onwards and upwards!"
-];
-
 // --- TAXONOMY DATA ---
 const indianLocations = {
   "Andhra Pradesh": ["Visakhapatnam", "Vijayawada"], "Delhi": ["New Delhi", "Dwarka", "Rohini"], 
@@ -35,52 +19,16 @@ const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
 
-// --- 100% HYDRATION-SAFE NATIVE CONFETTI ---
-const NativeConfetti = () => {
-  const [pieces, setPieces] = useState([]);
-  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899'];
-
-  useEffect(() => {
-    // Generates random values ONLY on the client to prevent Next.js Hydration Crash
-    const generatedPieces = Array.from({ length: 120 }).map((_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}vw`,
-      width: `${Math.random() * 8 + 6}px`,
-      height: `${Math.random() * 16 + 10}px`,
-      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-      animationDuration: `${Math.random() * 2 + 2}s`,
-      rotation: `${Math.random() * 360}deg`,
-      opacity: Math.random() + 0.5
-    }));
-    setPieces(generatedPieces);
-  }, []);
-
-  if (pieces.length === 0) return null; // Prevents render until client-side hydration is complete
-
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', overflow: 'hidden' }}>
-      {pieces.map((p) => (
-        <div key={p.id} style={{
-          position: 'absolute', top: '-20px', left: p.left,
-          width: p.width, height: p.height, backgroundColor: p.backgroundColor,
-          animation: `confetti-fall ${p.animationDuration} linear forwards`,
-          transform: `rotate(${p.rotation})`, opacity: p.opacity
-        }} />
-      ))}
-      <style>{`@keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }`}</style>
-    </div>
-  );
-};
-
-// --- INTERACTIVE PILL COMPONENT ---
+// --- INTERACTIVE PILL COMPONENT (ERROR FIXED HERE) ---
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
-  let bg = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
+  // FIXED: Changed 'bg' to 'background' to prevent ReferenceError crash
+  let background = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
   let border = selected ? '1px solid #3B82F6' : '1px solid #374151';
   let color = selected ? '#60a5fa' : '#9ca3af';
 
-  if (colorMode === 'Hot' && selected) { bg = 'rgba(239, 68, 68, 0.2)'; border = '1px solid #EF4444'; color = '#f87171'; }
-  if (colorMode === 'Warm' && selected) { bg = 'rgba(245, 158, 11, 0.2)'; border = '1px solid #F59E0B'; color = '#fbbf24'; }
-  if (colorMode === 'Cold' && selected) { bg = 'rgba(16, 185, 129, 0.2)'; border = '1px solid #10B981'; color = '#34d399'; }
+  if (colorMode === 'Hot' && selected) { background = 'rgba(239, 68, 68, 0.2)'; border = '1px solid #EF4444'; color = '#f87171'; }
+  if (colorMode === 'Warm' && selected) { background = 'rgba(245, 158, 11, 0.2)'; border = '1px solid #F59E0B'; color = '#fbbf24'; }
+  if (colorMode === 'Cold' && selected) { background = 'rgba(16, 185, 129, 0.2)'; border = '1px solid #10B981'; color = '#34d399'; }
 
   return (
     <button type="button" onClick={onClick} style={{ padding: '6px 14px', borderRadius: '20px', border, background, color, fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s', whiteSpace: 'nowrap' }}>
@@ -94,10 +42,6 @@ export default function BDPipeline() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
-
-  // Celebration State
-  const [showConfetti, setShowConfetti] = useState(false);
-  const [confettiMessage, setConfettiMessage] = useState("");
 
   // Complete Form Schema
   const [formData, setFormData] = useState({
@@ -118,7 +62,6 @@ export default function BDPipeline() {
   };
 
   const handleSave = async () => {
-    // Ensure tags are always an array before saving to avoid DB crashes
     const safeTags = Array.isArray(formData.tags) ? formData.tags : [];
     
     const payload = {
@@ -141,26 +84,16 @@ export default function BDPipeline() {
     fetchMandates();
   };
 
-  // Triggers confetti and message on any stage progress
   const handleStageChange = async (id, newStage) => {
     const { error } = await supabase.from('bd_mandates').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
-      triggerCelebration();
     }
-  };
-
-  const triggerCelebration = () => {
-    const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
-    setConfettiMessage(randomMsg);
-    setShowConfetti(true);
-    setTimeout(() => setShowConfetti(false), 4000); // Auto-hide after 4 seconds
   };
 
   const openModal = (mode, mandate = null) => {
     setModalMode(mode);
     if (mandate) {
-      // Safely parse tags for editing
       const parsedTags = Array.isArray(mandate.tags) ? mandate.tags : (typeof mandate.tags === 'string' ? mandate.tags.split(',') : []);
       setFormData({ ...mandate, tags: parsedTags });
     } else {
@@ -194,25 +127,10 @@ export default function BDPipeline() {
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
 
-  // Safe render fallback for tags UI
   const renderTags = Array.isArray(formData.tags) ? formData.tags : [];
 
   return (
     <Layout>
-      {/* GLOBAL CELEBRATION OVERLAY */}
-      {showConfetti && (
-        <>
-          <NativeConfetti />
-          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-              🎉 {confettiMessage}
-            </div>
-            <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
-          </div>
-        </>
-      )}
-
-      {/* CSS Injection for Desktop/Mobile Table Responsiveness */}
       <style dangerouslySetInnerHTML={{__html: `
         .pipeline-container { padding: 30px; background: #070B1A; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
         .table-wrapper { background: #11182D; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
@@ -228,7 +146,6 @@ export default function BDPipeline() {
       `}} />
 
       <div className="pipeline-container">
-        
         <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
             BD Lead Pipeline
@@ -294,7 +211,6 @@ export default function BDPipeline() {
         </div>
       </div>
 
-      {/* FULL SCREEN MODAL */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#11182D', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -308,7 +224,6 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
-              {/* SECTION 1 */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
@@ -325,7 +240,6 @@ export default function BDPipeline() {
                 </div>
               </div>
 
-              {/* SECTION 2 */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -348,7 +262,6 @@ export default function BDPipeline() {
                 <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
-              {/* SECTION 3 */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Feedback</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                 <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, maxWidth: '300px'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
@@ -370,7 +283,6 @@ export default function BDPipeline() {
 
             </div>
 
-            {/* ACTION FOOTERS */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
