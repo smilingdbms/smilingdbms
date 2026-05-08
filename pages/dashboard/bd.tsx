@@ -1,12 +1,8 @@
 // @ts-nocheck
 /* eslint-disable */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
-import dynamic from 'next/dynamic';
-
-// CRITICAL FIX: Dynamically import Confetti to prevent Next.js SSR crashes
-const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 // --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
 const progressMessages = [
@@ -38,17 +34,25 @@ const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
 
-// --- CUSTOM HOOK FOR CONFETTI ---
-function useWindowSize() {
-  const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
-  useEffect(() => {
-    function handleResize() { setWindowSize({ width: window.innerWidth, height: window.innerHeight }); }
-    window.addEventListener("resize", handleResize);
-    handleResize();
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-  return windowSize;
-}
+// --- 100% CRASH-PROOF CUSTOM NATIVE CONFETTI ---
+const NativeConfetti = () => {
+  const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899'];
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', overflow: 'hidden' }}>
+      {Array.from({ length: 150 }).map((_, i) => {
+        const style = {
+          position: 'absolute', top: '-20px', left: `${Math.random() * 100}vw`,
+          width: `${Math.random() * 8 + 6}px`, height: `${Math.random() * 16 + 10}px`,
+          backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+          animation: `confetti-fall ${Math.random() * 3 + 2}s linear forwards`,
+          transform: `rotate(${Math.random() * 360}deg)`, opacity: Math.random() + 0.5
+        };
+        return <div key={i} style={style} />;
+      })}
+      <style>{`@keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }`}</style>
+    </div>
+  );
+};
 
 // --- UI COMPONENTS ---
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
@@ -68,7 +72,6 @@ const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
 };
 
 export default function BDPipeline() {
-  const { width, height } = useWindowSize();
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -97,7 +100,7 @@ export default function BDPipeline() {
 
   const handleSave = async () => {
     const numericValue = parseFloat(formData.value) || 0;
-    const safeTags = Array.isArray(formData.tags) ? formData.tags : []; // Safe array parsing
+    const safeTags = Array.isArray(formData.tags) ? formData.tags : [];
     
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
@@ -127,14 +130,13 @@ export default function BDPipeline() {
       const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
       setConfettiMessage(randomMsg);
       setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 5000);
+      setTimeout(() => setShowConfetti(false), 4000);
     }
   };
 
   const openModal = (mode, mandate = null) => {
     setModalMode(mode);
     if (mandate) {
-      // Safe parsing to prevent map() crashes
       const parsedTags = Array.isArray(mandate.tags) ? mandate.tags : (typeof mandate.tags === 'string' ? mandate.tags.split(',') : []);
       setFormData({ ...mandate, tags: parsedTags });
     } else {
@@ -167,19 +169,21 @@ export default function BDPipeline() {
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' };
 
-  // Safe fallback for UI rendering
   const renderTags = Array.isArray(formData.tags) ? formData.tags : [];
 
   return (
     <Layout>
+      {/* 100% SAFE CONFETTI & MESSAGE TOAST */}
       {showConfetti && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
-          <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
-            🎉 {confettiMessage}
+        <>
+          <NativeConfetti />
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+              🎉 {confettiMessage}
+            </div>
+            <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
           </div>
-          <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
-        </div>
+        </>
       )}
 
       <div style={{ padding: '30px', background: '#070B1A', minHeight: '100vh', color: '#fff', width: '100%' }}>
