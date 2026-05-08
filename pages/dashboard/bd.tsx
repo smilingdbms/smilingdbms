@@ -3,6 +3,26 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
+import dynamic from 'next/dynamic';
+
+// KAL WALA ORIGINAL CONFETTI (Safe mode taaki crash na ho)
+const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
+
+// --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
+const progressMessages = [
+  "Boom! Great progress!", "Moving the needle!", "One step closer to closing!", "Keep that momentum!", 
+  "Awesome work!", "You're on fire!", "Pipeline is heating up!", "Crushing those KPIs!", 
+  "Next stop: Conversion!", "Stellar update!", "Making waves!", "That's how it's done!", 
+  "Savage BD skills!", "Unstoppable!", "Another one moves up!", "Closing in on the deal!", 
+  "Great follow-up!", "Solid traction!", "Lead is warming up!", "Excellent hustle!", 
+  "They can't resist your pitch!", "You're a BD machine!", "Level up!", "Big moves!", 
+  "Love to see it!", "Target locked!", "Keep pushing!", "Momentum = Money!", "Fantastic update!", 
+  "You've got this!", "Sales ninja in action!", "Prospects love you!", "That's a win!", 
+  "Progress tastes sweet!", "Right on track!", "Building that empire!", "Step by step to the top!", 
+  "Pipeline perfection!", "Masterful execution!", "Smooth operator!", "Deal dynamics improving!", 
+  "Incredible hustle!", "Way to drive it forward!", "Turning leads into gold!", "You're crushing it today!", 
+  "Phenomenal progress!", "Keep the wins coming!", "That's high-value action!", "Excellent momentum!", "Onwards and upwards!"
+];
 
 // --- TAXONOMY DATA ---
 const indianLocations = {
@@ -19,9 +39,20 @@ const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
 
-// --- INTERACTIVE PILL COMPONENT (ERROR FIXED HERE) ---
+// --- CUSTOM HOOK FOR WINDOW SIZE (For Confetti) ---
+function useWindowSize() {
+  const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
+  useEffect(() => {
+    function handleResize() { setWindowSize({ width: window.innerWidth, height: window.innerHeight }); }
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return windowSize;
+}
+
+// --- INTERACTIVE PILL COMPONENT ---
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
-  // FIXED: Changed 'bg' to 'background' to prevent ReferenceError crash
   let background = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
   let border = selected ? '1px solid #3B82F6' : '1px solid #374151';
   let color = selected ? '#60a5fa' : '#9ca3af';
@@ -38,12 +69,15 @@ const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
 };
 
 export default function BDPipeline() {
+  const { width, height } = useWindowSize();
   const [mandates, setMandates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
 
-  // Complete Form Schema
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [confettiMessage, setConfettiMessage] = useState("");
+
   const [formData, setFormData] = useState({
     id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
     city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
@@ -88,7 +122,15 @@ export default function BDPipeline() {
     const { error } = await supabase.from('bd_mandates').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
+      triggerCelebration();
     }
+  };
+
+  const triggerCelebration = () => {
+    const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
+    setConfettiMessage(randomMsg);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 5000); 
   };
 
   const openModal = (mode, mandate = null) => {
@@ -123,7 +165,6 @@ export default function BDPipeline() {
     setFormData({ ...formData, tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
-  // Shared Styles
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
 
@@ -131,6 +172,17 @@ export default function BDPipeline() {
 
   return (
     <Layout>
+      {/* PERFECT CONFETTI OVERLAY */}
+      {showConfetti && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
+          <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards' }}>
+            🎉 {confettiMessage}
+          </div>
+          <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
+        </div>
+      )}
+
       <style dangerouslySetInnerHTML={{__html: `
         .pipeline-container { padding: 30px; background: #070B1A; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
         .table-wrapper { background: #11182D; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
@@ -146,6 +198,7 @@ export default function BDPipeline() {
       `}} />
 
       <div className="pipeline-container">
+        
         <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
             BD Lead Pipeline
