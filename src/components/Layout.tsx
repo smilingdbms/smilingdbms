@@ -58,10 +58,10 @@ export default function Layout({ children }) {
         .desktop-sidebar::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 10px; }
 
         .menu-item {
-          display: flex; alignItems: center; gap: 15px; padding: 12px 20px; margin: 4px 15px; borderRadius: 10px; 
-          cursor: pointer; background: transparent; borderLeft: 3px solid transparent; transition: all 0.2s ease; color: var(--text-muted);
+          display: flex; align-items: center; gap: 15px; padding: 12px 20px; margin: 4px 15px; border-radius: 10px; 
+          cursor: pointer; background: transparent; border-left: 3px solid transparent; transition: all 0.2s ease; color: var(--text-muted);
         }
-        .menu-item.active { background: linear-gradient(90deg, var(--accent-glow), transparent); borderLeft: 3px solid var(--accent); color: var(--text-main); }
+        .menu-item.active { background: linear-gradient(90deg, var(--accent-glow), transparent); border-left: 3px solid var(--accent); color: var(--text-main); }
         .menu-item .menu-icon { font-size: 18px; filter: grayscale(100%) opacity(70%); }
         .menu-item.active .menu-icon { filter: none; }
         .menu-item .menu-label { font-size: 14px; font-weight: 500; }
@@ -129,9 +129,9 @@ export default function Layout({ children }) {
         {/* Links */}
         <div style={{ padding: '20px 0', flex: 1 }}>
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#6B7280', letterSpacing: '1px', margin: '0 20px 10px', textTransform: 'uppercase' }}>Main</div>
-          <MenuItem href="/dashboard/job-seekers" icon="👥" label="Job Seekers" isActive={router.pathname.includes('/job-seekers')} />
+          <MenuItem href="/dashboard/candidates" icon="👥" label="Job Seekers" isActive={router.pathname.includes('/candidates')} />
           <MenuItem href="/dashboard/jobs" icon="💼" label="Jobs" isActive={router.pathname.includes('/jobs')} />
-          <MenuItem href="/dashboard/bd-pipeline" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd-pipeline')} />
+          <MenuItem href="/dashboard/bd" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd')} />
           <MenuItem href="/dashboard/interviews" icon="📅" label="Interviews" isActive={router.pathname.includes('/interviews')} />
           <MenuItem href="/dashboard/communications" icon="💬" label="Communications" isActive={router.pathname.includes('/communications')} />
           <MenuItem href="/dashboard/placements" icon="🏆" label="Placements" isActive={router.pathname.includes('/placements')} />
@@ -162,8 +162,8 @@ export default function Layout({ children }) {
           </div>
         </Link>
         
-        <Link href="/dashboard/job-seekers" style={{textDecoration: 'none'}}>
-          <div className={`bottom-nav-item ${router.pathname.includes('/job-seekers') ? 'active' : ''}`}>
+        <Link href="/dashboard/candidates" style={{textDecoration: 'none'}}>
+          <div className={`bottom-nav-item ${router.pathname.includes('/candidates') ? 'active' : ''}`}>
             <span className="icon">👥</span><span className="label">Seekers</span>
           </div>
         </Link>
@@ -192,8 +192,8 @@ export default function Layout({ children }) {
 
       {/* ================= 4. MOBILE SLIDE-UP MENU ================= */}
       <div className={`mobile-full-menu ${isMobileMenuOpen ? 'open' : ''}`}>
-        <div style={{ padding: '25px 20px', background: '#0b0e14', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+        <div style={{ padding: '25px 20px', background: '#0b0e14', border-bottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{ display: 'flex', align-items: 'center', gap: '15px' }}>
             <div style={{ width: '50px', height: '50px', background: '#1F2937', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A855F7', fontSize: '20px', border: '1px solid #374151' }}>P</div>
             <div>
               <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>Pravin Kumar</div>
@@ -203,7 +203,7 @@ export default function Layout({ children }) {
         </div>
 
         <div style={{ padding: '15px 0' }}>
-          <MenuItem href="/dashboard/bd-pipeline" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd-pipeline')} />
+          <MenuItem href="/dashboard/bd" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd')} />
           <MenuItem href="/dashboard/jobs" icon="💼" label="Manage Jobs" isActive={router.pathname.includes('/jobs')} />
           <MenuItem href="/dashboard/interviews" icon="📅" label="Interviews" isActive={router.pathname.includes('/interviews')} />
           <MenuItem href="/dashboard/placements" icon="🏆" label="Placements" isActive={router.pathname.includes('/placements')} />
