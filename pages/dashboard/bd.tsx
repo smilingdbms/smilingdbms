@@ -64,14 +64,12 @@ export default function BDPipeline() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
   
-  // NEW: Search Engine State
   const [searchTerm, setSearchTerm] = useState("");
 
-  // DYNAMIC USER & MULTI-TENANT STATE (Hardcoded template for now, will connect to Auth later)
   const [currentUser, setCurrentUser] = useState({ 
     name: 'Pravin (AO)', 
     company: 'Prime Consultancy',
-    consultancy_id: 'PRIME001' // Multi-tenant isolation key
+    consultancy_id: 'PRIME001' 
   });
 
   const [formData, setFormData] = useState({
@@ -99,7 +97,6 @@ export default function BDPipeline() {
 
   const fetchMandates = async () => {
     setLoading(true);
-    // Future RLS will auto-filter, but adding explicit check for good practice
     const { data, error } = await supabase
       .from('bd_pipeline')
       .select('*')
@@ -126,7 +123,7 @@ export default function BDPipeline() {
       commercial_type: formData.commercial_type || 'Percentage (%)', 
       value: formData.value || '', 
       agreement_file: formData.agreement_file,
-      consultancy_id: currentUser.consultancy_id, // NEW: Injecting Tenant ID
+      consultancy_id: currentUser.consultancy_id, 
       tags: JSON.stringify(formData.tags), 
       feedback: JSON.stringify(formData.feedbackList)
     };
@@ -152,7 +149,6 @@ export default function BDPipeline() {
   };
 
   const handleStageChange = async (m, newStage) => {
-    // NEW: STATUS GUARDRAIL LOGIC (Lock)
     if (newStage === 'Converted to Client' && !m.agreement_file) {
       alert("🔒 STATUS LOCK: Cannot mark lead as 'Converted to Client' without uploading the Signed Agreement File first!");
       return;
@@ -263,11 +259,13 @@ export default function BDPipeline() {
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
   const filteredTeamMembers = teamMembers.filter(m => m.toLowerCase().includes(mentionFilter));
 
-  // NEW: FILTER LOGIC FOR SEARCH ENGINE
-  const filteredMandates = mandates.filter(m => 
-    (m.company_name && m.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (m.spoc_name && m.spoc_name.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // 🐛 FIX: SEARCH LOGIC UPDATED TO SHOW ALL IF SEARCH IS EMPTY
+  const filteredMandates = mandates.filter(m => {
+    if (!searchTerm) return true; // Yeh line miss ho gayi thi, jisse blank data waale hide ho gaye the.
+    const matchCompany = m.company_name && m.company_name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSpoc = m.spoc_name && m.spoc_name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchCompany || matchSpoc;
+  });
 
   return (
     <Layout>
@@ -307,7 +305,6 @@ export default function BDPipeline() {
           </h1>
           
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* NEW: GLOBAL SEARCH BAR */}
             <input 
               type="text" 
               className="search-bar"
