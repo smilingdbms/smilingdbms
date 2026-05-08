@@ -21,7 +21,7 @@ function useWindowSize() {
 export default function SuperAdminDashboard() {
   const { width, height } = useWindowSize();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeTab, setActiveTab] = useState('team'); // 'overview', 'tenants', 'team', 'broadcast'
+  const [activeTab, setActiveTab] = useState('team'); 
   
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
@@ -29,7 +29,18 @@ export default function SuperAdminDashboard() {
   const bulkInputRef = useRef(null);
   const [broadcastText, setBroadcastText] = useState("");
 
-  // MOCK DATA: For Super Admin View (Connect to your Supabase tables)
+  // RBAC PERMISSION MODAL STATE
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userPermissions, setUserPermissions] = useState({
+    view_ats: true,
+    edit_leads: true,
+    export_csv: false,
+    delete_records: false,
+    access_billing: false,
+    manage_team: false
+  });
+
+  // MOCK DATA (Will connect to Supabase Profiles/Tenant_users later)
   const [teamMembers, setTeamMembers] = useState([
     { id: 1, name: 'Pravin', email: 'smilingdbms@gmail.com', role: 'Super Admin', status: 'Always On', count: 65, date: '20/3/2026', isYou: true },
     { id: 2, name: 'AO1', email: 'smilingdbms+owner1@gmail.com', role: 'Account Owner', status: 'Always On', count: 0, date: '20/4/2026' },
@@ -62,14 +73,39 @@ export default function SuperAdminDashboard() {
     setBroadcastText("");
   };
 
+  // OPEN PERMISSION MODAL
+  const openPermissionSettings = (user) => {
+    setSelectedUser(user);
+    // In future, fetch actual permissions from Supabase here
+    setUserPermissions({
+      view_ats: true,
+      edit_leads: user.role !== 'Recruiter', // Example logic
+      export_csv: user.role === 'Account Owner' || user.role === 'Super Admin',
+      delete_records: user.role === 'Super Admin',
+      access_billing: user.role === 'Account Owner' || user.role === 'Super Admin',
+      manage_team: user.role !== 'Recruiter'
+    });
+  };
+
+  // TOGGLE PERMISSION
+  const togglePermission = (key) => {
+    setUserPermissions(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const savePermissions = () => {
+    setConfettiMessage(`Permissions Updated for ${selectedUser.name}`);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 4000);
+    setSelectedUser(null);
+  };
+
   const filteredTeam = teamMembers.filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()) || m.email.toLowerCase().includes(searchQuery.toLowerCase()));
 
-  // Role Pill Styler
   const getRoleStyle = (role) => {
     if(role === 'Super Admin') return { bg: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: '1px solid #EF4444' };
     if(role === 'Account Owner') return { bg: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', border: '1px solid #F59E0B' };
     if(role === 'Team Manager') return { bg: 'rgba(168, 85, 247, 0.1)', color: '#A855F7', border: '1px solid #A855F7' };
-    return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: '1px solid #10B981' }; // Recruiter
+    return { bg: 'rgba(16, 185, 129, 0.1)', color: '#10B981', border: '1px solid #10B981' }; 
   };
 
   return (
@@ -98,6 +134,15 @@ export default function SuperAdminDashboard() {
         .admin-table tr:hover { background: rgba(255,255,255,0.02); }
         .action-btn { background: transparent; border: none; cursor: pointer; padding: 5px; color: #9CA3AF; transition: 0.2s; }
         .action-btn:hover { color: #fff; transform: scale(1.1); }
+        
+        /* TOGGLE SWITCH CSS */
+        .toggle-switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .3s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #10B981; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
       `}} />
 
       <div className="admin-layout">
@@ -160,12 +205,12 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {/* TAB 2: TEAM MANAGEMENT (As per screenshot) */}
+          {/* TAB 2: TEAM MANAGEMENT */}
           {activeTab === 'team' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '20px' }}>
                 <div>
-                  <h1 style={{ margin: 0, fontSize: '24px' }}>Team Management</h1>
+                  <h1 style={{ margin: 0, fontSize: '24px' }}>Team Management & Permissions</h1>
                   <div style={{ fontSize: '13px', color: '#9CA3AF', marginTop: '5px' }}>
                     {teamMembers.length} total <span style={{color:'#F59E0B', marginLeft:'10px'}}>0 pending</span> <span style={{color:'#10B981', marginLeft:'10px'}}>9 active</span> <span style={{color:'#EF4444', marginLeft:'10px'}}>2 disabled</span>
                   </div>
@@ -189,7 +234,6 @@ export default function SuperAdminDashboard() {
               </div>
 
               <div style={{ marginTop: '30px' }}>
-                <h3 style={{ fontSize: '14px', color: '#10B981', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>● Active Members ({filteredTeam.length})</h3>
                 <table className="admin-table">
                   <tbody>
                     {filteredTeam.map(m => {
@@ -211,11 +255,10 @@ export default function SuperAdminDashboard() {
                               ● {m.status}
                             </span>
                           </td>
-                          <td style={{ color: '#F59E0B', fontWeight: 'bold' }}>{m.count}</td>
-                          <td style={{ color: '#9CA3AF', fontSize: '12px' }}>{m.date}</td>
                           <td style={{ textAlign: 'right' }}>
                             <a href={`mailto:${m.email}`} className="action-btn" title="Email User">✉️</a>
-                            <button className="action-btn" title="Settings">⚙️</button>
+                            {/* THIS IS THE PERMISSION BUTTON */}
+                            <button onClick={() => openPermissionSettings(m)} className="action-btn" title="Modify Permissions">⚙️</button>
                             <button className="action-btn" title="Delete User">🗑️</button>
                           </td>
                         </tr>
@@ -227,12 +270,11 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {/* TAB 3: TENANT APPROVAL & MANAGEMENT */}
+          {/* TAB 3 & 4 (Tenants & Broadcasts remain same) */}
           {activeTab === 'tenants' && (
             <div>
               <h2>Tenant / Consultancy Approvals</h2>
               <p style={{ color: '#9CA3AF', fontSize: '13px' }}>Approve new agencies to auto-generate their Company Code and isolate their ATS database.</p>
-              
               <div style={{ background: '#11182D', borderRadius: '12px', border: '1px solid #1F2937', marginTop: '20px' }}>
                 <table className="admin-table">
                   <thead>
@@ -246,16 +288,6 @@ export default function SuperAdminDashboard() {
                       <td><span style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>Pending Approval</span></td>
                       <td>
                         <button onClick={() => handleApproveAO('Rahul Verma')} style={{ background: '#10B981', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '10px' }}>Approve</button>
-                        <a href="https://wa.me/919876543210?text=Hi Rahul, regarding your SaaS registration..." target="_blank" rel="noreferrer" style={{ textDecoration: 'none', fontSize: '16px' }}>💬</a>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style={{fontWeight:'bold'}}>Global Staffing Co.</td>
-                      <td>Anita Singh<br/><span style={{fontSize:'11px', color:'#9CA3AF'}}>anita@global.com</span></td>
-                      <td>Yesterday</td>
-                      <td><span style={{ color: '#10B981', background: 'rgba(16,185,129,0.1)', padding: '4px 8px', borderRadius: '4px', fontSize: '11px' }}>Active (Code: GLB09)</span></td>
-                      <td>
-                        <button style={{ background: '#1F2937', color: '#fff', border: '1px solid #374151', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', marginRight: '10px' }}>Manage Limits</button>
                       </td>
                     </tr>
                   </tbody>
@@ -264,37 +296,115 @@ export default function SuperAdminDashboard() {
             </div>
           )}
 
-          {/* TAB 4: GLOBAL BROADCAST (@Mentions System) */}
           {activeTab === 'broadcast' && (
             <div style={{ maxWidth: '600px' }}>
               <h2>Global Platform Broadcast</h2>
-              <p style={{ color: '#9CA3AF', fontSize: '13px' }}>Push alerts and notifications directly to all Account Owners and Recruiters. (e.g., Server maintenance, New Feature drops).</p>
-              
+              <p style={{ color: '#9CA3AF', fontSize: '13px' }}>Push alerts and notifications directly to all Account Owners and Recruiters.</p>
               <div style={{ background: '#11182D', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937', marginTop: '20px' }}>
-                <label style={{ display: 'block', fontSize: '12px', color: '#60A5FA', marginBottom: '10px', fontWeight: 'bold' }}>Target Audience</label>
-                <select style={{ width: '100%', background: '#050810', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', outline: 'none', marginBottom: '20px' }}>
-                  <option>@All Users</option>
-                  <option>@Account Owners Only</option>
-                  <option>@Recruiters Only</option>
-                </select>
-
-                <label style={{ display: 'block', fontSize: '12px', color: '#60A5FA', marginBottom: '10px', fontWeight: 'bold' }}>Broadcast Message</label>
                 <textarea 
                   style={{ width: '100%', background: '#050810', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', outline: 'none', height: '120px', resize: 'vertical' }}
                   placeholder="Type your alert here..."
                   value={broadcastText}
                   onChange={(e) => setBroadcastText(e.target.value)}
                 />
-
-                <button onClick={sendBroadcast} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '20px', width: '100%' }}>
-                  📢 Send Broadcast Now
-                </button>
+                <button onClick={sendBroadcast} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', marginTop: '20px', width: '100%' }}>📢 Send Broadcast Now</button>
               </div>
             </div>
           )}
 
         </div>
       </div>
+
+      {/* 🔥 THE PERMISSION TOGGLES MODAL (DYNAMIC RBAC MATRIX) 🔥 */}
+      {selectedUser && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#11182D', width: '100%', maxWidth: '500px', borderRadius: '16px', border: '1px solid #374151', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column' }}>
+            
+            <div style={{ padding: '20px', borderBottom: '1px solid #1F2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ margin: 0, color: '#fff', fontSize: '18px' }}>Access Control Matrix</h3>
+                <div style={{ color: '#9CA3AF', fontSize: '12px', marginTop: '4px' }}>Modifying permissions for <strong style={{color:'#60A5FA'}}>{selectedUser.name}</strong> ({selectedUser.role})</div>
+              </div>
+              <button onClick={() => setSelectedUser(null)} style={{ background: 'transparent', border: 'none', color: '#9CA3AF', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              
+              {/* Toggle Item 1 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#050810', padding: '15px', borderRadius: '8px', border: '1px solid #1F2937' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>View ATS Pipeline</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Can see candidate database and tracking.</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={userPermissions.view_ats} onChange={() => togglePermission('view_ats')} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              {/* Toggle Item 2 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#050810', padding: '15px', borderRadius: '8px', border: '1px solid #1F2937' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Edit Client Leads</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Can add/edit target companies and HR details.</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={userPermissions.edit_leads} onChange={() => togglePermission('edit_leads')} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              {/* Toggle Item 3 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#050810', padding: '15px', borderRadius: '8px', border: '1px solid #1F2937' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: userPermissions.export_csv ? '#F59E0B' : '#fff' }}>Export Data (CSV)</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Can download full database. High security risk.</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={userPermissions.export_csv} onChange={() => togglePermission('export_csv')} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              {/* Toggle Item 4 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#050810', padding: '15px', borderRadius: '8px', border: '1px solid #1F2937' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: userPermissions.delete_records ? '#EF4444' : '#fff' }}>Delete Records</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Can permanently delete leads, candidates, or feedback.</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={userPermissions.delete_records} onChange={() => togglePermission('delete_records')} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+              {/* Toggle Item 5 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#050810', padding: '15px', borderRadius: '8px', border: '1px solid #1F2937' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px' }}>Access Billing & Invoices</div>
+                  <div style={{ fontSize: '11px', color: '#9CA3AF' }}>Can view placement revenue and generate invoices.</div>
+                </div>
+                <label className="toggle-switch">
+                  <input type="checkbox" checked={userPermissions.access_billing} onChange={() => togglePermission('access_billing')} />
+                  <span className="slider"></span>
+                </label>
+              </div>
+
+            </div>
+
+            <div style={{ padding: '20px', borderTop: '1px solid #1F2937', background: '#050810', borderRadius: '0 0 16px 16px', display: 'flex', gap: '15px' }}>
+              <button onClick={savePermissions} style={{ flex: 1, background: '#10B981', color: '#000', fontWeight: 'bold', padding: '12px', borderRadius: '8px', border: 'none', cursor: 'pointer' }}>
+                Save Access Rules
+              </button>
+              <button onClick={() => setSelectedUser(null)} style={{ background: '#1F2937', color: '#fff', padding: '12px', borderRadius: '8px', border: '1px solid #374151', cursor: 'pointer' }}>
+                Cancel
+              </button>
+            </div>
+            
+          </div>
+        </div>
+      )}
+
     </Layout>
   );
 }
