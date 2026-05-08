@@ -5,7 +5,7 @@ import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 import dynamic from 'next/dynamic';
 
-// KAL WALA ORIGINAL CONFETTI (Safe mode taaki crash na ho)
+// KAL WALA ORIGINAL CONFETTI (Safe mode)
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 
 // --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
@@ -90,7 +90,8 @@ export default function BDPipeline() {
 
   const fetchMandates = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('bd_mandates').select('*').order('created_at', { ascending: false });
+    // FIXED: Table name changed to bd_pipeline
+    const { data, error } = await supabase.from('bd_pipeline').select('*').order('created_at', { ascending: false });
     if (!error && data) setMandates(data);
     setLoading(false);
   };
@@ -107,10 +108,12 @@ export default function BDPipeline() {
     };
 
     if (modalMode === 'edit' && formData.id) {
-      const { error } = await supabase.from('bd_mandates').update(payload).eq('id', formData.id);
+      // FIXED: Table name changed to bd_pipeline
+      const { error } = await supabase.from('bd_pipeline').update(payload).eq('id', formData.id);
       if (error) return alert("Database Error: " + error.message);
     } else {
-      const { error } = await supabase.from('bd_mandates').insert([payload]);
+      // FIXED: Table name changed to bd_pipeline
+      const { error } = await supabase.from('bd_pipeline').insert([payload]);
       if (error) return alert("Database Error: " + error.message);
     }
 
@@ -119,7 +122,8 @@ export default function BDPipeline() {
   };
 
   const handleStageChange = async (id, newStage) => {
-    const { error } = await supabase.from('bd_mandates').update({ stage: newStage }).eq('id', id);
+    // FIXED: Table name changed to bd_pipeline
+    const { error } = await supabase.from('bd_pipeline').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
       triggerCelebration();
@@ -148,7 +152,6 @@ export default function BDPipeline() {
     setIsModalOpen(true);
   };
 
-  // Tag Handlers
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
@@ -277,6 +280,7 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
+              {/* SECTION 1 */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
@@ -293,6 +297,7 @@ export default function BDPipeline() {
                 </div>
               </div>
 
+              {/* SECTION 2 */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -315,6 +320,7 @@ export default function BDPipeline() {
                 <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
+              {/* SECTION 3 */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Feedback</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
                 <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, maxWidth: '300px'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
@@ -336,6 +342,7 @@ export default function BDPipeline() {
 
             </div>
 
+            {/* ACTION FOOTERS */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
