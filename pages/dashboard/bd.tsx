@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../src/lib/supabase';
 import Layout from '../../src/components/Layout';
 
-// --- MOTIVATIONAL CONFETTI MESSAGES (50+) ---
+// --- 50+ MOTIVATIONAL MESSAGES ---
 const progressMessages = [
   "Boom! Great progress!", "Moving the needle!", "One step closer to closing!", "Keep that momentum!", 
   "Awesome work!", "You're on fire!", "Pipeline is heating up!", "Crushing those KPIs!", 
@@ -22,10 +22,11 @@ const progressMessages = [
 
 // --- TAXONOMY DATA ---
 const indianLocations = {
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada"], "Delhi": ["New Delhi", "Dwarka"], "Gujarat": ["Ahmedabad", "Surat"],
-  "Haryana": ["Gurugram", "Faridabad"], "Karnataka": ["Bengaluru", "Mysuru"], "Maharashtra": ["Mumbai", "Pune", "Nagpur"],
-  "Tamil Nadu": ["Chennai", "Coimbatore"], "Telangana": ["Hyderabad"], "Uttar Pradesh": ["Noida", "Lucknow", "Ghaziabad"],
-  "West Bengal": ["Kolkata"], "Others": ["Other"]
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada"], "Delhi": ["New Delhi", "Dwarka", "Rohini"], 
+  "Gujarat": ["Ahmedabad", "Surat"], "Haryana": ["Gurugram", "Faridabad"], 
+  "Karnataka": ["Bengaluru", "Mysuru"], "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Navi Mumbai"],
+  "Tamil Nadu": ["Chennai", "Coimbatore"], "Telangana": ["Hyderabad"], 
+  "Uttar Pradesh": ["Noida", "Lucknow", "Ghaziabad"], "West Bengal": ["Kolkata"], "Others": ["Other"]
 };
 
 const designations = ["HR", "HR Manager", "Talent Acquisition", "Founder", "Director", "Manager", "Team Lead", "Other"];
@@ -34,17 +35,17 @@ const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
 
-// --- 100% CRASH-PROOF CUSTOM NATIVE CONFETTI ---
+// --- 100% NATIVE CSS CONFETTI (NO EXTERNAL LIBRARIES TO CRASH) ---
 const NativeConfetti = () => {
   const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899'];
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', overflow: 'hidden' }}>
-      {Array.from({ length: 150 }).map((_, i) => {
+      {Array.from({ length: 120 }).map((_, i) => {
         const style = {
           position: 'absolute', top: '-20px', left: `${Math.random() * 100}vw`,
           width: `${Math.random() * 8 + 6}px`, height: `${Math.random() * 16 + 10}px`,
           backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-          animation: `confetti-fall ${Math.random() * 3 + 2}s linear forwards`,
+          animation: `confetti-fall ${Math.random() * 2 + 2}s linear forwards`,
           transform: `rotate(${Math.random() * 360}deg)`, opacity: Math.random() + 0.5
         };
         return <div key={i} style={style} />;
@@ -54,7 +55,7 @@ const NativeConfetti = () => {
   );
 };
 
-// --- UI COMPONENTS ---
+// --- INTERACTIVE PILL COMPONENT ---
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
   let bg = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
   let border = selected ? '1px solid #3B82F6' : '1px solid #374151';
@@ -77,14 +78,15 @@ export default function BDPipeline() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('add');
 
+  // Celebration State
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
 
+  // Complete Form Schema
   const [formData, setFormData] = useState({
     id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
-    city: '', state: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-    next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: '', 
-    commercial_type: 'Percentage (%)', value: '0'
+    city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
+    next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: ''
   });
 
   const [tagInput, setTagInput] = useState('');
@@ -99,57 +101,62 @@ export default function BDPipeline() {
   };
 
   const handleSave = async () => {
-    const numericValue = parseFloat(formData.value) || 0;
+    // Ensure tags are always an array before saving to avoid DB crashes
     const safeTags = Array.isArray(formData.tags) ? formData.tags : [];
     
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
       spoc_contact: formData.spoc_contact, spoc_email: formData.spoc_email, city: formData.city, 
-      state: formData.state, requirement_status: formData.requirement_status, sector: formData.sector, 
-      lead_source: formData.lead_source, priority: formData.priority, next_followup: formData.next_followup, 
-      stage: formData.stage, notes: formData.notes, feedback: formData.feedback, tags: safeTags, 
-      bd_owner: formData.bd_owner, commercial_type: formData.commercial_type, value: numericValue
+      requirement_status: formData.requirement_status, sector: formData.sector, lead_source: formData.lead_source, 
+      priority: formData.priority, next_followup: formData.next_followup, stage: formData.stage, 
+      notes: formData.notes, feedback: formData.feedback, tags: safeTags, bd_owner: formData.bd_owner
     };
 
     if (modalMode === 'edit' && formData.id) {
       const { error } = await supabase.from('bd_mandates').update(payload).eq('id', formData.id);
-      if (error) return alert("Error saving: " + error.message);
+      if (error) return alert("Database Error: " + error.message);
     } else {
       const { error } = await supabase.from('bd_mandates').insert([payload]);
-      if (error) return alert("Error saving: " + error.message);
+      if (error) return alert("Database Error: " + error.message);
     }
 
     setIsModalOpen(false);
     fetchMandates();
   };
 
+  // Triggers confetti and message on any stage progress
   const handleStageChange = async (id, newStage) => {
     const { error } = await supabase.from('bd_mandates').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
-      const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
-      setConfettiMessage(randomMsg);
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 4000);
+      triggerCelebration();
     }
+  };
+
+  const triggerCelebration = () => {
+    const randomMsg = progressMessages[Math.floor(Math.random() * progressMessages.length)];
+    setConfettiMessage(randomMsg);
+    setShowConfetti(true);
+    setTimeout(() => setShowConfetti(false), 4000); // Auto-hide after 4 seconds
   };
 
   const openModal = (mode, mandate = null) => {
     setModalMode(mode);
     if (mandate) {
+      // Safely parse tags for editing
       const parsedTags = Array.isArray(mandate.tags) ? mandate.tags : (typeof mandate.tags === 'string' ? mandate.tags.split(',') : []);
       setFormData({ ...mandate, tags: parsedTags });
     } else {
       setFormData({ 
         id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
-        city: '', state: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-        next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: '', 
-        commercial_type: 'Percentage (%)', value: '' 
+        city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
+        next_followup: '', stage: 'New Lead', notes: '', feedback: '', tags: [], bd_owner: '' 
       });
     }
     setIsModalOpen(true);
   };
 
+  // Tag Handlers
   const addTag = (e) => {
     if (e.key === 'Enter' && tagInput.trim()) {
       e.preventDefault();
@@ -166,14 +173,16 @@ export default function BDPipeline() {
     setFormData({ ...formData, tags: currentTags.filter(t => t !== tagToRemove) });
   };
 
+  // Shared Styles
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
-  const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase' };
+  const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
 
+  // Safe render fallback for tags UI
   const renderTags = Array.isArray(formData.tags) ? formData.tags : [];
 
   return (
     <Layout>
-      {/* 100% SAFE CONFETTI & MESSAGE TOAST */}
+      {/* GLOBAL CELEBRATION OVERLAY */}
       {showConfetti && (
         <>
           <NativeConfetti />
@@ -186,39 +195,61 @@ export default function BDPipeline() {
         </>
       )}
 
-      <div style={{ padding: '30px', background: '#070B1A', minHeight: '100vh', color: '#fff', width: '100%' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            BD Enterprise Pipeline
+      {/* CSS Injection for Desktop/Mobile Table Responsiveness */}
+      <style dangerouslySetInnerHTML={{__html: `
+        .pipeline-container { padding: 30px; background: #070B1A; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
+        .table-wrapper { background: #11182D; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+        .pipeline-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
+        .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #9CA3AF; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+        .pipeline-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
+        .pipeline-table tr:hover td { background-color: rgba(255,255,255,0.02); }
+        
+        @media (max-width: 768px) {
+          .pipeline-container { padding: 15px; }
+          .header-row { flex-direction: column; align-items: flex-start !important; gap: 15px; }
+        }
+      `}} />
+
+      <div className="pipeline-container">
+        
+        <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
+            BD Lead Pipeline
           </h1>
-          <button onClick={() => openModal('add')} style={{ background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '10px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>
+          <button onClick={() => openModal('add')} style={{ background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '10px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', whiteSpace: 'nowrap' }}>
             + New BD Lead
           </button>
         </div>
 
-        <div style={{ background: '#11182D', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', overflowX: 'auto', boxShadow: '0 10px 30px rgba(0,0,0,0.3)' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+        <div className="table-wrapper">
+          <table className="pipeline-table">
             <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#9CA3AF', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                <th style={{ padding: '20px' }}>Company & Contact</th>
-                <th style={{ padding: '20px' }}>Location & Priority</th>
-                <th style={{ padding: '20px' }}>Lead Status</th>
-                <th style={{ padding: '20px' }}>Follow-up</th>
-                <th style={{ padding: '20px', textAlign: 'right' }}>Actions</th>
+              <tr>
+                <th>Company & Contact</th>
+                <th>Location & Priority</th>
+                <th>Lead Status</th>
+                <th>Follow-up</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {mandates.map(m => (
-                <tr key={m.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', transition: 'background 0.3s' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='rgba(255,255,255,0.02)'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>
-                  <td style={{ padding: '20px' }}>
+                <tr key={m.id}>
+                  <td>
                     <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>{m.company_name}</div>
-                    <div style={{ color: '#60A5FA', fontSize: '12px', marginTop: '4px', fontWeight: '600' }}>{m.spoc_name || 'No Contact'} <span style={{color: '#6B7280', fontWeight: 'normal'}}>• {m.designation}</span></div>
+                    <div style={{ color: '#60A5FA', fontSize: '12px', marginTop: '4px', fontWeight: '600' }}>
+                      {m.spoc_name || 'No Contact'} <span style={{color: '#6B7280', fontWeight: 'normal'}}>• {m.designation || 'N/A'}</span>
+                    </div>
                   </td>
-                  <td style={{ padding: '20px' }}>
-                    <div style={{ fontSize: '13px', color: '#D1D5DB', marginBottom: '6px' }}>{m.city}</div>
-                    {m.priority && <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', background: m.priority==='Hot'?'#ef444422':m.priority==='Warm'?'#f59e0b22':'#10b98122', color: m.priority==='Hot'?'#f87171':m.priority==='Warm'?'#fbbf24':'#34d399' }}>{m.priority}</span>}
+                  <td>
+                    <div style={{ fontSize: '13px', color: '#D1D5DB', marginBottom: '6px' }}>{m.city || 'Location N/A'}</div>
+                    {m.priority && (
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', background: m.priority==='Hot'?'#ef444422':m.priority==='Warm'?'#f59e0b22':'#10b98122', color: m.priority==='Hot'?'#f87171':m.priority==='Warm'?'#fbbf24':'#34d399' }}>
+                        {m.priority}
+                      </span>
+                    )}
                   </td>
-                  <td style={{ padding: '20px' }}>
+                  <td>
                     <select 
                       value={m.stage || 'New Lead'} 
                       onChange={(e) => handleStageChange(m.id, e.target.value)}
@@ -227,10 +258,10 @@ export default function BDPipeline() {
                       {leadStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
-                  <td style={{ padding: '20px', fontSize: '13px', color: '#D1D5DB' }}>
+                  <td style={{ fontSize: '13px', color: '#D1D5DB' }}>
                     {m.next_followup || 'Not Set'}
                   </td>
-                  <td style={{ padding: '20px', textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                       <button onClick={() => openModal('view', m)} style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>View</button>
                       <button onClick={() => openModal('edit', m)} style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Edit</button>
@@ -246,6 +277,7 @@ export default function BDPipeline() {
         </div>
       </div>
 
+      {/* FULL SCREEN MODAL */}
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#11182D', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
@@ -259,14 +291,15 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
+              {/* SECTION 1 */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
-                <div style={{ gridColumn: 'span 2' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>1. Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>2. Contact Person Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_name || ''} onChange={e=>setFormData({...formData, spoc_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>3. Designation</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.designation || ''} onChange={e=>setFormData({...formData, designation: e.target.value})}><option value="">Select</option>{designations.map(d=><option key={d}>{d}</option>)}</select></div>
                 <div><label style={labelStyle}>4. Mobile Number</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_contact || ''} onChange={e=>setFormData({...formData, spoc_contact: e.target.value})} /></div>
                 <div><label style={labelStyle}>5. Official Email ID</label><input type="email" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_email || ''} onChange={e=>setFormData({...formData, spoc_email: e.target.value})} /></div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>6. Company Location</label>
                   <select disabled={modalMode === 'view'} style={inputStyle} value={formData.city || ''} onChange={e=>setFormData({...formData, city: e.target.value})}>
                     <option value="">Select City</option>
@@ -275,9 +308,10 @@ export default function BDPipeline() {
                 </div>
               </div>
 
+              {/* SECTION 2 */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
-                <div style={{ gridColumn: 'span 2' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>7. Requirement Status</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {requirementStatuses.map(s => <Pill key={s} label={s} selected={formData.requirement_status === s} onClick={() => modalMode !== 'view' && setFormData({...formData, requirement_status: s})} />)}
@@ -285,7 +319,7 @@ export default function BDPipeline() {
                 </div>
                 <div><label style={labelStyle}>8. Primary Industry</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.sector || ''} onChange={e=>setFormData({...formData, sector: e.target.value})}><option value="">Select</option>{industries.map(i=><option key={i}>{i}</option>)}</select></div>
                 <div><label style={labelStyle}>9. Lead Source</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.lead_source || ''} onChange={e=>setFormData({...formData, lead_source: e.target.value})}><option value="">Select</option>{leadSources.map(l=><option key={l}>{l}</option>)}</select></div>
-                <div style={{ gridColumn: 'span 2' }}>
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={labelStyle}>10. Lead Priority</label>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <Pill label="🔥 Hot" colorMode="Hot" selected={formData.priority === 'Hot'} onClick={() => modalMode !== 'view' && setFormData({...formData, priority: 'Hot'})} />
@@ -297,9 +331,10 @@ export default function BDPipeline() {
                 <div><label style={labelStyle}>12. Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
+              {/* SECTION 3 */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Feedback</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-                <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, width: '50%'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
+                <div><label style={labelStyle}>13. Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={{...inputStyle, maxWidth: '300px'}} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
                 <div><label style={labelStyle}>14. Feedback After Follow-up</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '80px', resize: 'vertical'}} value={formData.feedback || ''} onChange={e=>setFormData({...formData, feedback: e.target.value})} placeholder="What was the outcome of the last call?" /></div>
                 <div><label style={labelStyle}>15. Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '100px', resize: 'vertical'}} value={formData.notes || ''} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
                 
@@ -312,12 +347,13 @@ export default function BDPipeline() {
                       </span>
                     ))}
                   </div>
-                  {modalMode !== 'view' && <input style={inputStyle} placeholder="Type tag and press Enter..." value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={addTag} />}
+                  {modalMode !== 'view' && <input style={{...inputStyle, maxWidth: '300px'}} placeholder="Type tag and press Enter..." value={tagInput} onChange={e=>setTagInput(e.target.value)} onKeyDown={addTag} />}
                 </div>
               </div>
 
             </div>
 
+            {/* ACTION FOOTERS */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
