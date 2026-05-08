@@ -63,18 +63,25 @@ export default function BDPipeline() {
   const [modalMode, setModalMode] = useState('add');
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
+  
+  // NEW: Search Engine State
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const CURRENT_USER = "Pravin (AO)";
+  // DYNAMIC USER & MULTI-TENANT STATE (Hardcoded template for now, will connect to Auth later)
+  const [currentUser, setCurrentUser] = useState({ 
+    name: 'Pravin (AO)', 
+    company: 'Prime Consultancy',
+    consultancy_id: 'PRIME001' // Multi-tenant isolation key
+  });
 
   const [formData, setFormData] = useState({
     id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
     city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-    next_followup: '', stage: 'New Lead', notes: '', tags: [], bd_owner: CURRENT_USER, 
+    next_followup: '', stage: 'New Lead', notes: '', tags: [], bd_owner: currentUser.name, 
     commercial_type: 'Percentage (%)', value: '', agreement_file: '',
     feedbackList: [], newFeedbackText: '', currentTaggedMembers: []
   });
 
-  const [tagInput, setTagInput] = useState('');
   const fileInputRef = useRef(null);
   const bulkInputRef = useRef(null);
   
@@ -92,7 +99,12 @@ export default function BDPipeline() {
 
   const fetchMandates = async () => {
     setLoading(true);
-    const { data, error } = await supabase.from('bd_pipeline').select('*').order('created_at', { ascending: false });
+    // Future RLS will auto-filter, but adding explicit check for good practice
+    const { data, error } = await supabase
+      .from('bd_pipeline')
+      .select('*')
+      .order('created_at', { ascending: false });
+      
     if (!error && data) {
       const mapped = data.map(d => ({
         ...d,
@@ -105,7 +117,6 @@ export default function BDPipeline() {
   };
 
   const handleSave = async () => {
-    // Deal Type Glitch Fix: strict fallback mapping to ensure value is never null
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
       spoc_contact: formData.spoc_contact, spoc_email: formData.spoc_email, city: formData.city, 
@@ -115,6 +126,7 @@ export default function BDPipeline() {
       commercial_type: formData.commercial_type || 'Percentage (%)', 
       value: formData.value || '', 
       agreement_file: formData.agreement_file,
+      consultancy_id: currentUser.consultancy_id, // NEW: Injecting Tenant ID
       tags: JSON.stringify(formData.tags), 
       feedback: JSON.stringify(formData.feedbackList)
     };
@@ -131,24 +143,26 @@ export default function BDPipeline() {
     fetchMandates();
   };
 
-  // NEW DELETE FUNCTION
   const handleDelete = async (id) => {
     if (window.confirm("Are you sure you want to permanently delete this lead? This action cannot be undone.")) {
       const { error } = await supabase.from('bd_pipeline').delete().eq('id', id);
-      if (error) {
-        alert("Error deleting lead: " + error.message);
-      } else {
-        fetchMandates(); // Refresh list automatically
-      }
+      if (error) alert("Error deleting lead: " + error.message);
+      else fetchMandates(); 
     }
   };
 
-  const handleStageChange = async (id, oldStage, newStage) => {
-    const { error } = await supabase.from('bd_pipeline').update({ stage: newStage }).eq('id', id);
+  const handleStageChange = async (m, newStage) => {
+    // NEW: STATUS GUARDRAIL LOGIC (Lock)
+    if (newStage === 'Converted to Client' && !m.agreement_file) {
+      alert("🔒 STATUS LOCK: Cannot mark lead as 'Converted to Client' without uploading the Signed Agreement File first!");
+      return;
+    }
+
+    const { error } = await supabase.from('bd_pipeline').update({ stage: newStage }).eq('id', m.id);
     if (!error) {
       fetchMandates();
       
-      const oldIndex = leadStatuses.indexOf(oldStage);
+      const oldIndex = leadStatuses.indexOf(m.stage);
       const newIndex = leadStatuses.indexOf(newStage);
       
       if (newIndex > oldIndex) {
@@ -168,14 +182,14 @@ export default function BDPipeline() {
         tags: parseSafeJSON(mandate.tags, []),
         feedbackList: parseSafeJSON(mandate.feedback, []),
         newFeedbackText: '', currentTaggedMembers: [],
-        bd_owner: mandate.bd_owner || CURRENT_USER,
-        commercial_type: mandate.commercial_type || 'Percentage (%)' // Cross-check strictly mapped
+        bd_owner: mandate.bd_owner || currentUser.name,
+        commercial_type: mandate.commercial_type || 'Percentage (%)'
       });
     } else {
       setFormData({ 
         id: null, company_name: '', spoc_name: '', designation: '', spoc_contact: '', spoc_email: '', 
         city: '', requirement_status: '', sector: '', lead_source: '', priority: '', 
-        next_followup: '', stage: 'New Lead', notes: '', tags: [], bd_owner: CURRENT_USER,
+        next_followup: '', stage: 'New Lead', notes: '', tags: [], bd_owner: currentUser.name,
         commercial_type: 'Percentage (%)', value: '', agreement_file: '',
         feedbackList: [], newFeedbackText: '', currentTaggedMembers: []
       });
@@ -185,50 +199,25 @@ export default function BDPipeline() {
 
   const addNewFeedback = () => {
     if (!formData.newFeedbackText.trim()) return;
-    
     const now = new Date();
     const formattedDate = now.toLocaleDateString('en-GB') + " " + now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-    
-    const newEntry = {
-      date: formattedDate,
-      author: CURRENT_USER,
-      text: formData.newFeedbackText,
-      tagged: formData.currentTaggedMembers
-    };
-
-    setFormData({
-      ...formData,
-      feedbackList: [newEntry, ...formData.feedbackList],
-      newFeedbackText: '',
-      currentTaggedMembers: []
-    });
+    const newEntry = { date: formattedDate, author: currentUser.name, text: formData.newFeedbackText, tagged: formData.currentTaggedMembers };
+    setFormData({ ...formData, feedbackList: [newEntry, ...formData.feedbackList], newFeedbackText: '', currentTaggedMembers: [] });
   };
 
   const handleFeedbackChange = (e) => {
     const val = e.target.value;
     setFormData({ ...formData, newFeedbackText: val });
-
-    const cursorPosition = e.target.selectionStart;
-    const textBeforeCursor = val.slice(0, cursorPosition);
-    const match = textBeforeCursor.match(/@(\w*)$/);
-
-    if (match) {
-      setShowMentionMenu(true);
-      setMentionFilter(match[1].toLowerCase());
-    } else {
-      setShowMentionMenu(false);
-    }
+    const match = val.slice(0, e.target.selectionStart).match(/@(\w*)$/);
+    if (match) { setShowMentionMenu(true); setMentionFilter(match[1].toLowerCase()); } 
+    else { setShowMentionMenu(false); }
   };
 
   const insertMention = (name) => {
     const cursorPosition = feedbackRef.current?.selectionStart || formData.newFeedbackText.length;
-    const textBeforeCursor = formData.newFeedbackText.slice(0, cursorPosition);
-    const textAfterCursor = formData.newFeedbackText.slice(cursorPosition);
-    const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${name} `);
-    
+    const newTextBefore = formData.newFeedbackText.slice(0, cursorPosition).replace(/@\w*$/, `@${name} `);
     const newTags = formData.currentTaggedMembers.includes(name) ? formData.currentTaggedMembers : [...formData.currentTaggedMembers, name];
-    
-    setFormData({ ...formData, newFeedbackText: newTextBefore + textAfterCursor, currentTaggedMembers: newTags });
+    setFormData({ ...formData, newFeedbackText: newTextBefore + formData.newFeedbackText.slice(cursorPosition), currentTaggedMembers: newTags });
     setShowMentionMenu(false);
     feedbackRef.current?.focus();
   };
@@ -237,10 +226,7 @@ export default function BDPipeline() {
     const name = e.target.value;
     if(!name) return;
     const isTagged = formData.currentTaggedMembers.includes(name);
-    setFormData({
-      ...formData,
-      currentTaggedMembers: isTagged ? formData.currentTaggedMembers.filter(t => t !== name) : [...formData.currentTaggedMembers, name]
-    });
+    setFormData({ ...formData, currentTaggedMembers: isTagged ? formData.currentTaggedMembers.filter(t => t !== name) : [...formData.currentTaggedMembers, name] });
   };
 
   const handleCSVImport = async (e) => {
@@ -259,32 +245,29 @@ export default function BDPipeline() {
       for (let i = 1; i < rows.length; i++) {
         if(!rows[i].trim()) continue;
         const cols = rows[i].split(',');
-        let rowObj = { bd_owner: CURRENT_USER, stage: 'New Lead' }; 
-        
-        headers.forEach((header, index) => {
-          if (cols[index]) rowObj[header] = cols[index].trim();
-        });
-        
+        let rowObj = { bd_owner: currentUser.name, stage: 'New Lead', consultancy_id: currentUser.consultancy_id }; 
+        headers.forEach((header, index) => { if (cols[index]) rowObj[header] = cols[index].trim(); });
         if(rowObj.company_name) parsedData.push(rowObj);
       }
 
       if(parsedData.length > 0) {
         const { error } = await supabase.from('bd_pipeline').insert(parsedData);
         if (error) alert("Bulk Import Database Error: " + error.message);
-        else {
-          alert(`Successfully imported ${parsedData.length} leads!`);
-          fetchMandates();
-        }
+        else { alert(`Successfully imported ${parsedData.length} leads!`); fetchMandates(); }
       }
     };
     reader.readAsText(file);
   };
 
-
   const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
   const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
-
   const filteredTeamMembers = teamMembers.filter(m => m.toLowerCase().includes(mentionFilter));
+
+  // NEW: FILTER LOGIC FOR SEARCH ENGINE
+  const filteredMandates = mandates.filter(m => 
+    (m.company_name && m.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (m.spoc_name && m.spoc_name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <Layout>
@@ -306,29 +289,34 @@ export default function BDPipeline() {
         .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #9CA3AF; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
         .pipeline-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
         .pipeline-table tr:hover td { background-color: rgba(255,255,255,0.02); }
-        
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.8; transition: 0.2s; }
         input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
-
         .action-icon { background: #1F2937; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; alignItems: center; gap: 4px; transition: 0.2s; border: 1px solid #374151; }
         .action-icon:hover { opacity: 0.8; }
         .icon-call { color: #10B981; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
         .icon-wa { color: #25D366; background: rgba(37, 211, 102, 0.1); border-color: rgba(37, 211, 102, 0.3); }
         .icon-mail { color: #3B82F6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
-
-        @media (max-width: 768px) {
-          .pipeline-container { padding: 15px; }
-          .header-row { flex-direction: column; align-items: flex-start !important; gap: 15px; }
-        }
+        @media (max-width: 768px) { .pipeline-container { padding: 15px; } .header-row { flex-direction: column; align-items: flex-start !important; gap: 15px; } .search-bar { width: 100% !important; } }
       `}} />
 
       <div className="pipeline-container premium-bg">
         
-        <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <div className="header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <h1 style={{ fontSize: '24px', fontWeight: '800', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', margin: 0 }}>
             BD Lead Pipeline
           </h1>
-          <div style={{ display: 'flex', gap: '15px' }}>
+          
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* NEW: GLOBAL SEARCH BAR */}
+            <input 
+              type="text" 
+              className="search-bar"
+              placeholder="🔍 Search company or SPOC..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              style={{ background: '#1F2937', color: '#fff', padding: '10px 16px', borderRadius: '8px', border: '1px solid #374151', outline: 'none', width: '250px', fontSize: '13px' }}
+            />
+
             <button onClick={() => bulkInputRef.current.click()} style={{ background: '#1F2937', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', border: '1px solid #374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
               📁 Bulk Import CSV
             </button>
@@ -352,7 +340,7 @@ export default function BDPipeline() {
               </tr>
             </thead>
             <tbody>
-              {mandates.map(m => (
+              {filteredMandates.map(m => (
                 <tr key={m.id}>
                   <td>
                     <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>{m.company_name}</div>
@@ -363,28 +351,19 @@ export default function BDPipeline() {
                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
                       {m.spoc_contact && (
                         <>
-                          <a href={`tel:${m.spoc_contact}`} className="action-icon icon-call" title="Call directly">
-                            📞 Call
-                          </a>
-                          <a href={`https://wa.me/91${m.spoc_contact.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'}, this is Pravin from Naukri Cottage. Reaching out to connect regarding recruitment partnership and hiring requirements at ${m.company_name}.`)}`} target="_blank" rel="noreferrer" className="action-icon icon-wa" title="WhatsApp SPOC">
-                            💬 WA
-                          </a>
+                          <a href={`tel:${m.spoc_contact}`} className="action-icon icon-call" title="Call directly">📞 Call</a>
+                          <a href={`https://wa.me/91${m.spoc_contact.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'}, this is ${currentUser.name} from ${currentUser.company}. Reaching out to connect regarding recruitment partnership and hiring requirements at ${m.company_name}.`)}`} target="_blank" rel="noreferrer" className="action-icon icon-wa" title="WhatsApp SPOC">💬 WA</a>
                         </>
                       )}
                       {m.spoc_email && (
-                        <a href={`mailto:${m.spoc_email}?subject=${encodeURIComponent(`Recruitment Partnership | Naukri Cottage & ${m.company_name}`)}&body=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'},\n\nGreetings from Naukri Cottage!\n\nI am Pravin, reaching out to explore potential synergies in your hiring process at ${m.company_name}.\n\nLooking forward to connecting.\n\nBest Regards,\nPravin\nNaukri Cottage`)}`} target="_blank" rel="noreferrer" className="action-icon icon-mail" title="Email SPOC">
-                          ✉️ Email
-                        </a>
+                        <a href={`mailto:${m.spoc_email}?subject=${encodeURIComponent(`Recruitment Partnership | ${currentUser.company} & ${m.company_name}`)}&body=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'},\n\nGreetings from ${currentUser.company}!\n\nI am ${currentUser.name}, reaching out to explore potential synergies in your hiring process at ${m.company_name}.\n\nLooking forward to connecting.\n\nBest Regards,\n${currentUser.name}\n${currentUser.company}`)}`} target="_blank" rel="noreferrer" className="action-icon icon-mail" title="Email SPOC">✉️ Email</a>
                       )}
                     </div>
-
                   </td>
                   <td>
                     <div style={{ fontSize: '13px', color: '#D1D5DB', marginBottom: '6px' }}>{m.city || 'Location N/A'}</div>
                     {m.priority && (
-                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', background: m.priority==='Hot'?'#ef444422':m.priority==='Warm'?'#f59e0b22':'#10b98122', color: m.priority==='Hot'?'#f87171':m.priority==='Warm'?'#fbbf24':'#34d399' }}>
-                        {m.priority}
-                      </span>
+                      <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', background: m.priority==='Hot'?'#ef444422':m.priority==='Warm'?'#f59e0b22':'#10b98122', color: m.priority==='Hot'?'#f87171':m.priority==='Warm'?'#fbbf24':'#34d399' }}>{m.priority}</span>
                     )}
                   </td>
                   <td>
@@ -394,7 +373,7 @@ export default function BDPipeline() {
                   <td>
                     <select 
                       value={m.stage || 'New Lead'} 
-                      onChange={(e) => handleStageChange(m.id, m.stage, e.target.value)}
+                      onChange={(e) => handleStageChange(m, e.target.value)}
                       style={{ background: '#0b0e14', color: '#fff', border: '1px solid #374151', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer', fontWeight: '600' }}
                     >
                       {leadStatuses.map(s => <option key={s} value={s}>{s}</option>)}
@@ -404,15 +383,13 @@ export default function BDPipeline() {
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
                       <button onClick={() => openModal('view', m)} style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>View</button>
                       <button onClick={() => openModal('edit', m)} style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Edit</button>
-                      
-                      {/* NEW DELETE BUTTON */}
                       <button onClick={() => handleDelete(m.id)} style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Delete</button>
                     </div>
                   </td>
                 </tr>
               ))}
-              {mandates.length === 0 && !loading && (
-                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6B7280', fontSize: '14px' }}>No leads found. Create or Import to get started.</td></tr>
+              {filteredMandates.length === 0 && !loading && (
+                <tr><td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6B7280', fontSize: '14px' }}>No leads found matching your search.</td></tr>
               )}
             </tbody>
           </table>
@@ -434,7 +411,7 @@ export default function BDPipeline() {
               
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
+                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Target Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>Contact Person Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_name || ''} onChange={e=>setFormData({...formData, spoc_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>Designation</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.designation || ''} onChange={e=>setFormData({...formData, designation: e.target.value})}><option value="">Select</option>{designations.map(d=><option key={d}>{d}</option>)}</select></div>
                 <div><label style={labelStyle}>Mobile Number</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_contact || ''} onChange={e=>setFormData({...formData, spoc_contact: e.target.value})} /></div>
