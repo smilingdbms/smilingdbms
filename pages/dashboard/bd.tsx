@@ -24,10 +24,9 @@ const indianLocations = {
 const designations = ["HR", "HR Manager", "Talent Acquisition", "Founder", "Director", "Manager", "Team Lead", "Other"];
 const industries = ["IT Services", "Software Product", "E-commerce", "Finance", "Banking", "EdTech", "Recruitment", "Manufacturing", "Healthcare", "Real Estate", "Logistics", "Other"];
 const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email Campaign", "Website", "Existing Client"];
-// Array logic for Confetti progress checking
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Negotiation", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
-const teamMembers = ["Pravin", "Rahul Sharma", "Neha Singh", "Amit Kumar", "Priya Desai", "Vikas Tech"]; // Mock team members
+const teamMembers = ["Pravin", "Rahul Sharma", "Neha Singh", "Amit Kumar", "Priya Desai", "Vikas Tech"]; 
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
@@ -79,7 +78,6 @@ export default function BDPipeline() {
   const fileInputRef = useRef(null);
   const bulkInputRef = useRef(null);
   
-  // Mention Logic States
   const feedbackRef = useRef(null);
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionFilter, setMentionFilter] = useState('');
@@ -96,7 +94,6 @@ export default function BDPipeline() {
     setLoading(true);
     const { data, error } = await supabase.from('bd_pipeline').select('*').order('created_at', { ascending: false });
     if (!error && data) {
-      // Map data to safely parse JSON strings if Supabase returns them as text
       const mapped = data.map(d => ({
         ...d,
         tags: parseSafeJSON(d.tags, []),
@@ -108,14 +105,16 @@ export default function BDPipeline() {
   };
 
   const handleSave = async () => {
-    // Stringify JSON to avoid Supabase text-column crashes
+    // Deal Type Glitch Fix: strict fallback mapping to ensure value is never null
     const payload = {
       company_name: formData.company_name, spoc_name: formData.spoc_name, designation: formData.designation,
       spoc_contact: formData.spoc_contact, spoc_email: formData.spoc_email, city: formData.city, 
       requirement_status: formData.requirement_status, sector: formData.sector, lead_source: formData.lead_source, 
       priority: formData.priority, next_followup: formData.next_followup, stage: formData.stage, 
-      notes: formData.notes, bd_owner: formData.bd_owner, commercial_type: formData.commercial_type, 
-      value: formData.value, agreement_file: formData.agreement_file,
+      notes: formData.notes, bd_owner: formData.bd_owner, 
+      commercial_type: formData.commercial_type || 'Percentage (%)', 
+      value: formData.value || '', 
+      agreement_file: formData.agreement_file,
       tags: JSON.stringify(formData.tags), 
       feedback: JSON.stringify(formData.feedbackList)
     };
@@ -132,12 +131,23 @@ export default function BDPipeline() {
     fetchMandates();
   };
 
+  // NEW DELETE FUNCTION
+  const handleDelete = async (id) => {
+    if (window.confirm("Are you sure you want to permanently delete this lead? This action cannot be undone.")) {
+      const { error } = await supabase.from('bd_pipeline').delete().eq('id', id);
+      if (error) {
+        alert("Error deleting lead: " + error.message);
+      } else {
+        fetchMandates(); // Refresh list automatically
+      }
+    }
+  };
+
   const handleStageChange = async (id, oldStage, newStage) => {
     const { error } = await supabase.from('bd_pipeline').update({ stage: newStage }).eq('id', id);
     if (!error) {
       fetchMandates();
       
-      // CONFETTI LOGIC: Only trigger if moving forward
       const oldIndex = leadStatuses.indexOf(oldStage);
       const newIndex = leadStatuses.indexOf(newStage);
       
@@ -158,7 +168,8 @@ export default function BDPipeline() {
         tags: parseSafeJSON(mandate.tags, []),
         feedbackList: parseSafeJSON(mandate.feedback, []),
         newFeedbackText: '', currentTaggedMembers: [],
-        bd_owner: mandate.bd_owner || CURRENT_USER 
+        bd_owner: mandate.bd_owner || CURRENT_USER,
+        commercial_type: mandate.commercial_type || 'Percentage (%)' // Cross-check strictly mapped
       });
     } else {
       setFormData({ 
@@ -172,7 +183,6 @@ export default function BDPipeline() {
     setIsModalOpen(true);
   };
 
-  // ----- FEEDBACK SYSTEM -----
   const addNewFeedback = () => {
     if (!formData.newFeedbackText.trim()) return;
     
@@ -188,7 +198,7 @@ export default function BDPipeline() {
 
     setFormData({
       ...formData,
-      feedbackList: [newEntry, ...formData.feedbackList], // Add to top
+      feedbackList: [newEntry, ...formData.feedbackList],
       newFeedbackText: '',
       currentTaggedMembers: []
     });
@@ -216,7 +226,6 @@ export default function BDPipeline() {
     const textAfterCursor = formData.newFeedbackText.slice(cursorPosition);
     const newTextBefore = textBeforeCursor.replace(/@\w*$/, `@${name} `);
     
-    // Auto-add to tagged array
     const newTags = formData.currentTaggedMembers.includes(name) ? formData.currentTaggedMembers : [...formData.currentTaggedMembers, name];
     
     setFormData({ ...formData, newFeedbackText: newTextBefore + textAfterCursor, currentTaggedMembers: newTags });
@@ -234,7 +243,6 @@ export default function BDPipeline() {
     });
   };
 
-  // ----- BULK IMPORT CSV LOGIC -----
   const handleCSVImport = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -251,13 +259,12 @@ export default function BDPipeline() {
       for (let i = 1; i < rows.length; i++) {
         if(!rows[i].trim()) continue;
         const cols = rows[i].split(',');
-        let rowObj = { bd_owner: CURRENT_USER, stage: 'New Lead' }; // Defaults
+        let rowObj = { bd_owner: CURRENT_USER, stage: 'New Lead' }; 
         
         headers.forEach((header, index) => {
           if (cols[index]) rowObj[header] = cols[index].trim();
         });
         
-        // Ensure required fields mapping (basic safe parse)
         if(rowObj.company_name) parsedData.push(rowObj);
       }
 
@@ -291,7 +298,6 @@ export default function BDPipeline() {
         </div>
       )}
 
-      {/* FIXED INVISIBLE CALENDAR ICON AND ADDED PREMIUM BACKGROUND */}
       <style dangerouslySetInnerHTML={{__html: `
         .premium-bg { background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.15) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 40%), #050810; }
         .pipeline-container { padding: 30px; min-height: 100vh; color: #fff; width: 100%; box-sizing: border-box; }
@@ -301,9 +307,14 @@ export default function BDPipeline() {
         .pipeline-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); transition: background 0.3s; }
         .pipeline-table tr:hover td { background-color: rgba(255,255,255,0.02); }
         
-        /* FIX INVISIBLE CALENDAR ICON */
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; opacity: 0.8; transition: 0.2s; }
         input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+
+        .action-icon { background: #1F2937; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; alignItems: center; gap: 4px; transition: 0.2s; border: 1px solid #374151; }
+        .action-icon:hover { opacity: 0.8; }
+        .icon-call { color: #10B981; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); }
+        .icon-wa { color: #25D366; background: rgba(37, 211, 102, 0.1); border-color: rgba(37, 211, 102, 0.3); }
+        .icon-mail { color: #3B82F6; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); }
 
         @media (max-width: 768px) {
           .pipeline-container { padding: 15px; }
@@ -318,7 +329,6 @@ export default function BDPipeline() {
             BD Lead Pipeline
           </h1>
           <div style={{ display: 'flex', gap: '15px' }}>
-            {/* BULK IMPORT BUTTON */}
             <button onClick={() => bulkInputRef.current.click()} style={{ background: '#1F2937', color: '#fff', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', border: '1px solid #374151', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
               📁 Bulk Import CSV
             </button>
@@ -349,6 +359,25 @@ export default function BDPipeline() {
                     <div style={{ color: '#60A5FA', fontSize: '12px', marginTop: '4px', fontWeight: '600' }}>
                       {m.spoc_name || 'No Contact'} <span style={{color: '#6B7280', fontWeight: 'normal'}}>• {m.designation || 'N/A'}</span>
                     </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+                      {m.spoc_contact && (
+                        <>
+                          <a href={`tel:${m.spoc_contact}`} className="action-icon icon-call" title="Call directly">
+                            📞 Call
+                          </a>
+                          <a href={`https://wa.me/91${m.spoc_contact.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'}, this is Pravin from Naukri Cottage. Reaching out to connect regarding recruitment partnership and hiring requirements at ${m.company_name}.`)}`} target="_blank" rel="noreferrer" className="action-icon icon-wa" title="WhatsApp SPOC">
+                            💬 WA
+                          </a>
+                        </>
+                      )}
+                      {m.spoc_email && (
+                        <a href={`mailto:${m.spoc_email}?subject=${encodeURIComponent(`Recruitment Partnership | Naukri Cottage & ${m.company_name}`)}&body=${encodeURIComponent(`Hi ${m.spoc_name || 'Team'},\n\nGreetings from Naukri Cottage!\n\nI am Pravin, reaching out to explore potential synergies in your hiring process at ${m.company_name}.\n\nLooking forward to connecting.\n\nBest Regards,\nPravin\nNaukri Cottage`)}`} target="_blank" rel="noreferrer" className="action-icon icon-mail" title="Email SPOC">
+                          ✉️ Email
+                        </a>
+                      )}
+                    </div>
+
                   </td>
                   <td>
                     <div style={{ fontSize: '13px', color: '#D1D5DB', marginBottom: '6px' }}>{m.city || 'Location N/A'}</div>
@@ -372,9 +401,12 @@ export default function BDPipeline() {
                     </select>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                      <button onClick={() => openModal('view', m)} style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>View</button>
-                      <button onClick={() => openModal('edit', m)} style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Edit</button>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      <button onClick={() => openModal('view', m)} style={{ background: 'rgba(59,130,246,0.1)', color: '#3B82F6', border: '1px solid rgba(59,130,246,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>View</button>
+                      <button onClick={() => openModal('edit', m)} style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Edit</button>
+                      
+                      {/* NEW DELETE BUTTON */}
+                      <button onClick={() => handleDelete(m.id)} style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold', transition: '0.2s' }}>Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -400,7 +432,6 @@ export default function BDPipeline() {
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               
-              {/* SECTION 1: BASIC INFO */}
               <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
@@ -416,7 +447,6 @@ export default function BDPipeline() {
                   </select>
                 </div>
                 
-                {/* RESTORED DEAL TYPE AND VALUE */}
                 <div>
                   <label style={labelStyle}>Deal Type</label>
                   <select disabled={modalMode === 'view'} style={inputStyle} value={formData.commercial_type || 'Percentage (%)'} onChange={e=>setFormData({...formData, commercial_type: e.target.value})}>
@@ -429,7 +459,6 @@ export default function BDPipeline() {
                 </div>
               </div>
 
-              {/* SECTION 2: LEAD INTELLIGENCE */}
               <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}>
@@ -456,12 +485,10 @@ export default function BDPipeline() {
                 <div><label style={labelStyle}>Lead Status</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.stage || 'New Lead'} onChange={e=>setFormData({...formData, stage: e.target.value})}>{leadStatuses.map(s=><option key={s}>{s}</option>)}</select></div>
               </div>
 
-              {/* SECTION 3: ACTIONABLES & AGREEMENTS */}
               <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Attachments</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
                 <div><label style={labelStyle}>Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={inputStyle} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
                 
-                {/* AGREEMENT ATTACHMENT */}
                 <div>
                   <label style={labelStyle}>Upload Agreement / Document</label>
                   <div style={{ display: 'flex', gap: '10px' }}>
@@ -476,11 +503,9 @@ export default function BDPipeline() {
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>General Notes / Discussion Summary</label><textarea disabled={modalMode === 'view'} style={{...inputStyle, height: '80px', resize: 'vertical'}} value={formData.notes || ''} onChange={e=>setFormData({...formData, notes: e.target.value})} placeholder="Detailed summary of requirements..." /></div>
               </div>
 
-              {/* SECTION 4: INTERACTION HISTORY (FEEDBACK) */}
               <h3 style={{ color: '#F59E0B', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>4. Interaction History (Feedback)</h3>
               <div style={{ background: '#0b0e14', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937' }}>
                 
-                {/* PREVIOUS FEEDBACKS LIST */}
                 <div style={{ marginBottom: '20px', maxHeight: '200px', overflowY: 'auto' }}>
                   {formData.feedbackList.length === 0 ? <div style={{ color: '#6B7280', fontSize: '12px', fontStyle: 'italic' }}>No feedback recorded yet.</div> : null}
                   {formData.feedbackList.map((fb, idx) => (
@@ -495,7 +520,6 @@ export default function BDPipeline() {
                   ))}
                 </div>
 
-                {/* NEW FEEDBACK INPUT */}
                 {modalMode !== 'view' && (
                   <div style={{ borderTop: '1px solid #1F2937', paddingTop: '20px' }}>
                     <div style={{ position: 'relative' }}>
@@ -508,7 +532,6 @@ export default function BDPipeline() {
                         placeholder="What was the outcome of the last call? Type @ to tag..." 
                       />
                       
-                      {/* @ MENTION MENU */}
                       {showMentionMenu && filteredTeamMembers.length > 0 && (
                         <div style={{ position: 'absolute', bottom: '100%', left: 0, background: '#1F2937', border: '1px solid #3B82F6', borderRadius: '8px', overflow: 'hidden', zIndex: 10, width: '250px', boxShadow: '0 -5px 15px rgba(0,0,0,0.8)' }}>
                           {filteredTeamMembers.map(member => (
@@ -520,7 +543,6 @@ export default function BDPipeline() {
                       )}
                     </div>
 
-                    {/* DIRECT DROPDOWN TAGGING AS REQUESTED */}
                     <div style={{ display: 'flex', gap: '15px', marginTop: '15px', alignItems: 'center' }}>
                       <select style={{...inputStyle, flex: 1}} onChange={handleDirectTagToggle} value="">
                         <option value="">Select Team Member to Tag...</option>
@@ -532,7 +554,6 @@ export default function BDPipeline() {
                       </button>
                     </div>
 
-                    {/* SHOW CURRENTLY TAGGED FOR THIS NEW ENTRY */}
                     {formData.currentTaggedMembers.length > 0 && (
                       <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
                         <span style={{color: '#9CA3AF', fontSize: '11px', alignSelf: 'center'}}>To be tagged: </span>
@@ -545,7 +566,6 @@ export default function BDPipeline() {
 
             </div>
 
-            {/* ACTION FOOTERS */}
             {modalMode !== 'view' ? (
               <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', flexShrink: 0, background: '#0b0e14' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)' }}>Save BD Lead</button>
