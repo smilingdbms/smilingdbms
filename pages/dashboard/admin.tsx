@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 const AuditLogs = dynamic(() => import('../../src/components/AuditLogs'), { ssr: false });
 const TeamManager = dynamic(() => import('../../src/components/TeamManager'), { ssr: false });
+const TenantManager = dynamic(() => import('../../src/components/TenantManager'), { ssr: false }); // <-- NAYA MODULE IMPORT
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
@@ -20,7 +21,6 @@ function useWindowSize() {
   return windowSize;
 }
 
-// ================= RESTORED: 70+ ENTERPRISE TOGGLES =================
 const staffPermissionGroups = {
   "ATS Toggles (Pipeline)": [
     { key: 'ats_view', label: 'View Candidates', desc: 'Read access to applicant tracking.' },
@@ -121,61 +121,39 @@ const ROLES_LIST = [
 export default function SuperAdminDashboard() {
   const { width, height } = useWindowSize();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeModule, setActiveModule] = useState('rbac'); 
+  const [activeModule, setActiveModule] = useState('tenants'); // Changed default view
   const [activeSubMenu, setActiveSubMenu] = useState('role_wise'); 
   const [selectedRole, setSelectedRole] = useState('Account Owner');
   
   const [showConfetti, setShowConfetti] = useState(false);
   const [confettiMessage, setConfettiMessage] = useState("");
-  
-  // Isme hum 2D Matrix store karenge (Isolated Toggles)
   const [rolePermissions, setRolePermissions] = useState({});
   const [saving, setSaving] = useState(false);
 
-  // 1. Fetch Permissions from Database on load
-  useEffect(() => {
-    fetchPermissions();
-  }, [selectedRole]);
+  useEffect(() => { fetchPermissions(); }, [selectedRole]);
 
   async function fetchPermissions() {
-    const { data, error } = await supabase.from('roles').select('permissions_json').eq('role_name', selectedRole).single();
-    if (data && data.permissions_json) {
-      setRolePermissions(prev => ({ ...prev, [selectedRole]: data.permissions_json }));
-    } else {
-      // Clear if no data exists yet for this role
-      setRolePermissions(prev => ({ ...prev, [selectedRole]: {} }));
-    }
+    const { data } = await supabase.from('roles').select('permissions_json').eq('role_name', selectedRole).single();
+    setRolePermissions(prev => ({ ...prev, [selectedRole]: data?.permissions_json || {} }));
   }
 
-  // 2. Toggle Matrix (Local)
   const handleRoleToggle = (featureKey) => {
     setRolePermissions(prev => ({
-      ...prev,
-      [selectedRole]: {
-        ...(prev[selectedRole] || {}),
-        [featureKey]: !(prev[selectedRole]?.[featureKey] || false)
-      }
+      ...prev, [selectedRole]: { ...(prev[selectedRole] || {}), [featureKey]: !(prev[selectedRole]?.[featureKey] || false) }
     }));
   };
 
   const toggleAllInGroup = (features, forceState) => {
     const updates = {};
     features.forEach(f => { updates[f.key] = forceState; });
-    setRolePermissions(prev => ({
-      ...prev,
-      [selectedRole]: { ...(prev[selectedRole] || {}), ...updates }
-    }));
+    setRolePermissions(prev => ({ ...prev, [selectedRole]: { ...(prev[selectedRole] || {}), ...updates } }));
   };
 
-  // 3. SECURE SAVE TO SUPABASE
   const handleSaveMatrix = async () => {
     setSaving(true);
     const currentPerms = rolePermissions[selectedRole] || {};
-
     try {
-      // Pehle check karo role exist karta hai ya nahi
       const { data: existingRole } = await supabase.from('roles').select('id').eq('role_name', selectedRole).single();
-      
       let roleError;
       if (existingRole) {
         const { error } = await supabase.from('roles').update({ permissions_json: currentPerms }).eq('id', existingRole.id);
@@ -184,23 +162,15 @@ export default function SuperAdminDashboard() {
         const { error } = await supabase.from('roles').insert([{ role_name: selectedRole, permissions_json: currentPerms, is_system_role: true }]);
         roleError = error;
       }
-
       if (roleError) throw roleError;
 
-      // Add to Security Audit Logs
       const userRes = await supabase.auth.getUser();
       if (userRes.data?.user) {
-        await supabase.from('audit_logs').insert([{
-          user_id: userRes.data.user.id,
-          action: 'PERMISSION_UPDATE',
-          details: `God Mode secured permissions for ${selectedRole}`
-        }]);
+        await supabase.from('audit_logs').insert([{ user_id: userRes.data.user.id, action: 'PERMISSION_UPDATE', details: `God Mode secured permissions for ${selectedRole}` }]);
       }
-
       setConfettiMessage(`Enterprise Security Locked for ${selectedRole}`);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
-
     } catch (error) {
       alert("Error saving to database: " + error.message);
     }
@@ -212,9 +182,7 @@ export default function SuperAdminDashboard() {
       {showConfetti && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
-          <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s forwards' }}>
-            🎉 {confettiMessage}
-          </div>
+          <div style={{ background: 'linear-gradient(135deg, #10B981, #3B82F6)', padding: '20px 40px', borderRadius: '50px', color: '#fff', fontSize: '24px', fontWeight: '800', boxShadow: '0 10px 40px rgba(16,185,129,0.5)', animation: 'popIn 0.5s forwards' }}>🎉 {confettiMessage}</div>
           <style>{`@keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }`}</style>
         </div>
       )}
@@ -225,39 +193,30 @@ export default function SuperAdminDashboard() {
         .sidebar-item { padding: 15px 20px; display: flex; alignItems: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #9CA3AF; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
         .sidebar-item:hover { background: rgba(59, 130, 246, 0.1); color: #fff; }
         .sidebar-item.active { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border-left-color: #3B82F6; font-weight: bold; }
-        
         .rbac-sidebar { width: 260px; background: #0b0e14; border-right: 1px solid #1F2937; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
         .rbac-menu-item { padding: 12px 20px; cursor: pointer; color: #9CA3AF; font-size: 13px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.02); transition: 0.2s; display: flex; justify-content: space-between; alignItems: center; }
         .rbac-menu-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .rbac-menu-item.active { background: #3B82F6; color: #fff; border-left: 4px solid #60A5FA; }
-
         .main-content { flex: 1; display: flex; flexDirection: column; overflow: hidden; background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.05) 0%, transparent 40%), #050810; }
-        
         .selection-list-item { padding: 15px; border-bottom: 1px solid #1F2937; cursor: pointer; transition: 0.2s; }
         .selection-list-item:hover { background: rgba(59, 130, 246, 0.05); }
         .selection-list-item.active { background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3B82F6; }
-
         .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .3s; border-radius: 24px; border: 1px solid #4B5563; }
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #9CA3AF; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: rgba(16, 185, 129, 0.2); border-color: #10B981; }
         input:checked + .slider:before { transform: translateX(18px); background-color: #10B981; box-shadow: 0 0 10px #10B981; }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #050810; }
-        ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050810; } ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
       `}} />
 
       <div className="admin-layout">
-        
         {/* GLOBAL SIDEBAR */}
         <div className="sidebar" style={{ width: isSidebarOpen ? '240px' : '70px' }}>
           <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #1F2937' }}>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>☰</button>
             {isSidebarOpen && <span style={{ fontWeight: '800', fontSize: '18px', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>RecruitOS</span>}
           </div>
-          
           <div style={{ flex: 1, paddingTop: '10px' }}>
             <div className={`sidebar-item ${activeModule === 'overview' ? 'active' : ''}`} onClick={() => setActiveModule('overview')}>
               <span style={{ fontSize: '18px' }}>🌐</span> {isSidebarOpen && "Global Analytics"}
@@ -277,12 +236,9 @@ export default function SuperAdminDashboard() {
         {/* MAIN CONTENT */}
         {activeModule === 'rbac' ? (
           <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            
-            {/* RBAC SUB-MENU (The 10 Sections Restored) */}
+            {/* RBAC SUB-MENU */}
             <div className="rbac-sidebar">
-              <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid #1F2937' }}>
-                Permission Center
-              </div>
+              <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid #1F2937' }}>Permission Center</div>
               <div className={`rbac-menu-item ${activeSubMenu === 'role_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('role_wise')}>Role Wise Permissions <span>→</span></div>
               <div className={`rbac-menu-item ${activeSubMenu === 'consultant_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('consultant_wise')}>Consultancy Wise <span>→</span></div>
               <div className={`rbac-menu-item ${activeSubMenu === 'dept_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('dept_wise')}>Department Wise <span>→</span></div>
@@ -296,30 +252,21 @@ export default function SuperAdminDashboard() {
             </div>
 
             <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              
-              {/* ROLES LIST */}
               {(activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') && (
                 <div style={{ width: '300px', borderRight: '1px solid #1F2937', background: '#080C16', overflowY: 'auto' }}>
                   {ROLES_LIST.filter(r => activeSubMenu === 'job_seeker' ? r.includes('Job Seeker') : !r.includes('Job Seeker')).map(role => (
                     <div key={role} onClick={() => setSelectedRole(role)} className={`selection-list-item ${selectedRole === role ? 'active' : ''}`}>
                       <div style={{ fontWeight: 'bold', color: selectedRole === role ? '#60A5FA' : '#E5E7EB', fontSize: '14px' }}>{role}</div>
-                      <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>
-                        {Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions
-                      </div>
+                      <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions</div>
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* TOGGLES MATRIX */}
               <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
-                
-                {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: '#11182D', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937', position: 'sticky', top: 0, zIndex: 10 }}>
                   <div>
-                    <h2 style={{ margin: '0 0 5px 0', color: '#fff', fontSize: '20px' }}>
-                      Configuring Access for: <span style={{ color: '#3B82F6' }}>{selectedRole}</span>
-                    </h2>
+                    <h2 style={{ margin: '0 0 5px 0', color: '#fff', fontSize: '20px' }}>Configuring Access for: <span style={{ color: '#3B82F6' }}>{selectedRole}</span></h2>
                     <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Inheritance Rule: Lower roles can NEVER exceed the permissions granted to their parent role here.</div>
                   </div>
                   <button onClick={handleSaveMatrix} disabled={saving} style={{ background: '#10B981', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
@@ -327,7 +274,6 @@ export default function SuperAdminDashboard() {
                   </button>
                 </div>
 
-                {/* STAFF FEATURES */}
                 {(activeSubMenu === 'role_wise' && !selectedRole.includes('Job Seeker')) && 
                   Object.entries(staffPermissionGroups).map(([groupName, features]) => (
                     <div key={groupName} style={{ marginBottom: '40px' }}>
@@ -343,15 +289,11 @@ export default function SuperAdminDashboard() {
                           <div key={feat.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#11182D', padding: '15px', borderRadius: '10px', border: '1px solid #1F2937' }}>
                             <div style={{ paddingRight: '15px' }}>
                               <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {feat.label}
-                                {selectedRole === 'Super Admin' && <span title="Super Admin Override Lock" style={{ fontSize: '10px', background: '#374151', padding: '2px 4px', borderRadius: '4px' }}>🔒</span>}
+                                {feat.label} {selectedRole === 'Super Admin' && <span title="Super Admin Override Lock" style={{ fontSize: '10px', background: '#374151', padding: '2px 4px', borderRadius: '4px' }}>🔒</span>}
                               </div>
                               <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{feat.desc}</div>
                             </div>
-                            <label className="toggle-switch">
-                              <input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} />
-                              <span className="slider"></span>
-                            </label>
+                            <label className="toggle-switch"><input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} /><span className="slider"></span></label>
                           </div>
                         ))}
                       </div>
@@ -359,7 +301,6 @@ export default function SuperAdminDashboard() {
                   ))
                 }
 
-                {/* JOB SEEKER FEATURES */}
                 {(activeSubMenu === 'job_seeker' || selectedRole.includes('Job Seeker')) && 
                   Object.entries(jobSeekerPermissionGroups).map(([groupName, features]) => (
                     <div key={groupName} style={{ marginBottom: '40px' }}>
@@ -371,10 +312,7 @@ export default function SuperAdminDashboard() {
                               <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#E5E7EB' }}>{feat.label}</div>
                               <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{feat.desc}</div>
                             </div>
-                            <label className="toggle-switch">
-                              <input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} />
-                              <span className="slider"></span>
-                            </label>
+                            <label className="toggle-switch"><input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} /><span className="slider"></span></label>
                           </div>
                         ))}
                       </div>
@@ -382,10 +320,7 @@ export default function SuperAdminDashboard() {
                   ))
                 }
                 
-                {/* AUDIT LOGS */}
                 {activeSubMenu === 'audit_logs' && <AuditLogs />}
-
-                {/* PLACEHOLDERS */}
                 {['consultant_wise', 'dept_wise', 'feature_matrix', 'approvals', 'templates', 'custom_role', 'hierarchy'].includes(activeSubMenu) && (
                   <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#6B7280' }}>
                     <div style={{ fontSize: '40px', marginBottom: '20px' }}>🛠️</div>
@@ -400,7 +335,8 @@ export default function SuperAdminDashboard() {
           <div style={{ padding: '30px', flex: 1, display: 'flex', flexDirection: 'column' }}>
             {activeModule === 'overview' && <h1>Global Analytics Dashboard (Coming Soon)</h1>}
             {activeModule === 'team' && <><h1 style={{marginBottom:'20px'}}>Internal Team</h1><TeamManager /></>}
-            {activeModule === 'tenants' && <h1>Consultancies (Coming Soon)</h1>}
+            {/* 🏢 YAHAN HUMNE TENANT MANAGER ADD KIYA HAI */}
+            {activeModule === 'tenants' && <TenantManager />}
           </div>
         )}
       </div>
