@@ -35,21 +35,38 @@ const leadSources = ["LinkedIn", "Reference", "Cold Calling", "WhatsApp", "Email
 const leadStatuses = ["New Lead", "Contacted", "Follow-up Pending", "Requirement Received", "Interested", "Converted to Client", "Closed"];
 const requirementStatuses = ["Hiring Now", "Future Hiring", "Just Discussion", "Requirement Shared", "Need Follow-up"];
 
-// --- 100% NATIVE CSS CONFETTI (NO EXTERNAL LIBRARIES TO CRASH) ---
+// --- 100% HYDRATION-SAFE NATIVE CONFETTI ---
 const NativeConfetti = () => {
+  const [pieces, setPieces] = useState([]);
   const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#A855F7', '#EC4899'];
+
+  useEffect(() => {
+    // Generates random values ONLY on the client to prevent Next.js Hydration Crash
+    const generatedPieces = Array.from({ length: 120 }).map((_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}vw`,
+      width: `${Math.random() * 8 + 6}px`,
+      height: `${Math.random() * 16 + 10}px`,
+      backgroundColor: colors[Math.floor(Math.random() * colors.length)],
+      animationDuration: `${Math.random() * 2 + 2}s`,
+      rotation: `${Math.random() * 360}deg`,
+      opacity: Math.random() + 0.5
+    }));
+    setPieces(generatedPieces);
+  }, []);
+
+  if (pieces.length === 0) return null; // Prevents render until client-side hydration is complete
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none', overflow: 'hidden' }}>
-      {Array.from({ length: 120 }).map((_, i) => {
-        const style = {
-          position: 'absolute', top: '-20px', left: `${Math.random() * 100}vw`,
-          width: `${Math.random() * 8 + 6}px`, height: `${Math.random() * 16 + 10}px`,
-          backgroundColor: colors[Math.floor(Math.random() * colors.length)],
-          animation: `confetti-fall ${Math.random() * 2 + 2}s linear forwards`,
-          transform: `rotate(${Math.random() * 360}deg)`, opacity: Math.random() + 0.5
-        };
-        return <div key={i} style={style} />;
-      })}
+      {pieces.map((p) => (
+        <div key={p.id} style={{
+          position: 'absolute', top: '-20px', left: p.left,
+          width: p.width, height: p.height, backgroundColor: p.backgroundColor,
+          animation: `confetti-fall ${p.animationDuration} linear forwards`,
+          transform: `rotate(${p.rotation})`, opacity: p.opacity
+        }} />
+      ))}
       <style>{`@keyframes confetti-fall { to { transform: translateY(110vh) rotate(720deg); } }`}</style>
     </div>
   );
