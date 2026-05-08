@@ -128,17 +128,24 @@ export default function Layout({ children }) {
           </div>
         </div>
 
-        {/* Links */}
+        {/* EXACT MAPPED LINKS based on your 'dir' output */}
         <div style={{ padding: '20px 0', flex: 1 }}>
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#6B7280', letterSpacing: '1px', margin: '0 20px 10px', textTransform: 'uppercase' }}>Main</div>
-          <MenuItem href="/dashboard/candidates" icon="👥" label="Job Seekers" isActive={router.pathname.includes('/candidates')} />
+          <MenuItem href="/dashboard" icon="🏠" label="Home" isActive={router.pathname === '/dashboard'} />
+          
+          {/* Linked to dashboard index as there is no candidates.tsx */}
+          <MenuItem href="/dashboard" icon="👥" label="Job Seekers" isActive={router.pathname === '/dashboard'} /> 
+          
           <MenuItem href="/dashboard/jobs" icon="💼" label="Jobs" isActive={router.pathname.includes('/jobs')} />
           <MenuItem href="/dashboard/bd" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd')} />
           <MenuItem href="/dashboard/interviews" icon="📅" label="Interviews" isActive={router.pathname.includes('/interviews')} />
           <MenuItem href="/dashboard/communications" icon="💬" label="Communications" isActive={router.pathname.includes('/communications')} />
-          <MenuItem href="/dashboard/placements" icon="🏆" label="Placements" isActive={router.pathname.includes('/placements')} />
+          
+          {/* Linked to applications since placements.tsx doesn't exist */}
+          <MenuItem href="/dashboard/applications" icon="🏆" label="Placements" isActive={router.pathname.includes('/applications')} /> 
+          
           <MenuItem href="/dashboard/add-profile" icon="✨" label="Add Candidate" isActive={router.pathname.includes('/add-profile')} />
-          <MenuItem href="/dashboard/team" icon="🛡️" label="Team Member" isActive={router.pathname.includes('/team')} />
+          <MenuItem href="/dashboard/admin" icon="🛡️" label="Team Member" isActive={router.pathname.includes('/admin')} />
 
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#6B7280', letterSpacing: '1px', margin: '30px 20px 10px', textTransform: 'uppercase' }}>Reports</div>
           <MenuItem href="/dashboard/applications" icon="📄" label="Applications" isActive={router.pathname.includes('/applications')} />
@@ -146,8 +153,10 @@ export default function Layout({ children }) {
           <MenuItem href="/dashboard/company" icon="🏢" label="My Company" isActive={router.pathname.includes('/company')} />
 
           <div style={{ fontSize: '10px', fontWeight: '800', color: '#6B7280', letterSpacing: '1px', margin: '30px 20px 10px', textTransform: 'uppercase' }}>System</div>
-          <MenuItem href="/settings" icon="⚙️" label="Settings" isActive={router.pathname.includes('/settings')} />
-          <MenuItem href="/job-board" icon="🎯" label="Job Board" isActive={router.pathname.includes('/job-board')} />
+          <MenuItem href="/dashboard/settings" icon="⚙️" label="Settings" isActive={router.pathname.includes('/settings')} />
+          
+          {/* Linked to jobs since job-board.tsx doesn't exist */}
+          <MenuItem href="/dashboard/jobs" icon="🎯" label="Job Board" isActive={router.pathname.includes('/jobs')} />
         </div>
       </aside>
 
@@ -164,8 +173,9 @@ export default function Layout({ children }) {
           </div>
         </Link>
         
-        <Link href="/dashboard/candidates" style={{textDecoration: 'none'}}>
-          <div className={`bottom-nav-item ${router.pathname.includes('/candidates') ? 'active' : ''}`}>
+        {/* Linked to dashboard index as there is no candidates.tsx */}
+        <Link href="/dashboard" style={{textDecoration: 'none'}}>
+          <div className={`bottom-nav-item ${router.pathname === '/dashboard' ? 'active' : ''}`}>
             <span className="icon">👥</span><span className="label">Seekers</span>
           </div>
         </Link>
@@ -204,19 +214,25 @@ export default function Layout({ children }) {
           </div>
         </div>
 
+        {/* EXACT MAPPED LINKS for mobile drawer */}
         <div style={{ padding: '15px 0' }}>
           <MenuItem href="/dashboard/bd" icon="👔" label="BD Pipeline" isActive={router.pathname.includes('/bd')} />
           <MenuItem href="/dashboard/jobs" icon="💼" label="Manage Jobs" isActive={router.pathname.includes('/jobs')} />
           <MenuItem href="/dashboard/interviews" icon="📅" label="Interviews" isActive={router.pathname.includes('/interviews')} />
-          <MenuItem href="/dashboard/placements" icon="🏆" label="Placements" isActive={router.pathname.includes('/placements')} />
+          
+          {/* Routed to applications */}
+          <MenuItem href="/dashboard/applications" icon="🏆" label="Placements" isActive={router.pathname.includes('/applications')} />
+          
           <MenuItem href="/dashboard/communications" icon="💬" label="Communications" isActive={router.pathname.includes('/communications')} />
-          <MenuItem href="/dashboard/team" icon="🛡️" label="Team Members" isActive={router.pathname.includes('/team')} />
+          <MenuItem href="/dashboard/admin" icon="🛡️" label="Team Members" isActive={router.pathname.includes('/admin')} />
           
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '15px 20px' }}></div>
           
           <MenuItem href="/dashboard/company" icon="🏢" label="My Company" isActive={router.pathname.includes('/company')} />
-          <MenuItem href="/settings" icon="⚙️" label="Settings" isActive={router.pathname.includes('/settings')} />
-          <MenuItem href="/job-board" icon="🎯" label="Job Board" isActive={router.pathname.includes('/job-board')} />
+          <MenuItem href="/dashboard/settings" icon="⚙️" label="Settings" isActive={router.pathname.includes('/settings')} />
+          
+          {/* Routed to jobs */}
+          <MenuItem href="/dashboard/jobs" icon="🎯" label="Job Board" isActive={router.pathname.includes('/jobs')} />
         </div>
       </div>
 
