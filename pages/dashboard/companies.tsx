@@ -4,7 +4,7 @@ import { supabase } from '../../src/lib/supabase'
 
 const PLANS = ['basic','seeker','pro','elite']
 const PLAN_COLORS: any = {
-  basic: { bg: 'rgba(100,100,120,0.2)', color: '#7a7f90' },
+  basic: { bg: 'rgba(100,100,120,0.2)', color: 'var(--mu)' },
   seeker: { bg: 'rgba(108,140,255,0.15)', color: '#6c8cff' },
   pro: { bg: 'rgba(61,214,140,0.15)', color: '#3dd68c' },
   elite: { bg: 'rgba(255,214,10,0.15)', color: '#ffd60a' },
@@ -80,15 +80,15 @@ export default function CompaniesPage() {
   )
 
   const S = {
-    page: { minHeight: '100vh', background: '#111318', color: '#e8eaf0', fontFamily: "'Outfit',sans-serif" },
-    nav: { background: '#0d0f14', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    page: { minHeight: '100vh', background: 'var(--bg)', color: 'var(--tx)', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: 'var(--bg)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
     body: { padding: '24px', maxWidth: 1100, margin: '0 auto' },
-    card: { background: '#1a1d24', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' },
-    inp: { background: '#22262f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 12px', color: '#e8eaf0', fontSize: 12, fontFamily: 'inherit', outline: 'none' },
+    card: { background: 'var(--bg2)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', marginBottom: 10, overflow: 'hidden' },
+    inp: { background: 'var(--bg3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '7px 12px', color: 'var(--tx)', fontSize: 12, fontFamily: 'inherit', outline: 'none' },
     btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' } as const),
   }
 
-  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#7a7f90' }}>Loading...</div></div>
+  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'var(--mu)' }}>Loading...</div></div>
 
   return (
     <>
@@ -97,7 +97,7 @@ export default function CompaniesPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
-        select option{background:#22262f}
+        select option{background:var(--bg3)}
         .tog{position:relative;width:42px;height:24px;flex-shrink:0;cursor:pointer}
         .tog input{opacity:0;width:0;height:0}
         .sl{position:absolute;inset:0;border-radius:24px;transition:.2s;cursor:pointer}
@@ -118,7 +118,7 @@ export default function CompaniesPage() {
           <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#6c8cff', fontSize: 14 }}>R</div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase Pro</div>
-            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Recruitment OS</div>
+            <div style={{ fontSize: 9, color: 'var(--mu2)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Recruitment OS</div>
           </div>
           <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: 'rgba(255,107,107,0.1)', color: '#ff6b6b' }}>🏢 Companies</span>
         </div>
@@ -129,7 +129,7 @@ export default function CompaniesPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20, flexWrap: 'wrap' as const, gap: 12 }}>
           <div>
             <div style={{ fontSize: 22, fontWeight: 700 }}>Companies</div>
-            <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>
+            <div style={{ color: 'var(--mu)', fontSize: 13, marginTop: 4 }}>
               {companies.length} companies · {companies.filter(c => c.is_active !== false).length} active
             </div>
           </div>
@@ -142,9 +142,9 @@ export default function CompaniesPage() {
             const pc = PLAN_COLORS[p]
             const count = companies.filter(c => (c.plan || 'basic') === p).length
             return (
-              <div key={p} style={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 16px', borderTop: `2px solid ${pc.color}` }}>
+              <div key={p} style={{ background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 16px', borderTop: `2px solid ${pc.color}` }}>
                 <div style={{ fontSize: 22, fontWeight: 700, color: pc.color }}>{count}</div>
-                <div style={{ fontSize: 11, color: '#7a7f90', marginTop: 2, textTransform: 'capitalize' as const }}>{p} plan</div>
+                <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2, textTransform: 'capitalize' as const }}>{p} plan</div>
               </div>
             )
           })}
@@ -170,8 +170,8 @@ export default function CompaniesPage() {
                     <span style={{ fontSize: 10, background: pc.bg, color: pc.color, padding: '1px 7px', borderRadius: 4, fontWeight: 700, textTransform: 'capitalize' as const }}>{co.plan || 'basic'}</span>
                     {!isActive && <span style={{ fontSize: 10, background: 'rgba(255,80,80,0.15)', color: '#ff5050', padding: '1px 7px', borderRadius: 4, fontWeight: 700 }}>Disabled</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: '#505468', marginTop: 2 }}>
-                    Code: <span style={{ color: '#7a7f90', fontWeight: 600 }}>{co.company_code}</span>
+                  <div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: 2 }}>
+                    Code: <span style={{ color: 'var(--mu)', fontWeight: 600 }}>{co.company_code}</span>
                     · {userCounts[co.id] || 0} users
                     · {new Date(co.created_at).toLocaleDateString('en-IN')}
                   </div>
@@ -181,7 +181,7 @@ export default function CompaniesPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} onClick={e => e.stopPropagation()}>
                   {/* Plan dropdown */}
                   <select value={co.plan || 'basic'} onChange={e => updateCompany(co.id, 'plan', e.target.value)} style={{ ...S.inp, background: pc.bg, color: pc.color, fontWeight: 700, textTransform: 'capitalize' as const }}>
-                    {PLANS.map(p => <option key={p} value={p} style={{ background: '#22262f', color: '#e8eaf0', textTransform: 'capitalize' }}>{p}</option>)}
+                    {PLANS.map(p => <option key={p} value={p} style={{ background: 'var(--bg3)', color: 'var(--tx)', textTransform: 'capitalize' }}>{p}</option>)}
                   </select>
                   {/* Active toggle */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -192,13 +192,13 @@ export default function CompaniesPage() {
                     </label>
                   </div>
                 </div>
-                <span style={{ color: '#505468', fontSize: 14 }}>{isExpanded ? '▲' : '▼'}</span>
+                <span style={{ color: 'var(--mu2)', fontSize: 14 }}>{isExpanded ? '▲' : '▼'}</span>
               </div>
 
               {/* Expanded controls */}
               {isExpanded && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '16px 20px', background: 'rgba(0,0,0,0.2)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#7a7f90', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 14 }}>Feature Access</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 14 }}>Feature Access</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10 }}>
                     {FEATURES.map(f => {
                       const enabled = features[f.key] !== false
@@ -233,7 +233,7 @@ export default function CompaniesPage() {
         })}
 
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center' as const, padding: 60, color: '#505468' }}>
+          <div style={{ textAlign: 'center' as const, padding: 60, color: 'var(--mu2)' }}>
             <div style={{ fontSize: 36, marginBottom: 10 }}>🏢</div>
             <div>No companies found</div>
           </div>

@@ -21,7 +21,7 @@ const QUAL_BRANCHES: Record<string,string[]> = {
   'M.Tech':['Computer Science','IT','Electronics','Electrical','Mechanical','Civil','VLSI','AI & ML','Data Science'],
 }
 const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
-  'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
+  'New':{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'},
   'Contacted':{bg:'rgba(30,90,200,0.25)',color:'#7ab3ff'},
   'Screening':{bg:'rgba(200,120,0,0.25)',color:'#ffb347'},
   'Shortlisted':{bg:'rgba(30,160,100,0.25)',color:'#3dd68c'},
@@ -29,7 +29,7 @@ const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
   'Offer Made':{bg:'rgba(150,80,255,0.25)',color:'#c77dff'},
   'Placed':{bg:'rgba(30,160,30,0.3)',color:'#6fcf6f'},
   'Rejected':{bg:'rgba(200,50,50,0.25)',color:'#ff6b6b'},
-  'On Hold':{bg:'rgba(80,80,100,0.3)',color:'#888'}
+  'On Hold':{bg:'rgba(80,80,100,0.3)',color:'var(--mu)'}
 }
 const STATUS_EMOJI: Record<string,string> = {'New':'🆕','Contacted':'📞','Screening':'🔍','Shortlisted':'⭐','Interview Scheduled':'📅','Offer Made':'💼','Placed':'🎯','Rejected':'❌','On Hold':'⏸️'}
 const SEGMENT_CONFIG = {
@@ -135,7 +135,7 @@ const PIPELINE_EMOJI: Record<string,string> = {
   'Did Not Join':'😔','Joined Successfully':'🎉'
 }
 const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
-  'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
+  'New':{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'},
   'Contacted - Interested':{bg:'rgba(30,160,100,0.25)',color:'#3dd68c'},
   'Contacted - Not Interested':{bg:'rgba(200,50,50,0.2)',color:'#ff6b6b'},
   'Contacted - Call Back Later':{bg:'rgba(30,90,200,0.25)',color:'#7ab3ff'},
@@ -146,7 +146,7 @@ const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
   'Interview Scheduled':{bg:'rgba(0,140,255,0.2)',color:'#60b0ff'},
   'Interview Done - Selected':{bg:'rgba(30,200,100,0.25)',color:'#6fcf6f'},
   'Interview Done - Rejected':{bg:'rgba(200,50,50,0.25)',color:'#ff6b6b'},
-  'Interview Done - On Hold':{bg:'rgba(80,80,100,0.3)',color:'#888'},
+  'Interview Done - On Hold':{bg:'rgba(80,80,100,0.3)',color:'var(--mu)'},
   'Offer Discussed':{bg:'rgba(150,80,255,0.2)',color:'#c77dff'},
   'Offer Accepted':{bg:'rgba(30,200,30,0.25)',color:'#3dd68c'},
   'Offer Declined':{bg:'rgba(200,50,50,0.2)',color:'#ff6b6b'},
@@ -782,7 +782,7 @@ export default function Dashboard() {
   }
 
   const statusBadge = (status:string) => {
-    const s = STATUS_COLORS[status]||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
+    const s = STATUS_COLORS[status]||{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'}
     return <span style={{padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600,background:s.bg,color:s.color,whiteSpace:'nowrap' as const}}>{status||'New'}</span>
   }
 
@@ -799,15 +799,15 @@ export default function Dashboard() {
         @keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
         @keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
         /* ── Light theme overrides ── */
-        [data-theme='light'] .rh:hover td{background:rgba(0,0,0,0.04)!important;}
-        [data-theme='light'] select option{background:#fff;color:#1a1a2e;}
-        [data-theme='light'] input::placeholder,[data-theme='light'] textarea::placeholder{color:#999;}
-        [data-theme='light'] .seg-btn{background:#f5f5f5;color:#555;}
-        [data-theme='light'] .seg-btn.on{background:rgba(108,140,255,0.12);color:#4a6cf7;}
-        [data-theme='light'] .filter-chip{background:transparent;color:#666;}
-        [data-theme='light'] .filter-chip.on,.filter-chip:hover{background:rgba(108,140,255,0.1);color:#4a6cf7;}
-        [data-theme='light'] .tag-pill{background:rgba(108,140,255,0.1);color:#4a6cf7;}
-        [data-theme='light'] .status-sel{filter:brightness(0.9);}`}</style>
+        [data-theme=light] .rh:hover td{background:rgba(0,0,0,0.04)!important;}
+        [data-theme=light] select option{background:#fff;color:#1a1a2e;}
+        [data-theme=light] input::placeholder,[data-theme=light] textarea::placeholder{color:var(--mu);}
+        [data-theme=light] .seg-btn{background:#f5f5f5;color:var(--mu2);}
+        [data-theme=light] .seg-btn.on{background:rgba(108,140,255,0.12);color:#4a6cf7;}
+        [data-theme=light] .filter-chip{background:transparent;color:var(--mu);}
+        [data-theme=light] .filter-chip.on,.filter-chip:hover{background:rgba(108,140,255,0.1);color:#4a6cf7;}
+        [data-theme=light] .tag-pill{background:rgba(108,140,255,0.1);color:#4a6cf7;}
+        [data-theme=light] .status-sel{filter:brightness(0.9);}`}</style>
       <div style={{fontSize:13,color:'var(--mu)',fontFamily:'Outfit,sans-serif'}}>Loading {company?.name||'RecruitBase Pro'}...</div>
     </div>
   )
@@ -815,12 +815,12 @@ export default function Dashboard() {
   return (
     <>
       <style>{`html,body,#__next{overscroll-behavior:none !important;overscroll-behavior-x:none !important;}*{-webkit-overflow-scrolling:touch;}
-        select option{background:var(--bg3,#22262f);color:var(--tx,#fff);}
+        select option{background:var(--bg3,var(--bg3));color:var(--tx,#fff);}
       `}</style>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
-        select option{background:var(--bg3,#22262f);}
+        select option{background:var(--bg3,var(--bg3));}
         @keyframes spin{to{transform:rotate(360deg)}}
         @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
         html,body{overscroll-behavior:none;overscroll-behavior-x:none;}
@@ -841,22 +841,22 @@ export default function Dashboard() {
         .tag-pill .rm:hover{opacity:1;}
         @media(max-width:900px){.hide-sm{display:none!important;}}
         /* Light theme refinements */
-        [data-theme='light'] select option{background:#f1f5f9;color:#0f172a;}
-        [data-theme='light'] .seg-btn{background:#f1f5f9;color:#475569;border-color:rgba(0,0,0,0.1);}
-        [data-theme='light'] .seg-btn.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
-        [data-theme='light'] .filter-chip{color:#475569;border-color:rgba(0,0,0,0.12);}
-        [data-theme='light'] .filter-chip.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
-        [data-theme='light'] .tag-pill{background:rgba(79,70,229,0.1);color:#4f46e5;}
-        [data-theme='light'] .rh:hover td{background:rgba(0,0,0,0.03)!important;}
-        [data-theme='light'] .card-h:hover{border-color:#4f46e5!important;}
-        [data-theme='light'] input:focus,[data-theme='light'] select:focus,[data-theme='light'] textarea:focus{border-color:#4f46e5!important;}
+        [data-theme=light] select option{background:#f1f5f9;color:#0f172a;}
+        [data-theme=light] .seg-btn{background:#f1f5f9;color:#475569;border-color:rgba(0,0,0,0.1);}
+        [data-theme=light] .seg-btn.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
+        [data-theme=light] .filter-chip{color:#475569;border-color:rgba(0,0,0,0.12);}
+        [data-theme=light] .filter-chip.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
+        [data-theme=light] .tag-pill{background:rgba(79,70,229,0.1);color:#4f46e5;}
+        [data-theme=light] .rh:hover td{background:rgba(0,0,0,0.03)!important;}
+        [data-theme=light] .card-h:hover{border-color:#4f46e5!important;}
+        [data-theme=light] input:focus,[data-theme=light] select:focus,[data-theme=light] textarea:focus{border-color:#4f46e5!important;}
         /* ══ LIGHT THEME - Professional LinkedIn/Naukri quality ══ */
         body[class~='light'] *,:root:has(body.light) *{transition:background .2s,color .2s,border-color .2s;}
         .light-theme input,.light-theme select,.light-theme textarea{background:#fff!important;color:#1a1a2e!important;border-color:#d0d5dd!important;}
         .light-theme .rh:hover td{background:#f0f4ff!important;}
         .light-theme .seg-btn{background:#f2f4f8!important;color:#444!important;border-color:#dde1ec!important;}
         .light-theme .seg-btn.on{background:#eef2ff!important;color:#4a6cf7!important;border-color:#4a6cf7!important;}
-        .light-theme .filter-chip{background:transparent!important;color:#555!important;border-color:#d0d5dd!important;}
+        .light-theme .filter-chip{background:transparent!important;color:var(--mu2)!important;border-color:#d0d5dd!important;}
         .light-theme .filter-chip.on{background:#eef2ff!important;color:#4a6cf7!important;border-color:#4a6cf7!important;}
         .light-theme .tag-pill{background:#eef2ff!important;color:#4a6cf7!important;}
       `}</style>
@@ -1080,7 +1080,7 @@ export default function Dashboard() {
                   <div style={{fontSize:11,fontWeight:700,color:'var(--mu)',textTransform:'uppercase' as const,letterSpacing:'1px',marginBottom:8}}>Pipeline Status</div>
                   <div style={{display:'flex',flexWrap:'wrap' as const,gap:4}}>
                     {PIPELINE_STATUSES.map(s=>{
-                      const sc=PIPELINE_COLORS[s]||STATUS_COLORS[s]||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
+                      const sc=PIPELINE_COLORS[s]||STATUS_COLORS[s]||{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'}
                       const on=filterStatus.includes(s)
                       return <button key={s} onClick={()=>toggleFilter(filterStatus,s,setFilterStatus)} style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',border:`1px solid ${on?sc.color:'var(--bd)'}`,background:on?sc.bg:'transparent',color:on?sc.color:'var(--mu)',fontFamily:'inherit'}}>{PIPELINE_EMOJI[s]||''} {s}</button>
                     })}
@@ -1411,7 +1411,7 @@ export default function Dashboard() {
                             </div>
                           </td>
                           <td style={{padding:tdPad}} onClick={()=>openProfile(p)}>
-                            <span style={{padding:'2px 7px',borderRadius:6,fontSize:10,fontWeight:600,background:`${seg?.color||'#888'}22`,color:seg?.color||'#888'}}>{seg?.icon} {seg?.label||'—'}</span>
+                            <span style={{padding:'2px 7px',borderRadius:6,fontSize:10,fontWeight:600,background:`${seg?.color||'var(--mu)'}22`,color:seg?.color||'var(--mu)'}}>{seg?.icon} {seg?.label||'—'}</span>
                           </td>
                           <td style={{padding:tdPad,fontSize:12,color:'var(--mu)',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' as const}} onClick={()=>openProfile(p)}>{p.role||'—'}</td>
                           <td style={{padding:tdPad,fontSize:11,color:'var(--mu)'}} onClick={()=>openProfile(p)}>{p.qualification||'—'}</td>
@@ -1424,7 +1424,7 @@ export default function Dashboard() {
                             <select
                               value={p.status||'New'}
                               onChange={e=>quickStatusChange(p.id, p.status||'New', e.target.value)}
-                              style={{background:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.bg||'rgba(100,100,120,0.3)',color:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'#aaa',border:`1px solid ${(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'#aaa'}44`,borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',outline:'none',minWidth:145}}
+                              style={{background:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.bg||'rgba(100,100,120,0.3)',color:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'var(--mu)',border:`1px solid ${(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'var(--mu)'}44`,borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',outline:'none',minWidth:145}}
                             >
                               {PIPELINE_STATUSES.map(s=><option key={s} value={s} style={{background:'var(--bg3)',color:'var(--tx)',padding:6}}>{PIPELINE_EMOJI[s]||''} {s}</option>)}
                             </select>
@@ -1457,7 +1457,7 @@ export default function Dashboard() {
         {viewLayout==='cards' && (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))',gap:14}}>
             {filtered.map(p=>{
-              const sc=STATUS_COLORS[p.status||'New']||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
+              const sc=STATUS_COLORS[p.status||'New']||{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'}
               const colors=['#6c8cff','#3dd68c','#c77dff','#ff9f43','#48cae4','#ffd60a','#ff6b6b']
               const col=colors[(p.name?.charCodeAt(0)||0)%colors.length]
               const seg=SEGMENT_CONFIG[p.segment||'experienced']
@@ -1476,7 +1476,7 @@ export default function Dashboard() {
                     <span style={{padding:'3px 9px',borderRadius:20,fontSize:10,fontWeight:700,background:sc.bg,color:sc.color,flexShrink:0}}>{p.status||'New'}</span>
                   </div>
                   <div style={{display:'flex',gap:6,marginBottom:8}}>
-                    <span style={{fontSize:10,padding:'2px 7px',borderRadius:20,background:`${seg?.color||'#888'}22`,color:seg?.color||'#888',fontWeight:600}}>{seg?.icon} {seg?.label}</span>
+                    <span style={{fontSize:10,padding:'2px 7px',borderRadius:20,background:`${seg?.color||'var(--mu)'}22`,color:seg?.color||'var(--mu)',fontWeight:600}}>{seg?.icon} {seg?.label}</span>
                     {p.current_ctc&&<span style={{fontSize:10,color:'var(--mu)'}}>₹{p.current_ctc}L</span>}
                     {p.notice_period&&<span style={{fontSize:10,color:'var(--mu)'}}>{p.notice_period}</span>}
                   </div>
@@ -1518,7 +1518,7 @@ export default function Dashboard() {
         {viewLayout==='kanban' && (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(195px,1fr))',gap:12,alignItems:'start'}}>
             {STATUSES.map(status=>{
-              const sc=STATUS_COLORS[status]||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
+              const sc=STATUS_COLORS[status]||{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'}
               const cols=filtered.filter(p=>(p.status||'New')===status)
               return (
                 <div key={status} style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:12,overflow:'hidden'}}>
@@ -1537,7 +1537,7 @@ export default function Dashboard() {
                             <div style={{fontSize:11,color:'var(--mu)',marginBottom:3}}>{p.role||'—'}</div>
                             <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--mu2)'}}>
                               <span>{p.city||'—'}</span>
-                              <span style={{color:seg?.color||'#888'}}>{seg?.icon}</span>
+                              <span style={{color:seg?.color||'var(--mu)'}}>{seg?.icon}</span>
                             </div>
                             {p.star_rating>0&&<div style={{fontSize:10,color:'#ffd60a',marginTop:3}}>{'★'.repeat(p.star_rating)}</div>}
                           </div>

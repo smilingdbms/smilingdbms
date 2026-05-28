@@ -194,7 +194,7 @@ export default function ProfileComments({
       sr_recruiter: '#3dd68c', recruiter: '#3dd68c', bd_manager: '#ff9f43',
       bd_executive: '#ff9f43', super_admin: '#ff6b6b',
     }
-    return colors[role] || '#7a7f90'
+    return colors[role] || 'var(--mu)'
   }
 
   if (!canComment) return (

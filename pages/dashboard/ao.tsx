@@ -25,38 +25,38 @@ export default function AccountOwnerDashboard() {
     <>
       <Head><title>Workspace | RecruitOS</title></Head>
       <style dangerouslySetInnerHTML={{__html: `
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #050810; color: #fff; }
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #fff; }
         .ao-layout { display: flex; height: 100vh; overflow: hidden; width: 100%; }
         
         /* UNIFIED SIDEBAR */
-        .sidebar { background: #11182D; border-right: 1px solid #1F2937; transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 50; }
-        .nav-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #9CA3AF; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
+        .sidebar { background: var(--bg2); border-right: 1px solid var(--bg3); transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 50; }
+        .nav-item { padding: 15px 20px; display: flex; align-items: center; gap: 15px; cursor: pointer; transition: 0.2s; color: var(--mu); white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
         .nav-item:hover { background: rgba(59, 130, 246, 0.1); color: #fff; }
         .nav-item.active { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border-left-color: #3B82F6; font-weight: bold; }
         
         /* MAIN CONTENT AREA */
-        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: #050810; }
-        .top-header { background: #11182D; padding: 15px 30px; border-bottom: 1px solid #1F2937; display: flex; justify-content: space-between; align-items: center; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); }
+        .top-header { background: var(--bg2); padding: 15px 30px; border-bottom: 1px solid var(--bg3); display: flex; justify-content: space-between; align-items: center; }
         .content-area { padding: 30px; overflow-y: auto; flex: 1; }
         
         /* ATS SPECIFIC STYLES (From your video) */
-        .mini-stat-box { background: #11182D; border: 1px solid #1F2937; border-radius: 8px; padding: 15px; text-align: center; flex: 1; min-width: 100px; }
+        .mini-stat-box { background: var(--bg2); border: 1px solid var(--bg3); border-radius: 8px; padding: 15px; text-align: center; flex: 1; min-width: 100px; }
         .mini-stat-value { font-size: 24px; font-weight: bold; color: #fff; }
-        .mini-stat-label { font-size: 11px; color: #6B7280; text-transform: uppercase; margin-top: 5px; font-weight: bold; }
-        .ats-table { width: 100%; border-collapse: collapse; background: #11182D; border-radius: 12px; overflow: hidden; border: 1px solid #1F2937; }
-        .ats-table th { background: #1F2937; padding: 15px; text-align: left; font-size: 11px; color: #9CA3AF; text-transform: uppercase; }
-        .ats-table td { padding: 15px; border-bottom: 1px solid #1F2937; font-size: 13px; color: #E5E7EB; }
+        .mini-stat-label { font-size: 11px; color: var(--mu2); text-transform: uppercase; margin-top: 5px; font-weight: bold; }
+        .ats-table { width: 100%; border-collapse: collapse; background: var(--bg2); border-radius: 12px; overflow: hidden; border: 1px solid var(--bg3); }
+        .ats-table th { background: var(--bg3); padding: 15px; text-align: left; font-size: 11px; color: var(--mu); text-transform: uppercase; }
+        .ats-table td { padding: 15px; border-bottom: 1px solid var(--bg3); font-size: 13px; color: var(--tx); }
         
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #050810; }
-        ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: var(--bg); }
+        ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
       `}} />
 
       <div className="ao-layout">
         
         {/* THE MASTER SIDEBAR (Architecture Base) */}
         <div className="sidebar" style={{ width: isSidebarOpen ? '250px' : '70px' }}>
-          <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #1F2937' }}>
+          <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid var(--bg3)' }}>
             <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'none', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>☰</button>
             {isSidebarOpen && <span style={{ fontWeight: '800', fontSize: '18px', color: '#fff' }}>Naukri Cottage</span>}
           </div>
@@ -99,10 +99,10 @@ export default function AccountOwnerDashboard() {
                 <h2 style={{ marginTop: 0 }}>Business Overview</h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '30px' }}>
                   {stats.map((s, i) => (
-                    <div key={i} style={{ background: '#11182D', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937', display: 'flex', alignItems: 'center', gap: '15px' }}>
+                    <div key={i} style={{ background: 'var(--bg2)', padding: '20px', borderRadius: '12px', border: '1px solid var(--bg3)', display: 'flex', alignItems: 'center', gap: '15px' }}>
                       <div style={{ width: '50px', height: '50px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', background: `${s.color}20`, color: s.color }}>{s.icon}</div>
                       <div>
-                        <div style={{ fontSize: '13px', color: '#9CA3AF', fontWeight: 'bold' }}>{s.title}</div>
+                        <div style={{ fontSize: '13px', color: 'var(--mu)', fontWeight: 'bold' }}>{s.title}</div>
                         <div style={{ fontSize: '24px', fontWeight: '900', color: '#fff' }}>{s.value}</div>
                       </div>
                     </div>
@@ -117,11 +117,11 @@ export default function AccountOwnerDashboard() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
                   <div>
                     <h1 style={{ margin: 0, fontSize: '24px' }}>Job Seekers</h1>
-                    <p style={{ margin: 0, color: '#9CA3AF', fontSize: '13px', marginTop: '5px' }}>Master database for all candidates and potential placements.</p>
+                    <p style={{ margin: 0, color: 'var(--mu)', fontSize: '13px', marginTop: '5px' }}>Master database for all candidates and potential placements.</p>
                   </div>
                   <div style={{ display: 'flex', gap: '15px' }}>
-                    <input type="text" placeholder="🔍 Quick search name, mobile..." style={{ background: '#11182D', border: '1px solid #374151', padding: '10px 15px', borderRadius: '8px', color: '#fff', width: '250px' }} />
-                    <button style={{ background: '#11182D', border: '1px solid #374151', color: '#fff', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>⚡ Smart Filters</button>
+                    <input type="text" placeholder="🔍 Quick search name, mobile..." style={{ background: 'var(--bg2)', border: '1px solid var(--bg4)', padding: '10px 15px', borderRadius: '8px', color: '#fff', width: '250px' }} />
+                    <button style={{ background: 'var(--bg2)', border: '1px solid var(--bg4)', color: '#fff', padding: '10px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}>⚡ Smart Filters</button>
                   </div>
                 </div>
 
@@ -153,15 +153,15 @@ export default function AccountOwnerDashboard() {
                       <tr key={c.id}>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <div style={{ width: '35px', height: '35px', background: '#374151', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{c.name.charAt(0)}</div>
+                            <div style={{ width: '35px', height: '35px', background: 'var(--bg4)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>{c.name.charAt(0)}</div>
                             <div>
                               <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{c.name}</div>
-                              <div style={{ fontSize: '12px', color: '#6B7280' }}>{c.role}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--mu2)' }}>{c.role}</div>
                             </div>
                           </div>
                         </td>
-                        <td><div style={{ fontWeight: 'bold' }}>{c.exp}</div><div style={{ fontSize: '12px', color: '#9CA3AF' }}>{c.ctc}</div></td>
-                        <td><span style={{ background: '#374151', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', color: '#D1D5DB' }}>N/A</span></td>
+                        <td><div style={{ fontWeight: 'bold' }}>{c.exp}</div><div style={{ fontSize: '12px', color: 'var(--mu)' }}>{c.ctc}</div></td>
+                        <td><span style={{ background: 'var(--bg4)', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', color: 'var(--tx)' }}>N/A</span></td>
                         <td><span style={{ color: '#EF4444' }}>📍 {c.location}</span></td>
                         <td><span style={{ color: c.statusColor, fontWeight: 'bold', fontSize: '12px' }}>{c.status}</span></td>
                         <td><button style={{ background: '#10B981', color: '#000', border: 'none', padding: '8px 12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>View CV →</button></td>
@@ -174,7 +174,7 @@ export default function AccountOwnerDashboard() {
 
             {/* PLACEHOLDERS FOR CRM & BILLING */}
             {['crm', 'billing'].includes(activeTab) && (
-              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#6B7280', background: '#11182D', borderRadius: '12px', border: '1px solid #1F2937' }}>
+              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--mu2)', background: 'var(--bg2)', borderRadius: '12px', border: '1px solid var(--bg3)' }}>
                 <div style={{ fontSize: '50px', marginBottom: '20px' }}>🚧</div>
                 <h2 style={{ margin: 0, color: '#fff' }}>{activeTab.toUpperCase()} Module (Phase 3)</h2>
                 <p style={{ marginTop: '10px' }}>This section will be activated in the next development sprint.</p>

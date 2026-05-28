@@ -9,10 +9,10 @@ const ALLOWED_ROLES = ['super_admin','platform_manager','operations_manager','su
 
 const TYPE_COLORS: any = {
   'Client':'#3dd68c','Vendor':'#48cae4','Partner':'#c77dff','Consultant':'#ff9f43',
-  'Investor':'#ffd60a','Government':'#6c8cff','Media':'#ff6b6b','Other':'#888'
+  'Investor':'#ffd60a','Government':'#6c8cff','Media':'#ff6b6b','Other':'var(--mu)'
 }
 const STATUS_COLORS: any = {
-  'Active':'#3dd68c','Inactive':'#888','Prospect':'#ffb347','Blacklisted':'#ff6b6b'
+  'Active':'#3dd68c','Inactive':'var(--mu)','Prospect':'#ffb347','Blacklisted':'#ff6b6b'
 }
 
 export default function Stakeholders() {
@@ -137,7 +137,7 @@ export default function Stakeholders() {
     <>
     <div style={S.page}>
       
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer'}} onClick={()=>router.push('/dashboard')}>
@@ -221,7 +221,7 @@ export default function Stakeholders() {
                           {s.designation && <div style={{fontSize:11,color:'var(--mu2)'}}>{s.designation}</div>}
                         </td>
                         <td style={{padding:'10px 10px'}}>
-                          <span style={{fontSize:11,background:`${TYPE_COLORS[s.type]||'#888'}22`,color:TYPE_COLORS[s.type]||'#888',padding:'2px 8px',borderRadius:6,fontWeight:600}}>{s.type}</span>
+                          <span style={{fontSize:11,background:`${TYPE_COLORS[s.type]||'var(--mu)'}22`,color:TYPE_COLORS[s.type]||'var(--mu)',padding:'2px 8px',borderRadius:6,fontWeight:600}}>{s.type}</span>
                         </td>
                         <td style={{padding:'10px 10px',color:'var(--mu)'}}>{s.organization||'—'}</td>
                         <td style={{padding:'10px 10px'}}>
@@ -241,7 +241,7 @@ export default function Stakeholders() {
                         <td style={{padding:'10px 10px',color:'var(--mu)',fontSize:12}}>{s.industry||'—'}</td>
                         <td style={{padding:'10px 10px',color:'var(--mu)',fontSize:12}}>{s.city||'—'}</td>
                         <td style={{padding:'10px 10px'}}>
-                          <span style={{fontSize:11,background:`${STATUS_COLORS[s.status]||'#888'}22`,color:STATUS_COLORS[s.status]||'#888',padding:'2px 8px',borderRadius:6,fontWeight:600}}>{s.status}</span>
+                          <span style={{fontSize:11,background:`${STATUS_COLORS[s.status]||'var(--mu)'}22`,color:STATUS_COLORS[s.status]||'var(--mu)',padding:'2px 8px',borderRadius:6,fontWeight:600}}>{s.status}</span>
                         </td>
                         <td style={{padding:'10px 10px',fontSize:12,color:'var(--mu)'}}>{s.assigned_user?.full_name||'—'}</td>
                         <td style={{padding:'10px 10px'}}>

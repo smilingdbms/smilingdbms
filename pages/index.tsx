@@ -441,26 +441,26 @@ export default function AuthPage() {
 
   // ── Styles ──
   const S = {
-    page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#0d0f14', fontFamily: "'Outfit',sans-serif", color: '#e8eaf0', padding: 20 } as const,
-    card: { background: '#161921', borderRadius: 24, border: '1px solid rgba(255,255,255,0.06)', padding: '40px 36px', width: '100%', maxWidth: 440 } as const,
-    wideCard: { background: '#161921', borderRadius: 24, border: '1px solid rgba(255,255,255,0.06)', padding: '40px 36px', width: '100%', maxWidth: 540 } as const,
-    label: { fontSize: 11, fontWeight: 700, color: '#505468', textTransform: 'uppercase' as const, letterSpacing: '1.2px', marginBottom: 6, display: 'block' },
-    input: { width: '100%', background: '#1e2130', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', color: '#e8eaf0', fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 16 } as const,
-    select: { width: '100%', background: '#1e2130', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', color: '#e8eaf0', fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 16, cursor: 'pointer' } as const,
+    page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', fontFamily: "'Outfit',sans-serif", color: 'var(--tx)', padding: 20 } as const,
+    card: { background: 'var(--bg2)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.06)', padding: '40px 36px', width: '100%', maxWidth: 440 } as const,
+    wideCard: { background: 'var(--bg2)', borderRadius: 24, border: '1px solid rgba(255,255,255,0.06)', padding: '40px 36px', width: '100%', maxWidth: 540 } as const,
+    label: { fontSize: 11, fontWeight: 700, color: 'var(--mu2)', textTransform: 'uppercase' as const, letterSpacing: '1.2px', marginBottom: 6, display: 'block' },
+    input: { width: '100%', background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', color: 'var(--tx)', fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 16 } as const,
+    select: { width: '100%', background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 14px', color: 'var(--tx)', fontSize: 14, fontFamily: 'inherit', outline: 'none', marginBottom: 16, cursor: 'pointer' } as const,
     btn: { width: '100%', padding: '14px', borderRadius: 12, border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'opacity 0.2s' } as const,
     primary: { background: '#6c8cff', color: '#fff' },
     link: { color: '#6c8cff', cursor: 'pointer', textDecoration: 'none', fontWeight: 600 },
     err: { background: 'rgba(255,80,80,0.1)', border: '1px solid rgba(255,80,80,0.3)', color: '#ff6b6b', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginBottom: 16, lineHeight: 1.5 },
     ok: { background: 'rgba(61,214,140,0.1)', border: '1px solid rgba(61,214,140,0.3)', color: '#3dd68c', padding: '14px', borderRadius: 10, fontSize: 13, marginBottom: 16, lineHeight: 1.6, whiteSpace: 'pre-line' as const },
     typeCard: (sel: boolean, c: string) => ({
-      background: sel ? `${c}15` : '#1e2130',
+      background: sel ? `${c}15` : 'var(--bg2)',
       border: `2px solid ${sel ? c : 'rgba(255,255,255,0.06)'}`,
       borderRadius: 16, padding: '20px', cursor: 'pointer',
       transition: 'all 0.2s', textAlign: 'center' as const,
     }),
   }
 
-  if (checkingAuth) return <div style={S.page}><div style={{ color: '#505468' }}>Loading...</div></div>
+  if (checkingAuth) return <div style={S.page}><div style={{ color: 'var(--mu2)' }}>Loading...</div></div>
 
   return (
     <div style={S.page}>
@@ -468,7 +468,7 @@ export default function AuthPage() {
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *{box-sizing:border-box;margin:0;padding:0}
         input:focus,select:focus{border-color:rgba(108,140,255,0.5)!important}
-        select option{background:#1e2130}
+        select option{background:var(--bg2)}
         .tc:hover{transform:translateY(-2px)}
         .ab:hover{opacity:0.9}
         .ab:active{transform:scale(0.98)}
@@ -480,7 +480,7 @@ export default function AuthPage() {
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(108,140,255,0.2)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#6c8cff', fontSize: 22, marginBottom: 12 }}>R</div>
             <div style={{ fontSize: 22, fontWeight: 800 }}>RecruitBase Pro</div>
-            <div style={{ fontSize: 13, color: '#505468', marginTop: 4 }}>Sign in to your account</div>
+            <div style={{ fontSize: 13, color: 'var(--mu2)', marginTop: 4 }}>Sign in to your account</div>
           </div>
           {error && <div style={S.err}>{error}</div>}
           {success && <div style={S.ok}>{success}</div>}
@@ -489,39 +489,39 @@ export default function AuthPage() {
           <label style={S.label}>Password</label>
           <div style={{ position: 'relative', marginBottom: 8 }}>
             <input style={{ ...S.input, marginBottom: 0, paddingRight: 44 }} type={showPass ? 'text' : 'password'} placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleLogin()} />
-            <span onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 14, top: 12, cursor: 'pointer', fontSize: 14, color: '#505468' }}>{showPass ? '🙈' : '👁️'}</span>
+            <span onClick={() => setShowPass(!showPass)} style={{ position: 'absolute', right: 14, top: 12, cursor: 'pointer', fontSize: 14, color: 'var(--mu2)' }}>{showPass ? '🙈' : '👁️'}</span>
           </div>
           <div style={{ textAlign: 'right', marginBottom: 20 }}><span style={{ fontSize: 12, color: '#6c8cff', cursor: 'pointer' }} onClick={() => { setForgotMode(true); setResetSent(false); setError(''); setResetEmail(email) }}>Forgot password?</span></div>
 
           {/* ── FORGOT PASSWORD MODAL ── */}
           {forgotMode && (
             <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.7)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000, padding:20 }}>
-              <div style={{ width:'100%', maxWidth:400, background:'#1a1d24', border:'1px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'32px 28px' }}>
+              <div style={{ width:'100%', maxWidth:400, background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:16, padding:'32px 28px' }}>
                 {resetSent ? (
                   <>
                     <div style={{ textAlign:'center', marginBottom:20 }}>
                       <div style={{ fontSize:48, marginBottom:12 }}>📧</div>
-                      <h3 style={{ margin:'0 0 8px', fontSize:18, fontWeight:700, color:'#e8eaf0' }}>Check Your Email</h3>
-                      <p style={{ margin:0, fontSize:13, color:'#7a7f90', lineHeight:1.6 }}>
+                      <h3 style={{ margin:'0 0 8px', fontSize:18, fontWeight:700, color:'var(--tx)' }}>Check Your Email</h3>
+                      <p style={{ margin:0, fontSize:13, color:'var(--mu)', lineHeight:1.6 }}>
                         We sent a password reset link to <strong style={{ color:'#6c8cff' }}>{resetEmail || email}</strong>.
                         <br/>Click the link in the email to set a new password.
                       </p>
                     </div>
-                    <p style={{ fontSize:12, color:'#505468', textAlign:'center', marginBottom:20 }}>
+                    <p style={{ fontSize:12, color:'var(--mu2)', textAlign:'center', marginBottom:20 }}>
                       Did not receive it? Check your spam folder or try again.
                     </p>
                     <div style={{ display:'flex', gap:10 }}>
                       <button onClick={() => { setResetSent(false) }} style={{ flex:1, background:'rgba(108,140,255,0.15)', color:'#6c8cff', border:'1px solid rgba(108,140,255,0.3)', borderRadius:10, padding:'11px 0', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Try Again</button>
-                      <button onClick={() => { setForgotMode(false); setResetSent(false); setError('') }} style={{ flex:1, background:'rgba(255,255,255,0.06)', color:'#e8eaf0', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'11px 0', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Back to Login</button>
+                      <button onClick={() => { setForgotMode(false); setResetSent(false); setError('') }} style={{ flex:1, background:'rgba(255,255,255,0.06)', color:'var(--tx)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'11px 0', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Back to Login</button>
                     </div>
                   </>
                 ) : (
                   <>
-                    <h3 style={{ margin:'0 0 6px', fontSize:18, fontWeight:700, color:'#e8eaf0' }}>Reset Password</h3>
-                    <p style={{ margin:'0 0 20px', fontSize:13, color:'#7a7f90' }}>Enter your email and we will send you a link to reset your password.</p>
+                    <h3 style={{ margin:'0 0 6px', fontSize:18, fontWeight:700, color:'var(--tx)' }}>Reset Password</h3>
+                    <p style={{ margin:'0 0 20px', fontSize:13, color:'var(--mu)' }}>Enter your email and we will send you a link to reset your password.</p>
                     {error && <div style={{ background:'rgba(255,107,107,0.1)', color:'#ff6b6b', border:'1px solid rgba(255,107,107,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, marginBottom:14 }}>{error}</div>}
                     <input
-                      style={{ width:'100%', background:'#22262f', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 14px', fontSize:14, color:'#e8eaf0', outline:'none', marginBottom:16, fontFamily:'inherit', boxSizing:'border-box' }}
+                      style={{ width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'12px 14px', fontSize:14, color:'var(--tx)', outline:'none', marginBottom:16, fontFamily:'inherit', boxSizing:'border-box' }}
                       type="email"
                       placeholder="Enter your email address"
                       value={resetEmail}
@@ -531,7 +531,7 @@ export default function AuthPage() {
                     />
                     <div style={{ display:'flex', gap:10 }}>
                       <button onClick={handleForgotPassword} disabled={resetLoading} style={{ flex:1, background:'#6c8cff', color:'#fff', border:'none', borderRadius:10, padding:'12px 0', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'inherit', opacity: resetLoading ? 0.6 : 1 }}>{resetLoading ? 'Sending...' : 'Send Reset Link'}</button>
-                      <button onClick={() => { setForgotMode(false); setError('') }} style={{ flex:1, background:'rgba(255,255,255,0.06)', color:'#e8eaf0', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'12px 0', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
+                      <button onClick={() => { setForgotMode(false); setError('') }} style={{ flex:1, background:'rgba(255,255,255,0.06)', color:'var(--tx)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:10, padding:'12px 0', fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>Cancel</button>
                     </div>
                   </>
                 )}
@@ -539,8 +539,8 @@ export default function AuthPage() {
             </div>
           )}
           <button className="ab" style={{ ...S.btn, ...S.primary, opacity: loading ? 0.7 : 1, marginBottom: 16 }} onClick={handleLogin} disabled={loading}>{loading ? 'Signing in...' : 'Sign In →'}</button>
-          <div style={{ textAlign: 'center', fontSize: 13, color: '#505468' }}>New here? <span className="bl" style={S.link} onClick={goToChoose}>Create free account</span></div>
-          <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: '#3a3d4a' }}>Privacy Policy · Terms of Service</div>
+          <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--mu2)' }}>New here? <span className="bl" style={S.link} onClick={goToChoose}>Create free account</span></div>
+          <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: 'var(--bg4)' }}>Privacy Policy · Terms of Service</div>
         </div>
       )}
 
@@ -548,14 +548,14 @@ export default function AuthPage() {
         <div style={S.wideCard}>
           <div style={{ textAlign: 'center', marginBottom: 28 }}>
             <div style={{ fontSize: 22, fontWeight: 800 }}>What describes you best?</div>
-            <div style={{ fontSize: 13, color: '#505468', marginTop: 6 }}>Choose your account type to get started</div>
+            <div style={{ fontSize: 13, color: 'var(--mu2)', marginTop: 6 }}>Choose your account type to get started</div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 24 }}>
             {ACCOUNT_TYPES.map(t => (
               <div key={t.id} className="tc" style={S.typeCard(chosenType === t.id, t.color)} onClick={() => selectType(t.id)}>
                 <div style={{ fontSize: 36, marginBottom: 10 }}>{t.icon}</div>
                 <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{t.title}</div>
-                <div style={{ fontSize: 11, color: '#7a7f90', lineHeight: 1.5 }}>{t.desc}</div>
+                <div style={{ fontSize: 11, color: 'var(--mu)', lineHeight: 1.5 }}>{t.desc}</div>
               </div>
             ))}
           </div>
@@ -568,7 +568,7 @@ export default function AuthPage() {
           <div style={{ textAlign: 'center', marginBottom: 24 }}>
             <div style={{ fontSize: 28, marginBottom: 6 }}>{ACCOUNT_TYPES.find(t => t.id === chosenType)?.icon}</div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{ACCOUNT_TYPES.find(t => t.id === chosenType)?.title}</div>
-            <div style={{ fontSize: 12, color: '#505468', marginTop: 4 }}>Step 2 of 2 — Fill your details</div>
+            <div style={{ fontSize: 12, color: 'var(--mu2)', marginTop: 4 }}>Step 2 of 2 — Fill your details</div>
           </div>
           {error && <div style={S.err}>{error}</div>}
           {success && (
@@ -588,7 +588,7 @@ export default function AuthPage() {
               <label style={S.label}>Mobile Number</label>
               <input style={S.input} type="tel" placeholder="+91 9876543210 (optional)" value={mobile} onChange={e => setMobile(e.target.value)} />
               {chosenType === 'owner' && (<><label style={S.label}>Company Name *</label><input style={S.input} placeholder="Your company or firm name" value={companyName} onChange={e => setCompanyName(e.target.value)} /></>)}
-              {chosenType === 'join' && (<><label style={S.label}>Company Code *</label><input style={S.input} placeholder="e.g. LUCK4P1K" value={companyCode} onChange={e => setCompanyCode(e.target.value.toUpperCase())} maxLength={10} /><div style={{ fontSize: 11, color: '#505468', marginTop: -10, marginBottom: 14 }}>Ask your Account Owner for this code</div></>)}
+              {chosenType === 'join' && (<><label style={S.label}>Company Code *</label><input style={S.input} placeholder="e.g. LUCK4P1K" value={companyCode} onChange={e => setCompanyCode(e.target.value.toUpperCase())} maxLength={10} /><div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: -10, marginBottom: 14 }}>Ask your Account Owner for this code</div></>)}
               {chosenType === 'jobseeker' && (<><label style={S.label}>Current / Desired Role</label><input style={S.input} placeholder="e.g. Software Developer" value={jobTitle} onChange={e => setJobTitle(e.target.value)} /></>)}
               {chosenType !== 'jobseeker' && (<><label style={S.label}>Your Role</label><select style={S.select} value={selectedRole} onChange={e => { setSelectedRole(e.target.value); const type = ACCOUNT_TYPES.find(t => t.id === chosenType); const role = type?.roles.find(r => r.value === e.target.value); if (role) setSelectedRoleLabel(role.label) }}>{ACCOUNT_TYPES.find(t => t.id === chosenType)?.roles.map((r, i) => (<option key={i} value={r.value}>{r.label}</option>))}</select></>)}
               <button className="ab" style={{ ...S.btn, ...S.primary, opacity: loading ? 0.7 : 1, marginTop: 8, marginBottom: 16 }} onClick={handleSignup} disabled={loading}>
@@ -596,7 +596,7 @@ export default function AuthPage() {
               </button>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span className="bl" style={{ ...S.link, fontSize: 12 }} onClick={() => { clearForm(); setScreen('choose') }}>← Change type</span>
-                <span style={{ fontSize: 12, color: '#505468' }}>Already have an account? <span className="bl" style={{ ...S.link, fontSize: 12 }} onClick={goBackToLogin}>Sign in</span></span>
+                <span style={{ fontSize: 12, color: 'var(--mu2)' }}>Already have an account? <span className="bl" style={{ ...S.link, fontSize: 12 }} onClick={goBackToLogin}>Sign in</span></span>
               </div>
             </>
           )}

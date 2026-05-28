@@ -46,7 +46,7 @@ export default function Analytics() {
   const placed = byStatus['Placed']||0
   const placementRate = total > 0 ? Math.round((placed/total)*100) : 0
 
-  const STATUS_C: any = { 'New':'#aaa','Contacted':'#7ab3ff','Screening':'#ffb347','Shortlisted':'#3dd68c','Interview Scheduled':'#48cae4','Offer Made':'#c77dff','Placed':'#6fcf6f','Rejected':'#ff6b6b','On Hold':'#888' }
+  const STATUS_C: any = { 'New':'var(--mu)','Contacted':'#7ab3ff','Screening':'#ffb347','Shortlisted':'#3dd68c','Interview Scheduled':'#48cae4','Offer Made':'#c77dff','Placed':'#6fcf6f','Rejected':'#ff6b6b','On Hold':'var(--mu)' }
 
   if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)'}}>Loading...</div>
 
@@ -84,11 +84,11 @@ export default function Analytics() {
             {Object.entries(byStatus).sort((a,b)=>b[1]-a[1]).map(([status, count]: any) => (
               <div key={status} style={{marginBottom:10}}>
                 <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                  <span style={{fontSize:12,color:STATUS_C[status]||'#aaa'}}>{status}</span>
+                  <span style={{fontSize:12,color:STATUS_C[status]||'var(--mu)'}}>{status}</span>
                   <span style={{fontSize:12,fontWeight:600}}>{count} ({Math.round(count/total*100)}%)</span>
                 </div>
                 <div style={{height:6,background:'rgba(255,255,255,0.06)',borderRadius:3}}>
-                  <div style={{height:'100%',borderRadius:3,background:STATUS_C[status]||'#aaa',width:`${Math.round(count/total*100)}%`,transition:'width 0.5s'}}/>
+                  <div style={{height:'100%',borderRadius:3,background:STATUS_C[status]||'var(--mu)',width:`${Math.round(count/total*100)}%`,transition:'width 0.5s'}}/>
                 </div>
               </div>
             ))}
@@ -99,7 +99,7 @@ export default function Analytics() {
             <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>🏆 Team Leaderboard</div>
             {users.slice(0,8).map((u, i) => (
               <div key={u.id} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'rgba(255,214,10,0.2)':i===1?'rgba(200,200,200,0.15)':i===2?'rgba(180,100,0,0.2)':'rgba(255,255,255,0.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:i===0?'#ffd60a':i===1?'#ccc':i===2?'#cd7f32':'#666'}}>
+                <div style={{width:28,height:28,borderRadius:'50%',background:i===0?'rgba(255,214,10,0.2)':i===1?'rgba(200,200,200,0.15)':i===2?'rgba(180,100,0,0.2)':'rgba(255,255,255,0.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:i===0?'#ffd60a':i===1?'#ccc':i===2?'#cd7f32':'var(--mu)'}}>
                   {i+1}
                 </div>
                 <div style={{flex:1}}>
@@ -121,7 +121,7 @@ export default function Analytics() {
             <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>Top Industries</div>
             {Object.entries(byIndustry).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([ind, count]: any) => (
               <div key={ind} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:13}}>
-                <span style={{color:'#c8c8d8'}}>{ind}</span>
+                <span style={{color:'var(--tx)'}}>{ind}</span>
                 <span style={{color:'#6c8cff',fontWeight:600}}>{count}</span>
               </div>
             ))}
@@ -133,7 +133,7 @@ export default function Analytics() {
             <div style={{fontSize:14,fontWeight:700,marginBottom:16}}>Top Cities</div>
             {Object.entries(byCity).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([city, count]: any) => (
               <div key={city} style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:13}}>
-                <span style={{color:'#c8c8d8'}}>{city}</span>
+                <span style={{color:'var(--tx)'}}>{city}</span>
                 <span style={{color:'#3dd68c',fontWeight:600}}>{count}</span>
               </div>
             ))}

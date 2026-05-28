@@ -121,15 +121,15 @@ export default function ApplicationsPage() {
   }
 
   const S = {
-    page: { minHeight: '100vh', background: '#111318', color: '#e8eaf0', fontFamily: "'Outfit',sans-serif" },
-    nav: { background: '#0d0f14', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    page: { minHeight: '100vh', background: 'var(--bg)', color: 'var(--tx)', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: 'var(--bg)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
     body: { padding: '24px', maxWidth: 1300, margin: '0 auto' },
-    card: { background: '#1a1d24', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 20, marginBottom: 14 },
-    inp: { background: '#22262f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#e8eaf0', fontSize: 13, fontFamily: 'inherit', outline: 'none' },
+    card: { background: 'var(--bg2)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 20, marginBottom: 14 },
+    inp: { background: 'var(--bg3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', outline: 'none' },
     btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' } as const),
   }
 
-  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: '#7a7f90' }}>Loading applications...</span></div>
+  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: 'var(--mu)' }}>Loading applications...</span></div>
 
   return (
     <>
@@ -139,7 +139,7 @@ export default function ApplicationsPage() {
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
         .app-row:hover{background:rgba(255,255,255,0.02)!important}
-        select option{background:#22262f}
+        select option{background:var(--bg3)}
       `}</style>
 
       {toast && (
@@ -153,7 +153,7 @@ export default function ApplicationsPage() {
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 700 }}>Job Applications</div>
-          <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>
+          <div style={{ color: 'var(--mu)', fontSize: 13, marginTop: 4 }}>
             {stats.total} total applications across {jobs.length} job descriptions
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function ApplicationsPage() {
         {/* Stats Cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, marginBottom: 20 }}>
           {[
-            { label: 'Total', value: stats.total, color: '#e8eaf0' },
+            { label: 'Total', value: stats.total, color: 'var(--tx)' },
             { label: 'New', value: stats.applied, color: '#6c8cff' },
             { label: 'Reviewing', value: stats.reviewing, color: '#ff9f43' },
             { label: 'Shortlisted', value: stats.shortlisted, color: '#48cae4' },
@@ -169,9 +169,9 @@ export default function ApplicationsPage() {
             { label: 'Hired', value: stats.hired, color: '#3dd68c' },
             { label: 'Rejected', value: stats.rejected, color: '#ff5050' },
           ].map(s => (
-            <div key={s.label} style={{ background: '#1a1d24', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '14px 16px', borderTop: `2px solid ${s.color}` }}>
+            <div key={s.label} style={{ background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '14px 16px', borderTop: `2px solid ${s.color}` }}>
               <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: '#7a7f90', marginTop: 2 }}>{s.label}</div>
+              <div style={{ fontSize: 11, color: 'var(--mu)', marginTop: 2 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -192,13 +192,13 @@ export default function ApplicationsPage() {
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
             </select>
-            <span style={{ color: '#505468', fontSize: 12 }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+            <span style={{ color: 'var(--mu2)', fontSize: 12 }}>{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
           </div>
         </div>
 
         {/* Applications List */}
         {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center' as const, padding: 60, color: '#505468' }}>
+          <div style={{ textAlign: 'center' as const, padding: 60, color: 'var(--mu2)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>📭</div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>No applications yet</div>
             <div style={{ fontSize: 13, marginTop: 6 }}>Applications will appear here when job seekers apply to your JDs</div>
@@ -210,7 +210,7 @@ export default function ApplicationsPage() {
                 <thead>
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                     {['Applicant', 'Contact', 'Applied For', 'Applied On', 'Status', 'Actions'].map(h => (
-                      <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, color: '#505468', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', whiteSpace: 'nowrap' as const }}>{h}</th>
+                      <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 10, color: 'var(--mu2)', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.8px', whiteSpace: 'nowrap' as const }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -229,7 +229,7 @@ export default function ApplicationsPage() {
                               </div>
                               <div>
                                 <div style={{ fontWeight: 600 }}>{a.full_name || 'Unknown'}</div>
-                                <div style={{ fontSize: 11, color: '#505468' }}>{a.email || ''}</div>
+                                <div style={{ fontSize: 11, color: 'var(--mu2)' }}>{a.email || ''}</div>
                               </div>
                             </div>
                           </td>
@@ -251,11 +251,11 @@ export default function ApplicationsPage() {
 
                           {/* Applied For */}
                           <td style={{ padding: '14px' }}>
-                            <span style={{ fontSize: 12, color: '#e8eaf0', fontWeight: 500 }}>{getJdTitle(a.job_id)}</span>
+                            <span style={{ fontSize: 12, color: 'var(--tx)', fontWeight: 500 }}>{getJdTitle(a.job_id)}</span>
                           </td>
 
                           {/* Applied On */}
-                          <td style={{ padding: '14px', color: '#7a7f90', fontSize: 12, whiteSpace: 'nowrap' as const }}>
+                          <td style={{ padding: '14px', color: 'var(--mu)', fontSize: 12, whiteSpace: 'nowrap' as const }}>
                             {timeAgo(a.created_at)}
                           </td>
 
@@ -284,18 +284,18 @@ export default function ApplicationsPage() {
                             <td colSpan={6} style={{ padding: '14px 14px 14px 70px' }}>
                               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                                 <div>
-                                  <div style={{ fontSize: 11, color: '#505468', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }}>Cover Note</div>
-                                  <div style={{ fontSize: 13, color: '#e8eaf0', lineHeight: 1.6, background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)', minHeight: 60 }}>
+                                  <div style={{ fontSize: 11, color: 'var(--mu2)', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }}>Cover Note</div>
+                                  <div style={{ fontSize: 13, color: 'var(--tx)', lineHeight: 1.6, background: 'rgba(255,255,255,0.03)', padding: 12, borderRadius: 8, border: '1px solid rgba(255,255,255,0.05)', minHeight: 60 }}>
                                     {a.cover_letter || a.cover_note || 'No cover note provided'}
                                   </div>
                                 </div>
                                 <div>
-                                  <div style={{ fontSize: 11, color: '#505468', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }}>Details</div>
-                                  <div style={{ fontSize: 12, color: '#7a7f90', lineHeight: 2 }}>
-                                    <div>Full Name: <span style={{ color: '#e8eaf0' }}>{a.full_name || '—'}</span></div>
-                                    <div>Email: <span style={{ color: '#e8eaf0' }}>{a.email || '—'}</span></div>
-                                    <div>Mobile: <span style={{ color: '#e8eaf0' }}>{a.mobile || '—'}</span></div>
-                                    <div>Applied: <span style={{ color: '#e8eaf0' }}>{new Date(a.created_at).toLocaleString('en-IN')}</span></div>
+                                  <div style={{ fontSize: 11, color: 'var(--mu2)', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 6 }}>Details</div>
+                                  <div style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 2 }}>
+                                    <div>Full Name: <span style={{ color: 'var(--tx)' }}>{a.full_name || '—'}</span></div>
+                                    <div>Email: <span style={{ color: 'var(--tx)' }}>{a.email || '—'}</span></div>
+                                    <div>Mobile: <span style={{ color: 'var(--tx)' }}>{a.mobile || '—'}</span></div>
+                                    <div>Applied: <span style={{ color: 'var(--tx)' }}>{new Date(a.created_at).toLocaleString('en-IN')}</span></div>
                                     {a.source_platform && <div>Source: <span style={{ color: '#48cae4' }}>{a.source_platform}</span></div>}
                                     {a.resume_url && (
                                       <div><a href={a.resume_url} target="_blank" style={{ color: '#6c8cff', textDecoration: 'none' }}>📄 View Resume</a></div>

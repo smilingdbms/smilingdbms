@@ -131,7 +131,7 @@ export default function PermissionsPage() {
     card: { background:'var(--bg2)', border:'1px solid var(--bd)', borderRadius:14, padding:20, marginBottom:16 },
     toggle: (on: boolean) => ({
       width:42, height:24, borderRadius:12,
-      background: on ? 'var(--ac)' : 'var(--bg4,#2a2f45)',
+      background: on ? 'var(--ac)' : 'var(--bg4,var(--bg3))',
       border: `1px solid ${on ? 'var(--ac)' : 'var(--bd)'}`,
       cursor:'pointer', position:'relative' as const,
       transition:'all 0.2s', flexShrink:0,
@@ -147,7 +147,7 @@ export default function PermissionsPage() {
   }
 
   if (loading) return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,#0e1117)'}}>
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,var(--bg))'}}>
       
       <div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>

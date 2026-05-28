@@ -260,17 +260,17 @@ export default function ImportPage() {
     setStep('done')
   }
 
-  const IS: any = { width:'100%', background:'#22262f', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'#e8eaf0', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
-  const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
+  const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
+  const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
 
   return (
     <>
-    <div style={{minHeight:'100vh', background:'#111318', color:'#e8eaf0', fontFamily:"'Outfit',Inter,sans-serif"}}>
+    <div style={{minHeight:'100vh', background:'var(--bg)', color:'var(--tx)', fontFamily:"'Outfit',Inter,sans-serif"}}>
       
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
 
       {/* Nav */}
-      <nav style={{background:'#0d0f14', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50}}>
+      <nav style={{background:'var(--bg)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'12px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:50}}>
         <div style={{display:'flex', alignItems:'center', gap:12}}>
           <div style={{width:28, height:28, borderRadius:7, background:'rgba(108,140,255,0.2)', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold', color:'#6c8cff', fontSize:13}}>R</div>
           <span style={{fontWeight:700, fontSize:14}}>RecruitBase Pro</span>
@@ -294,7 +294,7 @@ export default function ImportPage() {
                 <div style={{display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:20,
                   background: active ? 'rgba(108,140,255,0.2)' : done ? 'rgba(61,214,140,0.1)' : 'rgba(255,255,255,0.04)',
                   border: `1px solid ${active ? '#6c8cff' : done ? '#3dd68c' : 'rgba(255,255,255,0.08)'}`,
-                  color: active ? '#6c8cff' : done ? '#3dd68c' : '#505468', fontSize:12}}>
+                  color: active ? '#6c8cff' : done ? '#3dd68c' : 'var(--mu2)', fontSize:12}}>
                   <span>{done ? '✓' : thisStep+1}</span>
                   <span>{label.split('. ')[1]}</span>
                 </div>
@@ -308,11 +308,11 @@ export default function ImportPage() {
         {step === 'upload' && (
           <div>
             <h2 style={{fontSize:18, fontWeight:700, marginBottom:4}}>Upload Your Data</h2>
-            <p style={{fontSize:13, color:'#7a7f90', marginBottom:24}}>Import candidates from CSV, Excel (saved as CSV), or Google Sheets</p>
+            <p style={{fontSize:13, color:'var(--mu)', marginBottom:24}}>Import candidates from CSV, Excel (saved as CSV), or Google Sheets</p>
 
             <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20}}>
               {/* File Upload */}
-              <div style={{background:'#1a1d24', border:'2px dashed rgba(255,255,255,0.1)', borderRadius:14, padding:28, textAlign:'center', cursor:'pointer'}}
+              <div style={{background:'var(--bg2)', border:'2px dashed rgba(255,255,255,0.1)', borderRadius:14, padding:28, textAlign:'center', cursor:'pointer'}}
                 onClick={() => fileRef.current?.click()}
                 onDragOver={e => { e.preventDefault(); (e.currentTarget as any).style.borderColor = '#6c8cff' }}
                 onDragLeave={e => { (e.currentTarget as any).style.borderColor = 'rgba(255,255,255,0.1)' }}
@@ -320,17 +320,17 @@ export default function ImportPage() {
                 <input ref={fileRef} type="file" accept=".csv,.txt" style={{display:'none'}} onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }}/>
                 <div style={{fontSize:40, marginBottom:10}}>📊</div>
                 <div style={{fontWeight:600, fontSize:14, marginBottom:4}}>Upload CSV / Excel</div>
-                <div style={{fontSize:12, color:'#7a7f90', marginBottom:12}}>Drag & drop or click to browse</div>
-                <div style={{fontSize:11, color:'#505468'}}>CSV, TXT supported · Excel: Save as CSV first</div>
+                <div style={{fontSize:12, color:'var(--mu)', marginBottom:12}}>Drag & drop or click to browse</div>
+                <div style={{fontSize:11, color:'var(--mu2)'}}>CSV, TXT supported · Excel: Save as CSV first</div>
               </div>
 
               {/* Google Sheets */}
-              <div style={{background:'#1a1d24', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:28}}>
+              <div style={{background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:28}}>
                 <div style={{fontSize:32, marginBottom:10, textAlign:'center'}}>🔗</div>
                 <div style={{fontWeight:600, fontSize:14, marginBottom:4, textAlign:'center'}}>Google Sheets Link</div>
-                <div style={{fontSize:12, color:'#7a7f90', marginBottom:14, textAlign:'center'}}>Paste a public Google Sheets URL</div>
+                <div style={{fontSize:12, color:'var(--mu)', marginBottom:14, textAlign:'center'}}>Paste a public Google Sheets URL</div>
                 <input value={sheetsUrl} onChange={e => setSheetsUrl(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." style={{...IS, marginBottom:10, fontSize:12}}/>
-                <div style={{fontSize:11, color:'#505468', marginBottom:12}}>⚠ Sheet must be set to "Anyone with the link can view"</div>
+                <div style={{fontSize:11, color:'var(--mu2)', marginBottom:12}}>⚠ Sheet must be set to "Anyone with the link can view"</div>
                 <button onClick={loadFromSheets} disabled={loadingSheets}
                   style={{width:'100%', padding:'10px', borderRadius:10, background:'#3dd68c', color:'#111', border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', opacity:loadingSheets?0.7:1}}>
                   {loadingSheets ? 'Loading...' : 'Load Sheet Data'}
@@ -339,7 +339,7 @@ export default function ImportPage() {
             </div>
 
             {/* Import settings */}
-            <div style={{background:'#1a1d24', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:20}}>
+            <div style={{background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:20}}>
               <div style={{fontSize:13, fontWeight:600, marginBottom:14, color:'#6c8cff'}}>Import Settings</div>
               <div style={{display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:14}}>
                 <div>
@@ -372,7 +372,7 @@ export default function ImportPage() {
             <div style={{marginTop:16, padding:14, background:'rgba(108,140,255,0.06)', border:'1px solid rgba(108,140,255,0.2)', borderRadius:10, display:'flex', justifyContent:'space-between', alignItems:'center'}}>
               <div>
                 <div style={{fontSize:13, fontWeight:600, marginBottom:2}}>📋 Download CSV Template</div>
-                <div style={{fontSize:11, color:'#7a7f90'}}>Use this template to format your data correctly</div>
+                <div style={{fontSize:11, color:'var(--mu)'}}>Use this template to format your data correctly</div>
               </div>
               <button onClick={() => {
                 const csv = 'Name,Mobile,Email,Experience (Years),Role/Designation,Qualification,Skills,City,Industry,Gender,Age,Status,LinkedIn URL,Profile Type,Summary\nJohn Doe,9876543210,john@email.com,5,Software Developer,B.Tech,React Node.js Python,Delhi,IT / Software,Male,28,New,linkedin.com/in/john,Candidate,Experienced full stack developer'
@@ -393,19 +393,19 @@ export default function ImportPage() {
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20}}>
               <div>
                 <h2 style={{fontSize:18, fontWeight:700, marginBottom:4}}>Map Your Columns</h2>
-                <p style={{fontSize:13, color:'#7a7f90'}}>File: <strong style={{color:'#6c8cff'}}>{fileName}</strong> · {rawRows.length} data rows · {headers.length} columns · Auto-mapped where possible</p>
+                <p style={{fontSize:13, color:'var(--mu)'}}>File: <strong style={{color:'#6c8cff'}}>{fileName}</strong> · {rawRows.length} data rows · {headers.length} columns · Auto-mapped where possible</p>
               </div>
-              <button onClick={() => setStep('upload')} style={{padding:'7px 14px', borderRadius:8, background:'transparent', color:'#7a7f90', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:12}}>← Back</button>
+              <button onClick={() => setStep('upload')} style={{padding:'7px 14px', borderRadius:8, background:'transparent', color:'var(--mu)', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:12}}>← Back</button>
             </div>
 
-            <div style={{background:'#1a1d24', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'hidden', marginBottom:16}}>
+            <div style={{background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'hidden', marginBottom:16}}>
               <table style={{width:'100%', borderCollapse:'collapse', fontSize:13}}>
                 <thead>
-                  <tr style={{background:'#22262f'}}>
-                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, width:'5%'}}>#</th>
-                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, width:'30%'}}>Your Column</th>
-                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, width:'30%'}}>Maps To</th>
-                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, width:'35%'}}>Sample Data</th>
+                  <tr style={{background:'var(--bg3)'}}>
+                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, width:'5%'}}>#</th>
+                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, width:'30%'}}>Your Column</th>
+                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, width:'30%'}}>Maps To</th>
+                    <th style={{padding:'10px 16px', textAlign:'left', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, width:'35%'}}>Sample Data</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -414,16 +414,16 @@ export default function ImportPage() {
                     const mapped = mapping[i]
                     return (
                       <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                        <td style={{padding:'10px 16px', color:'#505468'}}>{i+1}</td>
+                        <td style={{padding:'10px 16px', color:'var(--mu2)'}}>{i+1}</td>
                         <td style={{padding:'10px 16px', fontWeight:500}}>{h}</td>
                         <td style={{padding:'10px 16px'}}>
                           <select value={mapping[i] || 'ignore'} onChange={e => setMapping(m => ({...m, [i]: e.target.value}))}
-                            style={{...IS, background: mapped && mapped !== 'ignore' ? 'rgba(61,214,140,0.08)' : '#22262f',
+                            style={{...IS, background: mapped && mapped !== 'ignore' ? 'rgba(61,214,140,0.08)' : 'var(--bg3)',
                               borderColor: mapped && mapped !== 'ignore' ? 'rgba(61,214,140,0.3)' : 'rgba(255,255,255,0.1)'}}>
                             {SYSTEM_FIELDS.map(f => <option key={f.key} value={f.key}>{f.label}{f.required?' *':''}</option>)}
                           </select>
                         </td>
-                        <td style={{padding:'10px 16px', fontSize:11, color:'#7a7f90'}}>{sample || '—'}</td>
+                        <td style={{padding:'10px 16px', fontSize:11, color:'var(--mu)'}}>{sample || '—'}</td>
                       </tr>
                     )
                   })}
@@ -453,9 +453,9 @@ export default function ImportPage() {
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16}}>
               <div>
                 <h2 style={{fontSize:18, fontWeight:700, marginBottom:4}}>Preview & Validate</h2>
-                <p style={{fontSize:13, color:'#7a7f90'}}>{total} records ready · {duplicates.length} duplicates found · {errors.length} errors</p>
+                <p style={{fontSize:13, color:'var(--mu)'}}>{total} records ready · {duplicates.length} duplicates found · {errors.length} errors</p>
               </div>
-              <button onClick={() => setStep('map')} style={{padding:'7px 14px', borderRadius:8, background:'transparent', color:'#7a7f90', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:12}}>← Back</button>
+              <button onClick={() => setStep('map')} style={{padding:'7px 14px', borderRadius:8, background:'transparent', color:'var(--mu)', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:12}}>← Back</button>
             </div>
 
             {/* Summary cards */}
@@ -466,8 +466,8 @@ export default function ImportPage() {
                 {l:'Duplicates Found', v:duplicates.length, c:'#ff9f43'},
                 {l:'Errors', v:errors.length, c:'#ff6b6b'},
               ].map(s => (
-                <div key={s.l} style={{background:'#1a1d24', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:16}}>
-                  <div style={{fontSize:9, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, marginBottom:4}}>{s.l}</div>
+                <div key={s.l} style={{background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:16}}>
+                  <div style={{fontSize:9, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, marginBottom:4}}>{s.l}</div>
                   <div style={{fontSize:24, fontWeight:700, color:s.c}}>{s.v}</div>
                 </div>
               ))}
@@ -478,7 +478,7 @@ export default function ImportPage() {
               <div style={{background:'rgba(255,107,107,0.08)', border:'1px solid rgba(255,107,107,0.2)', borderRadius:10, padding:14, marginBottom:14}}>
                 <div style={{fontSize:13, fontWeight:600, color:'#ff6b6b', marginBottom:8}}>⚠ Errors — These rows will be skipped</div>
                 {errors.slice(0,5).map((e, i) => <div key={i} style={{fontSize:12, color:'#ff6b6b', marginBottom:3}}>• {e}</div>)}
-                {errors.length > 5 && <div style={{fontSize:11, color:'#7a7f90'}}>...and {errors.length - 5} more</div>}
+                {errors.length > 5 && <div style={{fontSize:11, color:'var(--mu)'}}>...and {errors.length - 5} more</div>}
               </div>
             )}
 
@@ -486,17 +486,17 @@ export default function ImportPage() {
             {duplicates.length > 0 && (
               <div style={{background:'rgba(255,159,67,0.08)', border:'1px solid rgba(255,159,67,0.2)', borderRadius:10, padding:14, marginBottom:14}}>
                 <div style={{fontSize:13, fontWeight:600, color:'#ff9f43', marginBottom:4}}>⚡ {duplicates.length} duplicate records found (same mobile or email already in system)</div>
-                <div style={{fontSize:12, color:'#7a7f90'}}>You can skip duplicates or import them anyway</div>
+                <div style={{fontSize:12, color:'var(--mu)'}}>You can skip duplicates or import them anyway</div>
               </div>
             )}
 
             {/* Preview table */}
-            <div style={{background:'#1a1d24', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'auto', marginBottom:16, maxHeight:320}}>
+            <div style={{background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, overflow:'auto', marginBottom:16, maxHeight:320}}>
               <table style={{width:'100%', borderCollapse:'collapse', fontSize:12}}>
-                <thead style={{position:'sticky', top:0, background:'#22262f', zIndex:1}}>
+                <thead style={{position:'sticky', top:0, background:'var(--bg3)', zIndex:1}}>
                   <tr>
                     {['#','Name','Mobile','Email','Role','Qual','City','Status','Flag'].map(h => (
-                      <th key={h} style={{padding:'8px 12px', textAlign:'left', fontSize:9, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, whiteSpace:'nowrap'}}>{h}</th>
+                      <th key={h} style={{padding:'8px 12px', textAlign:'left', fontSize:9, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, whiteSpace:'nowrap'}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -505,21 +505,21 @@ export default function ImportPage() {
                     const isDupe = duplicates.includes(i)
                     return (
                       <tr key={i} style={{borderBottom:'1px solid rgba(255,255,255,0.04)', background:isDupe?'rgba(255,159,67,0.05)':'transparent'}}>
-                        <td style={{padding:'7px 12px', color:'#505468'}}>{i+1}</td>
+                        <td style={{padding:'7px 12px', color:'var(--mu2)'}}>{i+1}</td>
                         <td style={{padding:'7px 12px', fontWeight:500}}>{p.name}</td>
-                        <td style={{padding:'7px 12px', color:'#7a7f90'}}>{p.mobile||'—'}</td>
-                        <td style={{padding:'7px 12px', color:'#7a7f90'}}>{p.email||'—'}</td>
-                        <td style={{padding:'7px 12px', color:'#7a7f90'}}>{p.role||'—'}</td>
-                        <td style={{padding:'7px 12px', color:'#7a7f90'}}>{p.qualification||'—'}</td>
-                        <td style={{padding:'7px 12px', color:'#7a7f90'}}>{p.city||'—'}</td>
-                        <td style={{padding:'7px 12px'}}><span style={{padding:'2px 8px', borderRadius:20, fontSize:10, background:'rgba(100,100,120,0.3)', color:'#aaa'}}>{p.status}</span></td>
+                        <td style={{padding:'7px 12px', color:'var(--mu)'}}>{p.mobile||'—'}</td>
+                        <td style={{padding:'7px 12px', color:'var(--mu)'}}>{p.email||'—'}</td>
+                        <td style={{padding:'7px 12px', color:'var(--mu)'}}>{p.role||'—'}</td>
+                        <td style={{padding:'7px 12px', color:'var(--mu)'}}>{p.qualification||'—'}</td>
+                        <td style={{padding:'7px 12px', color:'var(--mu)'}}>{p.city||'—'}</td>
+                        <td style={{padding:'7px 12px'}}><span style={{padding:'2px 8px', borderRadius:20, fontSize:10, background:'rgba(100,100,120,0.3)', color:'var(--mu)'}}>{p.status}</span></td>
                         <td style={{padding:'7px 12px'}}>{isDupe ? <span style={{fontSize:10, color:'#ff9f43'}}>⚡ Dupe</span> : <span style={{fontSize:10, color:'#3dd68c'}}>✓</span>}</td>
                       </tr>
                     )
                   })}
                 </tbody>
               </table>
-              {preview.length > 100 && <div style={{padding:12, textAlign:'center', fontSize:12, color:'#7a7f90'}}>Showing first 100 of {preview.length} records</div>}
+              {preview.length > 100 && <div style={{padding:12, textAlign:'center', fontSize:12, color:'var(--mu)'}}>Showing first 100 of {preview.length} records</div>}
             </div>
 
             {/* Import buttons */}
@@ -543,12 +543,12 @@ export default function ImportPage() {
           <div style={{textAlign:'center', padding:'60px 20px'}}>
             <div style={{fontSize:48, marginBottom:16}}>⚡</div>
             <h2 style={{fontSize:20, fontWeight:700, marginBottom:8}}>Importing Records...</h2>
-            <p style={{fontSize:13, color:'#7a7f90', marginBottom:24}}>Please wait, do not close this window</p>
+            <p style={{fontSize:13, color:'var(--mu)', marginBottom:24}}>Please wait, do not close this window</p>
             <div style={{background:'rgba(255,255,255,0.06)', borderRadius:8, height:8, maxWidth:400, margin:'0 auto 16px', overflow:'hidden'}}>
               <div style={{height:'100%', background:'#6c8cff', borderRadius:8, width:`${total > 0 ? Math.round(((imported+skipped)/total)*100) : 0}%`, transition:'width 0.3s'}}/>
             </div>
             <div style={{fontSize:14, color:'#6c8cff', fontWeight:600}}>{imported + skipped} / {total} processed</div>
-            <div style={{fontSize:12, color:'#7a7f90', marginTop:4}}>{imported} imported · {skipped} skipped</div>
+            <div style={{fontSize:12, color:'var(--mu)', marginTop:4}}>{imported} imported · {skipped} skipped</div>
           </div>
         )}
 
@@ -560,16 +560,16 @@ export default function ImportPage() {
             <div style={{display:'flex', gap:20, justifyContent:'center', marginBottom:24}}>
               <div style={{background:'rgba(61,214,140,0.1)', border:'1px solid rgba(61,214,140,0.3)', borderRadius:12, padding:'16px 24px'}}>
                 <div style={{fontSize:28, fontWeight:700, color:'#3dd68c'}}>{imported}</div>
-                <div style={{fontSize:12, color:'#7a7f90'}}>Successfully imported</div>
+                <div style={{fontSize:12, color:'var(--mu)'}}>Successfully imported</div>
               </div>
               <div style={{background:'rgba(255,107,107,0.1)', border:'1px solid rgba(255,107,107,0.3)', borderRadius:12, padding:'16px 24px'}}>
                 <div style={{fontSize:28, fontWeight:700, color:'#ff6b6b'}}>{skipped}</div>
-                <div style={{fontSize:12, color:'#7a7f90'}}>Skipped / Failed</div>
+                <div style={{fontSize:12, color:'var(--mu)'}}>Skipped / Failed</div>
               </div>
             </div>
             <div style={{display:'flex', gap:12, justifyContent:'center'}}>
               <button onClick={() => { setStep('upload'); setPreview([]); setRawRows([]); setHeaders([]); setFileName(''); setSheetsUrl(''); setImported(0); setSkipped(0) }}
-                style={{padding:'10px 20px', borderRadius:10, background:'transparent', color:'#7a7f90', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:13}}>
+                style={{padding:'10px 20px', borderRadius:10, background:'transparent', color:'var(--mu)', border:'1px solid rgba(255,255,255,0.1)', cursor:'pointer', fontFamily:'inherit', fontSize:13}}>
                 Import More
               </button>
               <button onClick={() => router.push('/dashboard')}

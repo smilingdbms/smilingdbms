@@ -59,17 +59,17 @@ export default function Jobs() {
     setJobs(prev => prev.filter(j => j.id !== id))
   }
 
-  const IS: any = { width:'100%', background:'#22262f', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'#e8eaf0', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
-  const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
+  const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
+  const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
   const STATUS_C: any = { 'Open': '#3dd68c', 'Closed': '#ff6b6b', 'On Hold': '#ffb347', 'Filled': '#c77dff' }
 
-  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#111318',color:'#e8eaf0'}}>Loading...</div>
+  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)'}}>Loading...</div>
 
   return (
     <>
-    <div style={{minHeight:'100vh',background:'#111318',color:'#e8eaf0',fontFamily:'Outfit,Inter,sans-serif'}}>
+    <div style={{minHeight:'100vh',background:'var(--bg)',color:'var(--tx)',fontFamily:'Outfit,Inter,sans-serif'}}>
       
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
       
       
 
@@ -77,7 +77,7 @@ export default function Jobs() {
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
           <div>
             <h1 style={{fontSize:20,fontWeight:700,marginBottom:2}}>Job Descriptions</h1>
-            <p style={{fontSize:13,color:'#7a7f90'}}>{jobs.length} job{jobs.length!==1?'s':''} posted</p>
+            <p style={{fontSize:13,color:'var(--mu)'}}>{jobs.length} job{jobs.length!==1?'s':''} posted</p>
           </div>
           <button onClick={()=>{setForm({...EMPTY_JD});setShowAdd(true)}} style={{padding:'10px 20px',borderRadius:10,background:'#6c8cff',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>＋ Post New Job</button>
         </div>
@@ -90,8 +90,8 @@ export default function Jobs() {
             {l:'Filled',v:jobs.filter(j=>j.status==='Filled').length,c:'#c77dff'},
             {l:'Closed',v:jobs.filter(j=>j.status==='Closed').length,c:'#ff6b6b'},
           ].map(s=>(
-            <div key={s.l} style={{background:'#1a1d24',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:16}}>
-              <div style={{fontSize:10,fontWeight:600,color:'#7a7f90',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>{s.l}</div>
+            <div key={s.l} style={{background:'var(--bg2)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:16}}>
+              <div style={{fontSize:10,fontWeight:600,color:'var(--mu)',textTransform:'uppercase',letterSpacing:1,marginBottom:6}}>{s.l}</div>
               <div style={{fontSize:26,fontWeight:700,color:s.c}}>{s.v}</div>
             </div>
           ))}
@@ -100,29 +100,29 @@ export default function Jobs() {
         {/* Jobs Grid */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))',gap:16}}>
           {jobs.length===0 ? (
-            <div style={{gridColumn:'1/-1',textAlign:'center',padding:60,color:'#7a7f90'}}>
+            <div style={{gridColumn:'1/-1',textAlign:'center',padding:60,color:'var(--mu)'}}>
               <div style={{fontSize:40,marginBottom:12}}>📋</div>
               <div style={{fontSize:16,fontWeight:600,marginBottom:8}}>No jobs posted yet</div>
               <div style={{fontSize:13}}>Click Post New Job to create your first job description</div>
             </div>
           ) : jobs.map(j => (
-            <div key={j.id} style={{background:'#1a1d24',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:20,cursor:'pointer'}}
+            <div key={j.id} style={{background:'var(--bg2)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:20,cursor:'pointer'}}
               onClick={()=>{setForm({...j});setShowAdd(true)}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
                 <div>
                   <div style={{fontWeight:700,fontSize:15,marginBottom:4}}>{j.title}</div>
-                  <div style={{fontSize:12,color:'#7a7f90'}}>{j.company||'—'} · {j.location||'—'}</div>
+                  <div style={{fontSize:12,color:'var(--mu)'}}>{j.company||'—'} · {j.location||'—'}</div>
                 </div>
-                <span style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:`${STATUS_C[j.status]||'#aaa'}22`,color:STATUS_C[j.status]||'#aaa',fontWeight:600,whiteSpace:'nowrap'}}>{j.status}</span>
+                <span style={{fontSize:11,padding:'3px 10px',borderRadius:20,background:`${STATUS_C[j.status]||'var(--mu)'}22`,color:STATUS_C[j.status]||'var(--mu)',fontWeight:600,whiteSpace:'nowrap'}}>{j.status}</span>
               </div>
               <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
                 {j.experience_min&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'rgba(108,140,255,0.1)',color:'#6c8cff'}}>{j.experience_min}-{j.experience_max||'+'} yrs</span>}
                 {j.qualification&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'rgba(61,214,140,0.1)',color:'#3dd68c'}}>{j.qualification}</span>}
                 {j.openings&&<span style={{fontSize:11,padding:'2px 8px',borderRadius:20,background:'rgba(255,214,10,0.1)',color:'#ffd60a'}}>{j.openings} opening{j.openings!==1?'s':''}</span>}
               </div>
-              {j.skills&&<div style={{fontSize:12,color:'#7a7f90',marginBottom:12,lineHeight:1.5}}>Skills: {j.skills}</div>}
+              {j.skills&&<div style={{fontSize:12,color:'var(--mu)',marginBottom:12,lineHeight:1.5}}>Skills: {j.skills}</div>}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                <span style={{fontSize:11,color:'#505468'}}>{new Date(j.created_at).toLocaleDateString('en-IN')}</span>
+                <span style={{fontSize:11,color:'var(--mu2)'}}>{new Date(j.created_at).toLocaleDateString('en-IN')}</span>
                 <button onClick={e=>{e.stopPropagation();deleteJob(j.id)}} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
               </div>
             </div>
@@ -133,10 +133,10 @@ export default function Jobs() {
       {/* Add/Edit Modal */}
       {showAdd && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:20}} onClick={e=>{if(e.target===e.currentTarget)setShowAdd(false)}}>
-          <div style={{background:'#1a1d24',border:'1px solid rgba(255,255,255,0.08)',borderRadius:20,width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
-            <div style={{padding:'18px 24px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'center',position:'sticky',top:0,background:'#1a1d24',zIndex:10}}>
+          <div style={{background:'var(--bg2)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:20,width:'100%',maxWidth:680,maxHeight:'90vh',overflowY:'auto',boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
+            <div style={{padding:'18px 24px',borderBottom:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'space-between',alignItems:'center',position:'sticky',top:0,background:'var(--bg2)',zIndex:10}}>
               <div style={{fontSize:16,fontWeight:700}}>{form.id ? 'Edit Job' : 'Post New Job'}</div>
-              <button onClick={()=>setShowAdd(false)} style={{background:'#22262f',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,width:28,height:28,cursor:'pointer',color:'#e8eaf0',fontSize:14}}>✕</button>
+              <button onClick={()=>setShowAdd(false)} style={{background:'var(--bg3)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:8,width:28,height:28,cursor:'pointer',color:'var(--tx)',fontSize:14}}>✕</button>
             </div>
             <div style={{padding:24,display:'grid',gap:14}}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
@@ -188,8 +188,8 @@ export default function Jobs() {
                 </div>
               </div>
             </div>
-            <div style={{padding:'14px 24px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'flex-end',gap:10,position:'sticky',bottom:0,background:'#1a1d24'}}>
-              <button onClick={()=>setShowAdd(false)} style={{padding:'9px 18px',borderRadius:10,background:'transparent',color:'#7a7f90',border:'1px solid rgba(255,255,255,0.1)',cursor:'pointer',fontFamily:'inherit',fontSize:13}}>Cancel</button>
+            <div style={{padding:'14px 24px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'flex-end',gap:10,position:'sticky',bottom:0,background:'var(--bg2)'}}>
+              <button onClick={()=>setShowAdd(false)} style={{padding:'9px 18px',borderRadius:10,background:'transparent',color:'var(--mu)',border:'1px solid rgba(255,255,255,0.1)',cursor:'pointer',fontFamily:'inherit',fontSize:13}}>Cancel</button>
               <button onClick={saveJob} disabled={saving||!form.title} style={{padding:'9px 20px',borderRadius:10,background:'#6c8cff',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit',opacity:saving?0.7:1}}>{saving?'Saving...':'Save Job'}</button>
             </div>
           </div>

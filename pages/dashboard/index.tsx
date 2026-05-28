@@ -38,7 +38,7 @@ export default function DashboardIndex() {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: '#050810',
+      background: 'var(--bg)',
       flexDirection: 'column',
       gap: 12
     }}>
@@ -50,7 +50,7 @@ export default function DashboardIndex() {
         animation: 'spin 0.8s linear infinite'
       }}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ fontSize: 13, color: '#9CA3AF', fontFamily: 'Outfit, sans-serif' }}>
+      <div style={{ fontSize: 13, color: 'var(--mu)', fontFamily: 'Outfit, sans-serif' }}>
         Loading RecruitBase Pro...
       </div>
     </div>

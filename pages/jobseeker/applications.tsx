@@ -78,8 +78,8 @@ export default function MyApplications() {
   Object.keys(STATUS_COLORS).forEach(s => { statusCounts[s] = apps.filter(a => a.status === s).length })
 
   const theme = nightMode
-    ? { bg: '#080a0f', bg2: '#0e1018', bg3: '#151820', tx: '#c8cad0', bd: 'rgba(255,255,255,0.05)' }
-    : { bg: '#0f1117', bg2: '#161921', bg3: '#1e2230', tx: '#e8eaf0', bd: 'rgba(255,255,255,0.06)' }
+    ? { bg: 'var(--bg)', bg2: 'var(--bg)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.05)' }
+    : { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.06)' }
 
   // SKELETON
   if (loading) return (
@@ -132,7 +132,7 @@ export default function MyApplications() {
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 800 }}>My Applications</div>
-          <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>{apps.length} total</div>
+          <div style={{ color: 'var(--mu)', fontSize: 13, marginTop: 4 }}>{apps.length} total</div>
         </div>
 
         {/* Status Filter */}
@@ -141,21 +141,21 @@ export default function MyApplications() {
             background: filter === 'all' ? 'rgba(108,140,255,0.15)' : 'rgba(255,255,255,0.03)',
             border: `1px solid ${filter === 'all' ? 'rgba(108,140,255,0.3)' : theme.bd}`,
             borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-            color: filter === 'all' ? '#6c8cff' : '#7a7f90',
+            color: filter === 'all' ? '#6c8cff' : 'var(--mu)',
           }}>All ({apps.length})</button>
           {Object.entries(STATUS_COLORS).map(([status, sc]) => (
             <button key={status} onClick={() => setFilter(filter === status ? 'all' : status)} style={{
               background: filter === status ? sc.bg : 'rgba(255,255,255,0.03)',
               border: `1px solid ${filter === status ? sc.color + '44' : theme.bd}`,
               borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              color: filter === status ? sc.color : '#505468',
+              color: filter === status ? sc.color : 'var(--mu2)',
             }}>{status} ({statusCounts[status] || 0})</button>
           ))}
         </div>
 
         {/* Applications */}
         {filteredApps.length === 0 ? (
-          <div style={{ textAlign: 'center' as const, padding: 60, color: '#505468' }}>
+          <div style={{ textAlign: 'center' as const, padding: 60, color: 'var(--mu2)' }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>{filter === 'all' ? 'No applications yet' : `No ${filter} applications`}</div>
             <div style={{ fontSize: 13, marginTop: 6, marginBottom: 16 }}>Start applying to jobs!</div>
@@ -174,21 +174,21 @@ export default function MyApplications() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' as const }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{j?.title || 'Job Title'}</div>
-                    <div style={{ fontSize: 13, color: '#7a7f90', marginBottom: 8 }}>{j?.companies?.name || 'Company'}</div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, fontSize: 11, color: '#505468' }}>
+                    <div style={{ fontSize: 13, color: 'var(--mu)', marginBottom: 8 }}>{j?.companies?.name || 'Company'}</div>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, fontSize: 11, color: 'var(--mu2)' }}>
                       {(j?.location || j?.city) && <span>📍 {j?.location || j?.city}</span>}
                       {j?.salary_min && <span style={{ color: '#3dd68c' }}>₹{j?.salary_min}{j?.salary_max ? `–${j?.salary_max}` : '+'} LPA</span>}
                       {j?.job_type && <span>{j?.job_type}</span>}
                     </div>
                     {(a.cover_note || a.cover_letter) && (
-                      <div style={{ fontSize: 12, color: '#505468', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px', borderLeft: '2px solid rgba(108,140,255,0.3)', marginTop: 8 }}>
+                      <div style={{ fontSize: 12, color: 'var(--mu2)', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px', borderLeft: '2px solid rgba(108,140,255,0.3)', marginTop: 8 }}>
                         "{a.cover_note || a.cover_letter}"
                       </div>
                     )}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 4 }}>
                     <span style={{ fontSize: 12, fontWeight: 700, background: sc.bg, color: sc.color, padding: '4px 14px', borderRadius: 20 }}>{a.status}</span>
-                    <span style={{ fontSize: 11, color: '#505468' }}>{new Date(appliedDate).toLocaleDateString('en-IN')}</span>
+                    <span style={{ fontSize: 11, color: 'var(--mu2)' }}>{new Date(appliedDate).toLocaleDateString('en-IN')}</span>
                   </div>
                 </div>
 
@@ -207,7 +207,7 @@ export default function MyApplications() {
                               border: `2px solid ${isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'rgba(255,255,255,0.1)'}`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#fff',
                             }}>{isDone ? '✓' : ''}</div>
-                            <div style={{ fontSize: 9, color: isCurrent ? (isRejected ? '#ff6b6b' : '#3dd68c') : '#505468', marginTop: 3, whiteSpace: 'nowrap' as const }}>{s}</div>
+                            <div style={{ fontSize: 9, color: isCurrent ? (isRejected ? '#ff6b6b' : '#3dd68c') : 'var(--mu2)', marginTop: 3, whiteSpace: 'nowrap' as const }}>{s}</div>
                           </div>
                           {i < 4 && <div style={{ height: 2, flex: 1, background: isDone && i < currentIdx ? '#3dd68c' : 'rgba(255,255,255,0.06)', margin: '0 4px', marginBottom: 16 }} />}
                         </div>

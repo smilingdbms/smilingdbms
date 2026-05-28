@@ -47,7 +47,7 @@ export default async function handler(req, res) {
         </tbody>
       </table>
       
-      <div style="margin-top: 50px; font-size: 0.9em; color: #666;">
+      <div style="margin-top: 50px; font-size: 0.9em; color: var(--mu);">
         <p>* This is a computer-generated invoice and does not require a physical signature.</p>
       </div>
     </div>

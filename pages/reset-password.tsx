@@ -134,16 +134,16 @@ export default function ResetPassword() {
   }
 
   const S: Record<string, any> = {
-    page: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg,#111318)', fontFamily:'Outfit,sans-serif', padding:20 },
-    card: { width:'100%', maxWidth:420, background:'var(--bg2,#1a1d24)', border:'1px solid var(--bd,rgba(255,255,255,0.07))', borderRadius:16, padding:'36px 32px', textAlign:'center' as const },
+    page: { minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg,var(--bg))', fontFamily:'Outfit,sans-serif', padding:20 },
+    card: { width:'100%', maxWidth:420, background:'var(--bg2,var(--bg2))', border:'1px solid var(--bd,rgba(255,255,255,0.07))', borderRadius:16, padding:'36px 32px', textAlign:'center' as const },
     logo: { width:48, height:48, background:'rgba(108,140,255,0.15)', border:'1px solid #6c8cff', borderRadius:12, display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:20, fontWeight:800, color:'#6c8cff', marginBottom:16 },
-    title: { fontSize:22, fontWeight:800, color:'var(--tx,#e8eaf0)', margin:'0 0 6px' },
-    subtitle: { fontSize:13, color:'var(--mu,#7a7f90)', margin:'0 0 28px' },
-    input: { width:'100%', background:'var(--bg3,#22262f)', border:'1px solid var(--bd,rgba(255,255,255,0.08))', borderRadius:10, padding:'12px 14px', fontSize:14, color:'var(--tx,#e8eaf0)', outline:'none', marginBottom:14, fontFamily:'inherit', boxSizing:'border-box' as const },
+    title: { fontSize:22, fontWeight:800, color:'var(--tx,var(--tx))', margin:'0 0 6px' },
+    subtitle: { fontSize:13, color:'var(--mu,var(--mu))', margin:'0 0 28px' },
+    input: { width:'100%', background:'var(--bg3,var(--bg3))', border:'1px solid var(--bd,rgba(255,255,255,0.08))', borderRadius:10, padding:'12px 14px', fontSize:14, color:'var(--tx,var(--tx))', outline:'none', marginBottom:14, fontFamily:'inherit', boxSizing:'border-box' as const },
     btn: { width:'100%', background:'#6c8cff', color:'#fff', border:'none', borderRadius:10, padding:'13px 0', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit', marginTop:8 },
     error: { background:'rgba(255,107,107,0.1)', color:'#ff6b6b', border:'1px solid rgba(255,107,107,0.2)', borderRadius:8, padding:'10px 14px', fontSize:13, marginBottom:16, textAlign:'left' as const },
     success: { background:'rgba(61,214,140,0.1)', color:'#3dd68c', border:'1px solid rgba(61,214,140,0.2)', borderRadius:8, padding:'16px', fontSize:14, fontWeight:600 },
-    passToggle: { position:'absolute' as const, right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--mu,#7a7f90)', cursor:'pointer', fontSize:16 },
+    passToggle: { position:'absolute' as const, right:12, top:'50%', transform:'translateY(-50%)', background:'none', border:'none', color:'var(--mu,var(--mu))', cursor:'pointer', fontSize:16 },
   }
 
   // Still checking token
@@ -169,7 +169,7 @@ export default function ResetPassword() {
           <p style={{ ...S.subtitle, marginBottom:16 }}>
             This password reset link has expired or is invalid.
           </p>
-          <p style={{ fontSize:13, color:'var(--mu,#7a7f90)', marginBottom:24 }}>
+          <p style={{ fontSize:13, color:'var(--mu,var(--mu))', marginBottom:24 }}>
             Please go back to login and click "Forgot Password" to request a new link.
           </p>
           <button
@@ -238,7 +238,7 @@ export default function ResetPassword() {
           {loading ? 'Updating...' : 'Update Password'}
         </button>
 
-        <p style={{ marginTop:20, fontSize:12, color:'var(--mu,#7a7f90)' }}>
+        <p style={{ marginTop:20, fontSize:12, color:'var(--mu,var(--mu))' }}>
           <span style={{ color:'#6c8cff', cursor:'pointer' }} onClick={() => router.push('/')}>
             Back to Login
           </span>

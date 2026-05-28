@@ -180,34 +180,34 @@ function PendingApprovals({ companyId, isSuperAdmin }) {
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh' }}>
-      <div style={{ color: '#9CA3AF' }}>Loading pending users...</div>
+      <div style={{ color: 'var(--mu)' }}>Loading pending users...</div>
     </div>
   );
 
   return (
     <div>
       <h2 style={{ color: '#fff', marginBottom: 8 }}>⏳ Pending Approvals</h2>
-      <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 24 }}>
+      <p style={{ color: 'var(--mu)', fontSize: 13, marginBottom: 24 }}>
         {isSuperAdmin ? 'All pending users across all companies' : 'Pending users in your company'}
       </p>
 
       {pending.length === 0 ? (
-        <div style={{ background: '#11182D', borderRadius: 12, padding: 40, textAlign: 'center', border: '1px solid #1F2937' }}>
+        <div style={{ background: 'var(--bg2)', borderRadius: 12, padding: 40, textAlign: 'center', border: '1px solid var(--bg3)' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
-          <div style={{ color: '#9CA3AF', fontSize: 14 }}>No pending approvals</div>
+          <div style={{ color: 'var(--mu)', fontSize: 14 }}>No pending approvals</div>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {pending.map(user => (
-            <div key={user.id} style={{ background: '#11182D', border: '1px solid #1F2937', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div key={user.id} style={{ background: 'var(--bg2)', border: '1px solid var(--bg3)', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#fff' }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--bg4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#fff' }}>
                   {(user.full_name || user.email || 'U')[0].toUpperCase()}
                 </div>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{user.full_name || 'No name'}</div>
-                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{user.email}</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                  <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 2 }}>{user.email}</div>
+                  <div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: 2 }}>
                     Role: {user.role} • Joined: {new Date(user.created_at).toLocaleDateString('en-IN')}
                     {isSuperAdmin && user.company_id && <span> • Company: {user.company_id.slice(0,8)}...</span>}
                   </div>
@@ -368,9 +368,9 @@ export default function SuperAdminDashboard() {
   // ── SECURITY LOADING ──
   if (securityLoading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050810', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', flexDirection: 'column', gap: 16 }}>
         <div style={{ width: 40, height: 40, border: '3px solid #3B82F6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <div style={{ color: '#9CA3AF', fontSize: 14 }}>Verifying access...</div>
+        <div style={{ color: 'var(--mu)', fontSize: 14 }}>Verifying access...</div>
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
     );
@@ -379,10 +379,10 @@ export default function SuperAdminDashboard() {
   // ── ACCESS DENIED ──
   if (accessDenied) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050810', flexDirection: 'column', gap: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', flexDirection: 'column', gap: 20 }}>
         <div style={{ fontSize: 60 }}>🔒</div>
         <h2 style={{ color: '#EF4444', margin: 0, fontSize: 24 }}>Access Denied</h2>
-        <p style={{ color: '#9CA3AF', textAlign: 'center', maxWidth: 400 }}>
+        <p style={{ color: 'var(--mu)', textAlign: 'center', maxWidth: 400 }}>
           You do not have permission to access the Admin Center.
           Contact your Super Admin if you need access.
         </p>
@@ -408,29 +408,29 @@ export default function SuperAdminDashboard() {
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
-        .admin-layout { display: flex; height: 100vh; background: #050810; color: #fff; width: 100%; overflow: hidden; }
-        .rbac-sidebar { width: 260px; background: #0b0e14; border-right: 1px solid #1F2937; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
-        .rbac-menu-item { padding: 12px 20px; cursor: pointer; color: #9CA3AF; font-size: 13px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.02); transition: 0.2s; display: flex; justify-content: space-between; alignItems: center; }
+        .admin-layout { display: flex; height: 100vh; background: var(--bg); color: #fff; width: 100%; overflow: hidden; }
+        .rbac-sidebar { width: 260px; background: var(--bg); border-right: 1px solid var(--bg3); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+        .rbac-menu-item { padding: 12px 20px; cursor: pointer; color: var(--mu); font-size: 13px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.02); transition: 0.2s; display: flex; justify-content: space-between; alignItems: center; }
         .rbac-menu-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
         .rbac-menu-item.active { background: #3B82F6; color: #fff; border-left: 4px solid #60A5FA; }
-        .main-content { flex: 1; display: flex; flexDirection: column; overflow: hidden; background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.05) 0%, transparent 40%), #050810; }
-        .selection-list-item { padding: 15px; border-bottom: 1px solid #1F2937; cursor: pointer; transition: 0.2s; }
+        .main-content { flex: 1; display: flex; flexDirection: column; overflow: hidden; background: radial-gradient(circle at 10% 20%, rgba(168, 85, 247, 0.05) 0%, transparent 40%), var(--bg); }
+        .selection-list-item { padding: 15px; border-bottom: 1px solid var(--bg3); cursor: pointer; transition: 0.2s; }
         .selection-list-item:hover { background: rgba(59, 130, 246, 0.05); }
         .selection-list-item.active { background: rgba(59, 130, 246, 0.1); border-left: 3px solid #3B82F6; }
         .toggle-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #374151; transition: .3s; border-radius: 24px; border: 1px solid #4B5563; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: #9CA3AF; transition: .3s; border-radius: 50%; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--bg4); transition: .3s; border-radius: 24px; border: 1px solid var(--bg4); }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: var(--mu); transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: rgba(16, 185, 129, 0.2); border-color: #10B981; }
         input:checked + .slider:before { transform: translateX(18px); background-color: #10B981; box-shadow: 0 0 10px #10B981; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #050810; } ::-webkit-scrollbar-thumb { background: #1F2937; border-radius: 4px; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
       `}} />
 
       <div className="admin-layout">
         
         {/* INNER ADMIN MENU ONLY - NO GLOBAL SIDEBAR HERE */}
         <div className="rbac-sidebar">
-          <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid #1F2937', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid var(--bg3)', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontSize: '20px' }}>🛡️</span> Admin Center
           </div>
           {/* Super Admin ONLY tabs */}
@@ -447,11 +447,11 @@ export default function SuperAdminDashboard() {
 
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           {(activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') && (
-            <div style={{ width: '300px', borderRight: '1px solid #1F2937', background: '#080C16', overflowY: 'auto' }}>
+            <div style={{ width: '300px', borderRight: '1px solid var(--bg3)', background: 'var(--bg)', overflowY: 'auto' }}>
               {effectiveRolesList.filter(r => activeSubMenu === 'job_seeker' ? r.includes('Job Seeker') : !r.includes('Job Seeker')).map(role => (
                 <div key={role} onClick={() => setSelectedRole(role)} className={`selection-list-item ${selectedRole === role ? 'active' : ''}`}>
-                  <div style={{ fontWeight: 'bold', color: selectedRole === role ? '#60A5FA' : '#E5E7EB', fontSize: '14px' }}>{role}</div>
-                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions</div>
+                  <div style={{ fontWeight: 'bold', color: selectedRole === role ? '#60A5FA' : 'var(--tx)', fontSize: '14px' }}>{role}</div>
+                  <div style={{ fontSize: '11px', color: 'var(--mu2)', marginTop: '4px' }}>{Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions</div>
                 </div>
               ))}
             </div>
@@ -464,17 +464,17 @@ export default function SuperAdminDashboard() {
               <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
                 <div style={{ fontSize: 50 }}>🔒</div>
                 <h3 style={{ color: '#EF4444', margin: 0 }}>Super Admin Only</h3>
-                <p style={{ color: '#9CA3AF', textAlign: 'center', maxWidth: 400, fontSize: 13 }}>
+                <p style={{ color: 'var(--mu)', textAlign: 'center', maxWidth: 400, fontSize: 13 }}>
                   Role permission management is restricted to Super Admin only.
                   You can manage your team members from the My Team section.
                 </p>
               </div>
             ) : (activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') ? (
               <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: '#11182D', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937', position: 'sticky', top: 0, zIndex: 10 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: 'var(--bg2)', padding: '20px', borderRadius: '12px', border: '1px solid var(--bg3)', position: 'sticky', top: 0, zIndex: 10 }}>
                   <div>
                     <h2 style={{ margin: '0 0 5px 0', color: '#fff', fontSize: '20px' }}>Configuring Access for: <span style={{ color: '#3B82F6' }}>{selectedRole}</span></h2>
-                    <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Inheritance Rule: Lower roles can NEVER exceed the permissions granted to their parent role here.</div>
+                    <div style={{ fontSize: '12px', color: 'var(--mu)' }}>Inheritance Rule: Lower roles can NEVER exceed the permissions granted to their parent role here.</div>
                   </div>
                   <button onClick={handleSaveMatrix} disabled={saving} style={{ background: '#10B981', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
                     {saving ? '⏳ Saving...' : '💾 Save Policy'}
@@ -484,21 +484,21 @@ export default function SuperAdminDashboard() {
                 {(activeSubMenu === 'role_wise' && !selectedRole.includes('Job Seeker')) && 
                   Object.entries(staffPermissionGroups).map(([groupName, features]) => (
                     <div key={groupName} style={{ marginBottom: '40px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1F2937', paddingBottom: '10px', marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px', marginBottom: '20px' }}>
                         <h3 style={{ fontSize: '16px', color: '#A855F7', margin: 0 }}>{groupName}</h3>
                         <div style={{ display: 'flex', gap: '10px' }}>
-                          <button onClick={()=>toggleAllInGroup(features, true)} style={{ background:'transparent', border:'1px solid #374151', color:'#10B981', fontSize:'11px', padding:'4px 8px', borderRadius:'4px', cursor:'pointer' }}>Enable All</button>
-                          <button onClick={()=>toggleAllInGroup(features, false)} style={{ background:'transparent', border:'1px solid #374151', color:'#EF4444', fontSize:'11px', padding:'4px 8px', borderRadius:'4px', cursor:'pointer' }}>Disable All</button>
+                          <button onClick={()=>toggleAllInGroup(features, true)} style={{ background:'transparent', border:'1px solid var(--bg4)', color:'#10B981', fontSize:'11px', padding:'4px 8px', borderRadius:'4px', cursor:'pointer' }}>Enable All</button>
+                          <button onClick={()=>toggleAllInGroup(features, false)} style={{ background:'transparent', border:'1px solid var(--bg4)', color:'#EF4444', fontSize:'11px', padding:'4px 8px', borderRadius:'4px', cursor:'pointer' }}>Disable All</button>
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '15px' }}>
                         {features.map(feat => (
-                          <div key={feat.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#11182D', padding: '15px', borderRadius: '10px', border: '1px solid #1F2937' }}>
+                          <div key={feat.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)', padding: '15px', borderRadius: '10px', border: '1px solid var(--bg3)' }}>
                             <div style={{ paddingRight: '15px' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#E5E7EB', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                {feat.label} {selectedRole === 'Super Admin' && <span title="Super Admin Override Lock" style={{ fontSize: '10px', background: '#374151', padding: '2px 4px', borderRadius: '4px' }}>🔒</span>}
+                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: 'var(--tx)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                {feat.label} {selectedRole === 'Super Admin' && <span title="Super Admin Override Lock" style={{ fontSize: '10px', background: 'var(--bg4)', padding: '2px 4px', borderRadius: '4px' }}>🔒</span>}
                               </div>
-                              <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{feat.desc}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--mu2)', marginTop: '4px' }}>{feat.desc}</div>
                             </div>
                             <label className="toggle-switch"><input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} /><span className="slider"></span></label>
                           </div>
@@ -511,13 +511,13 @@ export default function SuperAdminDashboard() {
                 {(activeSubMenu === 'job_seeker' || selectedRole.includes('Job Seeker')) && 
                   Object.entries(jobSeekerPermissionGroups).map(([groupName, features]) => (
                     <div key={groupName} style={{ marginBottom: '40px' }}>
-                      <h3 style={{ fontSize: '16px', color: '#3DD68C', borderBottom: '1px solid #1F2937', paddingBottom: '10px', marginBottom: '20px' }}>{groupName}</h3>
+                      <h3 style={{ fontSize: '16px', color: '#3DD68C', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px', marginBottom: '20px' }}>{groupName}</h3>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '15px' }}>
                         {features.map(feat => (
-                          <div key={feat.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#11182D', padding: '15px', borderRadius: '10px', border: '1px solid #1F2937' }}>
+                          <div key={feat.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg2)', padding: '15px', borderRadius: '10px', border: '1px solid var(--bg3)' }}>
                             <div style={{ paddingRight: '15px' }}>
-                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: '#E5E7EB' }}>{feat.label}</div>
-                              <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{feat.desc}</div>
+                              <div style={{ fontWeight: 'bold', fontSize: '13px', color: 'var(--tx)' }}>{feat.label}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--mu2)', marginTop: '4px' }}>{feat.desc}</div>
                             </div>
                             <label className="toggle-switch"><input type="checkbox" checked={!!rolePermissions[selectedRole]?.[feat.key]} onChange={() => handleRoleToggle(feat.key)} /><span className="slider"></span></label>
                           </div>
@@ -536,9 +536,9 @@ export default function SuperAdminDashboard() {
             ) : activeSubMenu === 'pending' ? (
               <PendingApprovals companyId={currentUserCompanyId} isSuperAdmin={isSuperAdmin} />
             ) : (
-              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#6B7280' }}>
+              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'var(--mu2)' }}>
                 <div style={{ fontSize: '40px', marginBottom: '20px' }}>🛠️</div>
-                <h3 style={{ margin: 0, color: '#9CA3AF' }}>{activeSubMenu.replace('_', ' ').toUpperCase()} MODULE</h3>
+                <h3 style={{ margin: 0, color: 'var(--mu)' }}>{activeSubMenu.replace('_', ' ').toUpperCase()} MODULE</h3>
                 <p style={{ fontSize: '13px', marginTop: '10px' }}>This section is locked in Phase 2 architecture building.</p>
               </div>
             )}

@@ -122,7 +122,7 @@ export default function Communications() {
     btn: { background:'#6c8cff', color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:600, cursor:'pointer' },
     inp: { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', fontSize:13, color:'var(--tx)', outline:'none', marginBottom:10 },
     lbl: { fontSize:11, color:'var(--mu)', marginBottom:4, display:'block', fontWeight:600, textTransform:'uppercase' as any, letterSpacing:'0.8px' },
-    tab: (active: boolean) => ({ padding:'8px 16px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', background:active?'rgba(108,140,255,0.15)':'transparent', color:active?'#6c8cff':'#7a7f90' }),
+    tab: (active: boolean) => ({ padding:'8px 16px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', background:active?'rgba(108,140,255,0.15)':'transparent', color:active?'#6c8cff':'var(--mu)' }),
   }
 
   if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)'}}>Loading...</div>
@@ -131,7 +131,7 @@ export default function Communications() {
     <>
     <div style={S.page}>
       
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}textarea{font-family:Outfit,sans-serif}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}textarea{font-family:Outfit,sans-serif}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer'}} onClick={()=>router.push('/dashboard')}>
@@ -165,7 +165,7 @@ export default function Communications() {
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
                     <div>
                       <div style={{fontWeight:600,fontSize:14,marginBottom:4}}>{t.name}</div>
-                      <span style={{fontSize:11,background:`${TYPE_COLORS[t.type]||'#888'}22`,color:TYPE_COLORS[t.type]||'#888',padding:'2px 8px',borderRadius:6,fontWeight:600,textTransform:'capitalize' as any}}>
+                      <span style={{fontSize:11,background:`${TYPE_COLORS[t.type]||'var(--mu)'}22`,color:TYPE_COLORS[t.type]||'var(--mu)',padding:'2px 8px',borderRadius:6,fontWeight:600,textTransform:'capitalize' as any}}>
                         {t.type==='whatsapp'?'💬':t.type==='email'?'📧':'📨'} {t.type}
                       </span>
                       {t.is_system && <span style={{marginLeft:6,fontSize:10,background:'rgba(255,214,10,0.1)',color:'#ffd60a',padding:'2px 6px',borderRadius:4}}>System</span>}
@@ -211,7 +211,7 @@ export default function Communications() {
                       <span style={{fontWeight:600,fontSize:13}}>{selectedTemplate.name}</span>
                       <button onClick={()=>setSelectedTemplate(null)} style={{background:'none',border:'none',color:'var(--mu)',cursor:'pointer',fontSize:11}}>Change</button>
                     </div>
-                    <span style={{fontSize:11,background:`${TYPE_COLORS[selectedTemplate.type]||'#888'}22`,color:TYPE_COLORS[selectedTemplate.type]||'#888',padding:'2px 8px',borderRadius:5,textTransform:'capitalize' as any}}>{selectedTemplate.type}</span>
+                    <span style={{fontSize:11,background:`${TYPE_COLORS[selectedTemplate.type]||'var(--mu)'}22`,color:TYPE_COLORS[selectedTemplate.type]||'var(--mu)',padding:'2px 8px',borderRadius:5,textTransform:'capitalize' as any}}>{selectedTemplate.type}</span>
                   </div>
                 ) : (
                   <div style={{display:'flex',flexDirection:'column' as any,gap:6}}>
@@ -221,7 +221,7 @@ export default function Communications() {
                         onMouseEnter={e=>(e.currentTarget.style.borderColor='rgba(108,140,255,0.4)')}
                         onMouseLeave={e=>(e.currentTarget.style.borderColor='rgba(255,255,255,0.06)')}>
                         <div style={{fontSize:13,fontWeight:500}}>{t.name}</div>
-                        <div style={{fontSize:11,color:TYPE_COLORS[t.type]||'#888',marginTop:2,textTransform:'capitalize' as any}}>{t.type}</div>
+                        <div style={{fontSize:11,color:TYPE_COLORS[t.type]||'var(--mu)',marginTop:2,textTransform:'capitalize' as any}}>{t.type}</div>
                       </div>
                     ))}
                   </div>

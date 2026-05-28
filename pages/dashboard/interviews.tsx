@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
 const OUTCOME_COLORS: Record<string,{bg:string,color:string}> = {
   'Selected':    {bg:'rgba(30,160,100,0.2)', color:'#3dd68c'},
   'Rejected':    {bg:'rgba(200,50,50,0.2)',  color:'#ff6b6b'},
-  'On Hold':     {bg:'rgba(80,80,100,0.2)',  color:'#888'},
+  'On Hold':     {bg:'rgba(80,80,100,0.2)',  color:'var(--mu)'},
   'No Show':     {bg:'rgba(200,120,0,0.2)',  color:'#ffb347'},
   'Rescheduled': {bg:'rgba(150,80,255,0.2)', color:'#c77dff'},
 }
@@ -334,7 +334,7 @@ export default function Interviews() {
                     <div style={{fontSize:12}}>Schedule your first interview</div>
                   </td></tr>
                 ) : filtered.map(iv => {
-                  const sc = STATUS_COLORS[iv.status] || {bg:'transparent',color:'#aaa'}
+                  const sc = STATUS_COLORS[iv.status] || {bg:'transparent',color:'var(--mu)'}
                   const oc = OUTCOME_COLORS[iv.outcome] || null
                   const ivDate = iv.interview_date ? new Date(iv.interview_date) : null
                   const isToday = ivDate?.toDateString() === today

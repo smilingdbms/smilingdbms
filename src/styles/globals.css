@@ -63,27 +63,27 @@
 }
 
 [data-theme="light"] {
-  --bg:    #f8fafc;
-  --bg2:   #ffffff;
-  --bg3:   #f1f5f9;
-  --bg4:   #e2e8f0;
-  --tx:    #0f172a;
-  --mu:    #475569;
-  --mu2:   #94a3b8;
-  --bd:    rgba(0,0,0,0.08);
-  --bd2:   rgba(0,0,0,0.14);
-  --ac:    #4f46e5;
-  --acbg:  rgba(79,70,229,0.10);
-  --nb:    #f1f5f9;
-  --nbr:   rgba(0,0,0,0.06);
-  --gn:    #16a34a; --gnbg: rgba(22,163,74,0.10);
+  --bg:    #f4f2ec;
+  --bg2:   #fdfcf9;
+  --bg3:   #eceae3;
+  --bg4:   #e1ded5;
+  --tx:    #1a1a1a;
+  --mu:    #4a4a4a;
+  --mu2:   #6b6b6b;
+  --bd:    rgba(0,0,0,0.16);
+  --bd2:   rgba(0,0,0,0.26);
+  --ac:    #4338ca;
+  --acbg:  rgba(67,56,202,0.10);
+  --nb:    #eceae3;
+  --nbr:   rgba(0,0,0,0.12);
+  --gn:    #15803d; --gnbg: rgba(21,128,61,0.12);
   --rd:    #dc2626; --rdbg: rgba(220,38,38,0.10);
-  --gd:    #d97706; --gdbg: rgba(217,119,6,0.10);
-  --or:    #ea580c; --orbg: rgba(234,88,12,0.10);
-  --pu:    #7c3aed; --pubg: rgba(124,58,237,0.10);
-  --tl:    #0891b2; --tlbg: rgba(8,145,178,0.10);
-  --sh:    0 2px 12px rgba(0,0,0,0.08);
-  --shl:   0 8px 40px rgba(0,0,0,0.15);
+  --gd:    #b45309; --gdbg: rgba(180,83,9,0.10);
+  --or:    #c2410c; --orbg: rgba(194,65,12,0.10);
+  --pu:    #6d28d9; --pubg: rgba(109,40,217,0.10);
+  --tl:    #0e7490; --tlbg: rgba(14,116,144,0.10);
+  --sh:    0 2px 12px rgba(0,0,0,0.10);
+  --shl:   0 8px 40px rgba(0,0,0,0.16);
 }
 
 [data-theme="gradient"] {
@@ -316,7 +316,7 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:var(--fn);background:var(--bg);color:var(--tx);min-height:100vh;}
 input,select,textarea,button{font-family:var(--fn);}
-::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:4px}
+::-webkit-scrollbar{width:14px;height:14px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--mu2);border-radius:8px;border:3px solid var(--bg2)}::-webkit-scrollbar-thumb:hover{background:var(--mu)}
 /* LOGIN */
 #ls{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);position:relative;overflow:hidden;}
 #ls::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,var(--acbg),transparent);pointer-events:none;}
@@ -1171,11 +1171,17 @@ h1,h2,h3,h4,h5,h6 { font-family: var(--fn); font-weight: 700; letter-spacing: -0
 input, select, textarea, button { font-family: var(--fn); font-size: 13px; }
 button { cursor: pointer; }
 
-/* Professional scrollbar */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--mu2); }
+/* Professional scrollbar — thick, visible, theme-aware */
+::-webkit-scrollbar { width: 14px; height: 14px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--mu2); border-radius: 8px; border: 3px solid var(--bg2); }
+::-webkit-scrollbar-thumb:hover { background: var(--mu); }
+::-webkit-scrollbar-corner { background: var(--bg2); }
+* { scrollbar-width: auto; scrollbar-color: var(--mu2) var(--bg2); }
+
+/* Horizontal scroll for wide tables — wrap tables so they scroll sideways */
+.tc { overflow-x: auto !important; }
+.os-main-content table { min-width: max-content; }
 
 /* Focus ring */
 *:focus-visible { outline: 2px solid var(--ac); outline-offset: 2px; }
@@ -1187,28 +1193,28 @@ button { cursor: pointer; }
 
 /* Main content area only */
 [data-theme="light"] .os-main-content {
-  background: #f8fafc !important;
-  color: #0f172a !important;
+  background: #f4f2ec !important;
+  color: #1a1a1a !important;
 }
 
 /* Tables — main content only, not sidebar */
-[data-theme="light"] .os-main-content table { background: #fff; }
-[data-theme="light"] .os-main-content thead { background: #f1f5f9 !important; }
-[data-theme="light"] .os-main-content th { color: #374151 !important; }
-[data-theme="light"] .os-main-content td { border-bottom-color: rgba(0,0,0,0.07) !important; color: #0f172a !important; }
-[data-theme="light"] .os-main-content tr:hover td { background: #f0f9ff !important; }
+[data-theme="light"] .os-main-content table { background: #fdfcf9; }
+[data-theme="light"] .os-main-content thead { background: #eceae3 !important; }
+[data-theme="light"] .os-main-content th { color: #2a2a2a !important; }
+[data-theme="light"] .os-main-content td { border-bottom-color: rgba(0,0,0,0.10) !important; color: #1a1a1a !important; }
+[data-theme="light"] .os-main-content tr:hover td { background: #efece4 !important; }
 
 /* Inputs in main content */
 [data-theme="light"] .os-main-content input,
 [data-theme="light"] .os-main-content select,
 [data-theme="light"] .os-main-content textarea {
-  background: #fff !important;
-  color: #0f172a !important;
-  border-color: #d1d5db !important;
+  background: #fdfcf9 !important;
+  color: #1a1a1a !important;
+  border-color: rgba(0,0,0,0.22) !important;
 }
 [data-theme="light"] .os-main-content input::placeholder,
-[data-theme="light"] .os-main-content textarea::placeholder { color: #9ca3af !important; }
-[data-theme="light"] .os-main-content select option { background: #fff !important; color: #0f172a !important; }
+[data-theme="light"] .os-main-content textarea::placeholder { color: #8a8a8a !important; }
+[data-theme="light"] .os-main-content select option { background: #fdfcf9 !important; color: #1a1a1a !important; }
 [data-theme="light"] .os-main-content input:focus,
 [data-theme="light"] .os-main-content select:focus,
 [data-theme="light"] .os-main-content textarea:focus {
@@ -1228,8 +1234,24 @@ button { cursor: pointer; }
 [data-theme="light"] .tag-pill { background: rgba(79,70,229,0.1) !important; color: #4f46e5 !important; }
 
 /* Row hover & card hover */
-[data-theme="light"] .rh:hover td { background: #f0f4ff !important; }
-[data-theme="light"] .card-h:hover { border-color: #4f46e5 !important; }
+[data-theme="light"] .rh:hover td { background: #eef2ff !important; }
+[data-theme="light"] .card-h:hover { border-color: var(--ac) !important; }
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — UNIVERSAL READABILITY (reaches inline-styled pages)
+   Inline styles on master/admin/add-profile use var() tokens, so the
+   improved light tokens above already help. These rules add the final
+   polish for hover-visibility and text contrast app-wide.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Slightly heavier body text weight in light for crisper reading */
+[data-theme="light"] body { font-weight: 450; }
+
+/* Keep muted labels readable on white (slightly darker than default) */
+[data-theme="light"] { --mu: #334155; --mu2: #5b6678; }
+
+/* Generic dropdown/menu surfaces: ensure dark text on light surface */
+[data-theme="light"] select option { background: #ffffff; color: #0b1220; }
 
 /* ═══════════════════════════════════════════════════════════════
    GRADIENT PRO — Richer gradient treatment
@@ -1302,3 +1324,26 @@ td { font-size: 13px !important; transition: background 0.15s !important; }
 /* Smooth page transitions */
 .pg { animation: pageIn 0.2s ease; }
 @keyframes pageIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ═══════════════════════════════════════════════════════════════
+   UNIVERSAL HOVER — gentle lift + highlight (all themes)
+   Gives interactive items a subtle zoom-in feel instead of going blank.
+   ═══════════════════════════════════════════════════════════════ */
+.sc, .tc, .card-h, .btn, .ni, .np-i, .seg-btn, .filter-chip, .thb {
+  transition: transform 0.16s ease, box-shadow 0.16s ease, background 0.16s ease, border-color 0.16s ease !important;
+}
+.sc:hover, .card-h:hover {
+  transform: translateY(-3px) scale(1.02) !important;
+  box-shadow: var(--shl) !important;
+}
+.btn:hover, .seg-btn:hover, .filter-chip:hover, .thb:hover {
+  transform: scale(1.03) !important;
+}
+.ni:hover, .np-i:hover {
+  transform: translateX(2px);
+  background: var(--acbg) !important;
+}
+/* Table rows: highlight (no scale, keeps layout tidy) */
+.tr-r:hover, .rh:hover td {
+  background: var(--acbg) !important;
+}

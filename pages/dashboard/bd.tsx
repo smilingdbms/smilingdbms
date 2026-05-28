@@ -40,9 +40,9 @@ function useWindowSize() {
 }
 
 const Pill = ({ label, selected, onClick, colorMode = 'default' }) => {
-  let background = selected ? 'rgba(59, 130, 246, 0.2)' : '#0b0e14';
-  let border = selected ? '1px solid #3B82F6' : '1px solid #374151';
-  let color = selected ? '#60a5fa' : '#9ca3af';
+  let background = selected ? 'rgba(59, 130, 246, 0.2)' : 'var(--bg)';
+  let border = selected ? '1px solid #3B82F6' : '1px solid var(--bg4)';
+  let color = selected ? '#60a5fa' : 'var(--mu)';
 
   if (colorMode === 'Hot' && selected) { background = 'rgba(239, 68, 68, 0.2)'; border = '1px solid #EF4444'; color = '#f87171'; }
   if (colorMode === 'Warm' && selected) { background = 'rgba(245, 158, 11, 0.2)'; border = '1px solid #F59E0B'; color = '#fbbf24'; }
@@ -263,8 +263,8 @@ export default function BDPipeline() {
     setFormData({ ...formData, currentTaggedMembers: isTagged ? formData.currentTaggedMembers.filter(t => t !== name) : [...formData.currentTaggedMembers, name] });
   };
 
-  const inputStyle = { width: '100%', background: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
-  const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: '#9CA3AF', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
+  const inputStyle = { width: '100%', background: 'var(--bg)', border: '1px solid var(--bg4)', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '13px', outline: 'none' };
+  const labelStyle = { display: 'block', fontSize: '11px', fontWeight: '800', color: 'var(--mu)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' };
   const filteredTeamMembers = teamMembers.filter(m => m.toLowerCase().includes(mentionFilter));
 
   const filteredMandates = mandates.filter(m => {
@@ -284,13 +284,13 @@ export default function BDPipeline() {
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
-        .table-wrapper { background: #11182D; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .table-wrapper { background: var(--bg2); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .pipeline-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
-        .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: #9CA3AF; font-size: 11px; text-transform: uppercase; }
+        .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--mu); font-size: 11px; text-transform: uppercase; }
         .pipeline-table td { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .pipeline-table tr:hover td { background-color: rgba(255,255,255,0.02); }
         input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
-        .action-icon { background: #1F2937; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: 1px solid #374151; }
+        .action-icon { background: var(--bg3); padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; text-decoration: none; display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--bg4); }
         @keyframes popIn { 0% { transform: scale(0.5); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
       `}} />
 
@@ -298,11 +298,11 @@ export default function BDPipeline() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#fff', margin: 0 }}>Business Development</h1>
-            <p style={{ color: '#9CA3AF', fontSize: '13px', margin: '5px 0 0' }}>Manage your detailed client pipeline</p>
+            <p style={{ color: 'var(--mu)', fontSize: '13px', margin: '5px 0 0' }}>Manage your detailed client pipeline</p>
           </div>
           
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <input type="text" placeholder="🔍 Search company or SPOC..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ background: '#1F2937', color: '#fff', padding: '10px 16px', borderRadius: '8px', border: '1px solid #374151', width: '250px' }} />
+            <input type="text" placeholder="🔍 Search company or SPOC..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={{ background: 'var(--bg3)', color: '#fff', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--bg4)', width: '250px' }} />
           <button onClick={()=>exportBDCSV(filteredMandates)} style={{background:'rgba(61,214,140,0.1)',color:'#3dd68c',border:'1px solid rgba(61,214,140,0.2)',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap'}}>⬇ CSV</button>
             <button onClick={() => openModal('add')} style={{ background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '10px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer' }}>+ New BD Lead</button>
           </div>
@@ -324,7 +324,7 @@ export default function BDPipeline() {
                 <tr key={m.id}>
                   <td>
                     <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>{m.company_name}</div>
-                    <div style={{ color: '#60A5FA', fontSize: '12px', marginTop: '4px', fontWeight: '600' }}>{m.spoc_name || 'No Contact'} <span style={{color: '#6B7280'}}>• {m.designation || 'N/A'}</span></div>
+                    <div style={{ color: '#60A5FA', fontSize: '12px', marginTop: '4px', fontWeight: '600' }}>{m.spoc_name || 'No Contact'} <span style={{color: 'var(--mu2)'}}>• {m.designation || 'N/A'}</span></div>
                     <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
                       {m.spoc_contact && (
                         <>
@@ -336,15 +336,15 @@ export default function BDPipeline() {
                     </div>
                   </td>
                   <td>
-                    <div style={{ fontSize: '13px', color: '#D1D5DB', marginBottom: '6px' }}>{m.city || 'Location N/A'}</div>
+                    <div style={{ fontSize: '13px', color: 'var(--tx)', marginBottom: '6px' }}>{m.city || 'Location N/A'}</div>
                     {m.priority && <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', background: m.priority==='Hot'?'#ef444422':m.priority==='Warm'?'#f59e0b22':'#10b98122', color: m.priority==='Hot'?'#f87171':m.priority==='Warm'?'#fbbf24':'#34d399' }}>{m.priority}</span>}
                   </td>
                   <td>
                     <div style={{ fontSize: '13px', color: '#F59E0B', fontWeight: 'bold' }}>{m.commercial_type || 'N/A'}</div>
-                    <div style={{ fontSize: '11px', color: '#9CA3AF' }}>{m.commercial_type === 'Percentage (%)' ? `${m.value || 0}%` : `₹${m.value || 0}`}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--mu)' }}>{m.commercial_type === 'Percentage (%)' ? `${m.value || 0}%` : `₹${m.value || 0}`}</div>
                   </td>
                   <td>
-                    <select value={m.stage || 'New Lead'} onChange={(e) => handleStageChange(m, e.target.value)} style={{ background: '#0b0e14', color: '#fff', border: '1px solid #374151', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}>
+                    <select value={m.stage || 'New Lead'} onChange={(e) => handleStageChange(m, e.target.value)} style={{ background: 'var(--bg)', color: '#fff', border: '1px solid var(--bg4)', padding: '8px 12px', borderRadius: '6px', fontSize: '12px', outline: 'none', cursor: 'pointer' }}>
                       {leadStatuses.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </td>
@@ -364,29 +364,29 @@ export default function BDPipeline() {
 
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-          <div style={{ background: '#11182D', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', border: '1px solid #374151', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
+          <div style={{ background: 'var(--bg2)', width: '100%', maxWidth: '900px', maxHeight: '90vh', borderRadius: '16px', border: '1px solid var(--bg4)', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}>
             
-            <div style={{ padding: '20px 30px', borderBottom: '1px solid #1F2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '20px 30px', borderBottom: '1px solid var(--bg3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ color: '#10B981', margin: 0, fontSize: '20px', fontWeight: '800' }}>{modalMode === 'add' ? '✨ New Staffing BD Lead' : modalMode === 'edit' ? '✏️ Edit BD Lead' : '📄 View Lead Details'}</h2>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: '#9CA3AF', fontSize: '24px', cursor: 'pointer' }}>✕</button>
+              <button onClick={() => setIsModalOpen(false)} style={{ background: 'transparent', border: 'none', color: 'var(--mu)', fontSize: '24px', cursor: 'pointer' }}>✕</button>
             </div>
             
             <div style={{ padding: '30px', overflowY: 'auto', flex: 1 }}>
               {/* SECTION 1: BASIC INFO */}
-              <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>1. Basic Information</h3>
+              <h3 style={{ color: '#60A5FA', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>1. Basic Information</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Target Company Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.company_name || ''} onChange={e=>setFormData({...formData, company_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>Contact Person Name</label><input disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_name || ''} onChange={e=>setFormData({...formData, spoc_name: e.target.value})} /></div>
                 <div><label style={labelStyle}>Designation</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.designation || ''} onChange={e=>setFormData({...formData, designation: e.target.value})}><option value="">Select</option>{designations.map(d=><option key={d}>{d}</option>)}</select></div>
                 <div><label style={labelStyle}>Mobile Number</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_contact || ''} onChange={e=>setFormData({...formData, spoc_contact: e.target.value})} /></div>
                 <div><label style={labelStyle}>Official Email ID</label><input type="email" disabled={modalMode === 'view'} style={inputStyle} value={formData.spoc_email || ''} onChange={e=>setFormData({...formData, spoc_email: e.target.value})} /></div>
-                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Company Location</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.city || ''} onChange={e=>setFormData({...formData, city: e.target.value})}><option value="">Select City</option>{Object.keys(indianLocations).map(st => <optgroup key={st} label={st} style={{background:'#0b0e14', color:'#A855F7'}}>{indianLocations[st].map(c => <option key={c} value={c} style={{color:'#fff'}}>{c}</option>)}</optgroup>)}</select></div>
+                <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Company Location</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.city || ''} onChange={e=>setFormData({...formData, city: e.target.value})}><option value="">Select City</option>{Object.keys(indianLocations).map(st => <optgroup key={st} label={st} style={{background:'var(--bg)', color:'#A855F7'}}>{indianLocations[st].map(c => <option key={c} value={c} style={{color:'#fff'}}>{c}</option>)}</optgroup>)}</select></div>
                 <div><label style={labelStyle}>Deal Type</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.commercial_type || 'Percentage (%)'} onChange={e=>setFormData({...formData, commercial_type: e.target.value})}><option>Percentage (%)</option><option>Fixed (₹)</option></select></div>
                 <div><label style={labelStyle}>Deal Value</label><input type="number" disabled={modalMode === 'view'} style={inputStyle} placeholder="e.g. 8.33 or 50000" value={formData.value || ''} onChange={e=>setFormData({...formData, value: e.target.value})} /></div>
               </div>
 
               {/* SECTION 2: INTELLIGENCE */}
-              <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
+              <h3 style={{ color: '#A855F7', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>2. Lead Intelligence</h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', marginBottom: '40px' }}>
                 <div style={{ gridColumn: '1 / -1' }}><label style={labelStyle}>Requirement Status</label><div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>{requirementStatuses.map(s => <Pill key={s} label={s} selected={formData.requirement_status === s} onClick={() => modalMode !== 'view' && setFormData({...formData, requirement_status: s})} />)}</div></div>
                 <div><label style={labelStyle}>Primary Industry</label><select disabled={modalMode === 'view'} style={inputStyle} value={formData.sector || ''} onChange={e=>setFormData({...formData, sector: e.target.value})}><option value="">Select</option>{industries.map(i=><option key={i}>{i}</option>)}</select></div>
@@ -397,14 +397,14 @@ export default function BDPipeline() {
               </div>
 
               {/* SECTION 3: ACTIONABLES */}
-              <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>3. Actionables & Attachments</h3>
+              <h3 style={{ color: '#3DD68C', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>3. Actionables & Attachments</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
                 <div><label style={labelStyle}>Next Follow-up Date</label><input type="date" disabled={modalMode === 'view'} style={inputStyle} value={formData.next_followup || ''} onChange={e=>setFormData({...formData, next_followup: e.target.value})} /></div>
                 <div>
                   <label style={labelStyle}>Upload Agreement</label>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <input type="file" hidden ref={fileInputRef} onChange={(e) => setFormData({...formData, agreement_file: e.target.files[0]?.name || ''})} />
-                    <button type="button" disabled={modalMode === 'view'} onClick={() => fileInputRef.current.click()} style={{ flex: 1, background: '#1F2937', color: '#fff', border: '1px solid #374151', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{formData.agreement_file ? `📄 ${formData.agreement_file}` : '📎 Select File...'}</button>
+                    <button type="button" disabled={modalMode === 'view'} onClick={() => fileInputRef.current.click()} style={{ flex: 1, background: 'var(--bg3)', color: '#fff', border: '1px solid var(--bg4)', padding: '12px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{formData.agreement_file ? `📄 ${formData.agreement_file}` : '📎 Select File...'}</button>
                     {formData.agreement_file && <button type="button" onClick={() => setFormData({...formData, agreement_file: ''})} style={{ padding: '10px', background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>✕</button>}
                   </div>
                 </div>
@@ -412,26 +412,26 @@ export default function BDPipeline() {
               </div>
 
               {/* SECTION 4: FEEDBACK HISTORY */}
-              <h3 style={{ color: '#F59E0B', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid #1F2937', paddingBottom: '10px' }}>4. Interaction History (Feedback)</h3>
-              <div style={{ background: '#0b0e14', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937' }}>
+              <h3 style={{ color: '#F59E0B', fontSize: '14px', textTransform: 'uppercase', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>4. Interaction History (Feedback)</h3>
+              <div style={{ background: 'var(--bg)', padding: '20px', borderRadius: '12px', border: '1px solid var(--bg3)' }}>
                 <div style={{ marginBottom: '20px', maxHeight: '200px', overflowY: 'auto' }}>
-                  {formData.feedbackList.length === 0 ? <div style={{ color: '#6B7280', fontSize: '12px', fontStyle: 'italic' }}>No feedback recorded yet.</div> : null}
+                  {formData.feedbackList.length === 0 ? <div style={{ color: 'var(--mu2)', fontSize: '12px', fontStyle: 'italic' }}>No feedback recorded yet.</div> : null}
                   {formData.feedbackList.map((fb, idx) => (
-                    <div key={idx} style={{ padding: '12px', background: '#11182D', borderRadius: '8px', marginBottom: '10px', borderLeft: '3px solid #3B82F6' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}><strong style={{ color: '#fff', fontSize: '12px' }}>{fb.author}</strong><span style={{ color: '#9CA3AF', fontSize: '10px' }}>{fb.date}</span></div>
-                      <div style={{ color: '#D1D5DB', fontSize: '13px' }}>{fb.text}</div>
+                    <div key={idx} style={{ padding: '12px', background: 'var(--bg2)', borderRadius: '8px', marginBottom: '10px', borderLeft: '3px solid #3B82F6' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}><strong style={{ color: '#fff', fontSize: '12px' }}>{fb.author}</strong><span style={{ color: 'var(--mu)', fontSize: '10px' }}>{fb.date}</span></div>
+                      <div style={{ color: 'var(--tx)', fontSize: '13px' }}>{fb.text}</div>
                       {fb.tagged && fb.tagged.length > 0 && <div style={{ color: '#A855F7', fontSize: '11px', marginTop: '6px', fontWeight: 'bold' }}>Tagged: {fb.tagged.map(t => `@${t}`).join(', ')}</div>}
                     </div>
                   ))}
                 </div>
 
                 {modalMode !== 'view' && (
-                  <div style={{ borderTop: '1px solid #1F2937', paddingTop: '20px' }}>
+                  <div style={{ borderTop: '1px solid var(--bg3)', paddingTop: '20px' }}>
                     <div style={{ position: 'relative' }}>
                       <label style={labelStyle}>Add New Feedback (Type @ to tag)</label>
-                      <textarea ref={feedbackRef} style={{...inputStyle, height: '80px', resize: 'vertical', background: '#11182D'}} value={formData.newFeedbackText} onChange={handleFeedbackChange} placeholder="Outcome of last call? Type @..." />
+                      <textarea ref={feedbackRef} style={{...inputStyle, height: '80px', resize: 'vertical', background: 'var(--bg2)'}} value={formData.newFeedbackText} onChange={handleFeedbackChange} placeholder="Outcome of last call? Type @..." />
                       {showMentionMenu && filteredTeamMembers.length > 0 && (
-                        <div style={{ position: 'absolute', bottom: '100%', left: 0, background: '#1F2937', border: '1px solid #3B82F6', borderRadius: '8px', overflow: 'hidden', zIndex: 10, width: '250px' }}>
+                        <div style={{ position: 'absolute', bottom: '100%', left: 0, background: 'var(--bg3)', border: '1px solid #3B82F6', borderRadius: '8px', overflow: 'hidden', zIndex: 10, width: '250px' }}>
                           {filteredTeamMembers.map(member => (
                             <div key={member} onClick={() => insertMention(member)} style={{ padding: '10px 15px', cursor: 'pointer', color: '#fff', fontSize: '12px', borderBottom: '1px solid rgba(255,255,255,0.05)' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#3B82F6'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>
                               <span style={{ color: '#60A5FA', marginRight: '5px' }}>@</span>{member}
@@ -446,7 +446,7 @@ export default function BDPipeline() {
                     </div>
                     {formData.currentTaggedMembers.length > 0 && (
                       <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-                        <span style={{color: '#9CA3AF', fontSize: '11px', alignSelf: 'center'}}>Tagged: </span>
+                        <span style={{color: 'var(--mu)', fontSize: '11px', alignSelf: 'center'}}>Tagged: </span>
                         {formData.currentTaggedMembers.map(m => <span key={m} style={{ background: 'rgba(168, 85, 247, 0.2)', color: '#A855F7', padding: '2px 8px', borderRadius: '4px', fontSize: '10px' }}>@{m} <span onClick={()=>handleDirectTagToggle({target: {value: m}})} style={{cursor:'pointer'}}>✕</span></span>)}
                       </div>
                     )}
@@ -456,13 +456,13 @@ export default function BDPipeline() {
             </div>
 
             {modalMode !== 'view' ? (
-              <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', display: 'flex', gap: '15px', background: '#0b0e14' }}>
+              <div style={{ padding: '20px 30px', borderTop: '1px solid var(--bg3)', display: 'flex', gap: '15px', background: 'var(--bg)' }}>
                 <button onClick={handleSave} style={{ flex: 1, background: 'linear-gradient(90deg, #3DD68C, #10B981)', color: '#000', padding: '14px', borderRadius: '8px', fontWeight: '800', border: 'none', cursor: 'pointer' }}>Save BD Lead</button>
-                <button onClick={() => setIsModalOpen(false)} style={{ flex: 1, background: 'transparent', color: '#9CA3AF', border: '1px solid #374151', padding: '14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={() => setIsModalOpen(false)} style={{ flex: 1, background: 'transparent', color: 'var(--mu)', border: '1px solid var(--bg4)', padding: '14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Cancel</button>
               </div>
             ) : (
-              <div style={{ padding: '20px 30px', borderTop: '1px solid #1F2937', background: '#0b0e14' }}>
-                <button onClick={() => setIsModalOpen(false)} style={{ width: '100%', background: '#1F2937', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Close Window</button>
+              <div style={{ padding: '20px 30px', borderTop: '1px solid var(--bg3)', background: 'var(--bg)' }}>
+                <button onClick={() => setIsModalOpen(false)} style={{ width: '100%', background: 'var(--bg3)', color: '#fff', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Close Window</button>
               </div>
             )}
           </div>

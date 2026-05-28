@@ -290,7 +290,7 @@ export default function JobSeekerProfile() {
     setShowShare(false)
   }
 
-  const theme = { bg: '#0f1117', bg2: '#161921', bg3: '#1e2230', tx: '#e8eaf0', muted: '#7a7f90', bd: 'rgba(255,255,255,0.06)', accent: '#6c8cff' }
+  const theme = { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', muted: 'var(--mu)', bd: 'rgba(255,255,255,0.06)', accent: '#6c8cff' }
   const inp = { width: '100%', background: theme.bg3, border: `1px solid ${theme.bd}`, borderRadius: 10, padding: '10px 14px', color: theme.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
   const inpRO = { ...inp, opacity: 0.55, cursor: 'not-allowed', background: theme.bg2 }
   const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5, marginTop: 14 }

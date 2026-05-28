@@ -8,7 +8,7 @@ export default function AITools() {
     <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:'60vh',gap:16}}>
       <div style={{fontSize:60}}>🤖</div>
       <h2 style={{color:'#fff',margin:0}}>AI Tools</h2>
-      <p style={{color:'#9CA3AF',fontSize:14,textAlign:'center',maxWidth:400}}>
+      <p style={{color:'var(--mu)',fontSize:14,textAlign:'center',maxWidth:400}}>
         Gemini AI Chat, CV Parser, Smart Match, and Resume Builder coming soon.
       </p>
       <div style={{background:'rgba(59,130,246,0.1)',border:'1px solid rgba(59,130,246,0.3)',borderRadius:12,padding:'16px 24px',color:'#60A5FA',fontSize:13,marginTop:8}}>

@@ -33,11 +33,11 @@ function initials(name) {
 }
 
 const ACCENT = '#6c8cff'
-const BG = '#0a0d14'
-const BG2 = '#12161f'
-const BG3 = '#1a1f2e'
-const TX = '#e8eaf0'
-const MUTED = '#7a7f90'
+const BG = 'var(--bg)'
+const BG2 = 'var(--bg)'
+const BG3 = 'var(--bg2)'
+const TX = 'var(--tx)'
+const MUTED = 'var(--mu)'
 const BD = 'rgba(255,255,255,0.07)'
 const GREEN = '#3dd68c'
 const YELLOW = '#ffd60a'
@@ -289,7 +289,7 @@ export default function JobDetail() {
               {/* Job Description */}
               <div style={{ background: BG2, border: `1px solid ${BD}`, borderRadius: 18, padding: 28, marginBottom: 20 }}>
                 <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 16 }}>📋 Job Description</div>
-                <div style={{ fontSize: 14, color: '#c8cad6', lineHeight: 1.85, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                <div style={{ fontSize: 14, color: 'var(--tx)', lineHeight: 1.85, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                   {job.description || 'No description provided.'}
                 </div>
               </div>

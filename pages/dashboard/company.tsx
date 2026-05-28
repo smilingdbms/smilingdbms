@@ -73,14 +73,14 @@ export default function CompanyDashboard() {
   const placed = byStatus['Placed'] || 0
   const wonRevenue = deals.filter(d=>d.stage==='Won').reduce((s,d)=>s+(d.deal_value||0),0)
 
-  const PLAN_COLORS: any = { free:'#7a7f90', starter:'#3dd68c', professional:'#6c8cff', enterprise:'#ffd60a' }
+  const PLAN_COLORS: any = { free:'var(--mu)', starter:'#3dd68c', professional:'#6c8cff', enterprise:'#ffd60a' }
 
   const S: any = {
     page: { minHeight:'100vh', background:'var(--bg)', color:'var(--tx)', fontFamily:'Outfit,sans-serif' },
     card: { background:'var(--bg2)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:12, padding:20 },
     inp: { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', fontSize:13, color:'var(--tx)', outline:'none', marginBottom:10 },
     lbl: { fontSize:11, color:'var(--mu)', marginBottom:4, display:'block', fontWeight:600, textTransform:'uppercase' as any, letterSpacing:'0.8px' },
-    tab: (a: boolean) => ({ padding:'8px 16px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', background:a?'rgba(108,140,255,0.15)':'transparent', color:a?'#6c8cff':'#7a7f90' }),
+    tab: (a: boolean) => ({ padding:'8px 16px', borderRadius:8, border:'none', cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'inherit', background:a?'rgba(108,140,255,0.15)':'transparent', color:a?'#6c8cff':'var(--mu)' }),
     btn: { background:'#6c8cff', color:'#fff', border:'none', borderRadius:8, padding:'9px 18px', fontSize:13, fontWeight:600, cursor:'pointer' },
   }
 
@@ -99,7 +99,7 @@ export default function CompanyDashboard() {
   return (
     <>
     <div style={S.page}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer'}} onClick={()=>router.push('/dashboard')}>
@@ -135,7 +135,7 @@ export default function CompanyDashboard() {
               {company.industry && <span style={{fontSize:12,color:'var(--mu)'}}>🏭 {company.industry}</span>}
               {company.city && <span style={{fontSize:12,color:'var(--mu)'}}>📍 {company.city}</span>}
               {company.website && <a href={company.website} target="_blank" rel="noreferrer" style={{fontSize:12,color:'#6c8cff'}}>🌐 Website</a>}
-              <span style={{fontSize:11,background:`${PLAN_COLORS[company.subscription_plan]||'#7a7f90'}22`,color:PLAN_COLORS[company.subscription_plan]||'#7a7f90',padding:'2px 8px',borderRadius:6,fontWeight:600,textTransform:'capitalize' as any}}>
+              <span style={{fontSize:11,background:`${PLAN_COLORS[company.subscription_plan]||'var(--mu)'}22`,color:PLAN_COLORS[company.subscription_plan]||'var(--mu)',padding:'2px 8px',borderRadius:6,fontWeight:600,textTransform:'capitalize' as any}}>
                 {company.subscription_plan||'free'} Plan
               </span>
             </div>
@@ -183,10 +183,10 @@ export default function CompanyDashboard() {
                 <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>🏆 Team Leaderboard</div>
                 {members.slice(0,8).map((m,i)=>(
                   <div key={m.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
-                    <div style={{width:26,height:26,borderRadius:'50%',background:i===0?'rgba(255,214,10,0.2)':'rgba(255,255,255,0.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:i===0?'#ffd60a':'#555'}}>{i+1}</div>
+                    <div style={{width:26,height:26,borderRadius:'50%',background:i===0?'rgba(255,214,10,0.2)':'rgba(255,255,255,0.05)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:i===0?'#ffd60a':'var(--mu2)'}}>{i+1}</div>
                     <div style={{flex:1}}>
                       <div style={{fontSize:13,fontWeight:500}}>{m.full_name}</div>
-                      <span style={{fontSize:10,background:`${ROLE_C[m.role]||'#555'}22`,color:ROLE_C[m.role]||'#555',padding:'1px 6px',borderRadius:4}}>{m.role}</span>
+                      <span style={{fontSize:10,background:`${ROLE_C[m.role]||'var(--mu2)'}22`,color:ROLE_C[m.role]||'var(--mu2)',padding:'1px 6px',borderRadius:4}}>{m.role}</span>
                     </div>
                     <div style={{fontWeight:700,color:'#ffd60a',fontSize:13}}>{m.points||0} pts</div>
                   </div>
@@ -196,7 +196,7 @@ export default function CompanyDashboard() {
                 <div style={{fontSize:13,fontWeight:600,marginBottom:14}}>Pipeline Status</div>
                 {Object.entries(byStatus).sort((a:any,b:any)=>b[1]-a[1]).map(([st,cnt]:any)=>(
                   <div key={st} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid rgba(255,255,255,0.04)',fontSize:13}}>
-                    <span style={{color:'#c8c8d8'}}>{st}</span>
+                    <span style={{color:'var(--tx)'}}>{st}</span>
                     <span style={{fontWeight:600,color:'#6c8cff'}}>{cnt}</span>
                   </div>
                 ))}
@@ -227,7 +227,7 @@ export default function CompanyDashboard() {
                     <tr key={m.id} style={{borderBottom:'1px solid rgba(255,255,255,0.04)'}}>
                       <td style={{padding:'10px 10px'}}>
                         <div style={{display:'flex',alignItems:'center',gap:8}}>
-                          <div style={{width:30,height:30,borderRadius:'50%',background:`${ROLE_C[m.role]||'#555'}22`,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,color:ROLE_C[m.role]||'#555',fontSize:12}}>
+                          <div style={{width:30,height:30,borderRadius:'50%',background:`${ROLE_C[m.role]||'var(--mu2)'}22`,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,color:ROLE_C[m.role]||'var(--mu2)',fontSize:12}}>
                             {m.full_name?.[0]?.toUpperCase()||'?'}
                           </div>
                           <div>
@@ -239,10 +239,10 @@ export default function CompanyDashboard() {
                       <td style={{padding:'10px 10px',color:'var(--mu)',fontSize:12}}>{m.email}</td>
                       <td style={{padding:'10px 10px'}}>
                         {m.id===appUser?.id ? (
-                          <span style={{fontSize:11,background:`${ROLE_C[m.role]||'#555'}22`,color:ROLE_C[m.role]||'#555',padding:'3px 8px',borderRadius:6,fontWeight:600}}>{m.role}</span>
+                          <span style={{fontSize:11,background:`${ROLE_C[m.role]||'var(--mu2)'}22`,color:ROLE_C[m.role]||'var(--mu2)',padding:'3px 8px',borderRadius:6,fontWeight:600}}>{m.role}</span>
                         ) : (
                           <select value={m.role} onChange={e=>updateMemberRole(m.id,e.target.value)}
-                            style={{background:`${ROLE_C[m.role]||'#555'}22`,color:ROLE_C[m.role]||'#555',border:`1px solid ${ROLE_C[m.role]||'#555'}44`,borderRadius:6,padding:'4px 8px',fontSize:11,fontWeight:600,cursor:'pointer',outline:'none'}}>
+                            style={{background:`${ROLE_C[m.role]||'var(--mu2)'}22`,color:ROLE_C[m.role]||'var(--mu2)',border:`1px solid ${ROLE_C[m.role]||'var(--mu2)'}44`,borderRadius:6,padding:'4px 8px',fontSize:11,fontWeight:600,cursor:'pointer',outline:'none'}}>
                             {ROLES.map(r=><option key={r} value={r}>{r}</option>)}
                           </select>
                         )}
@@ -290,7 +290,7 @@ export default function CompanyDashboard() {
                 <div style={{fontSize:14,fontWeight:600,marginBottom:12}}>Subscription</div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                   <span style={{fontSize:13,color:'var(--mu)'}}>Current Plan</span>
-                  <span style={{fontSize:13,fontWeight:700,color:PLAN_COLORS[company.subscription_plan]||'#7a7f90',textTransform:'capitalize' as any}}>{company.subscription_plan||'Free'}</span>
+                  <span style={{fontSize:13,fontWeight:700,color:PLAN_COLORS[company.subscription_plan]||'var(--mu)',textTransform:'capitalize' as any}}>{company.subscription_plan||'Free'}</span>
                 </div>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid rgba(255,255,255,0.06)'}}>
                   <span style={{fontSize:13,color:'var(--mu)'}}>Company Code</span>

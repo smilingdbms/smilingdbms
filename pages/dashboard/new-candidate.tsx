@@ -40,12 +40,12 @@ const SmartMultiSelect = ({ options, selected, onChange, placeholder }) => {
   };
 
   return (
-    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', borderRadius: '8px', minHeight: '48px', padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-      {selected.map((tag, idx) => (<span key={idx} style={{ backgroundColor: '#1f2937', color: '#60a5fa', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>{tag} <span onClick={() => onChange(selected.filter(t => t !== tag))} style={{ cursor: 'pointer', color: '#fff' }}>×</span></span>))}
+    <div ref={wrapperRef} style={{ position: 'relative', width: '100%', backgroundColor: 'var(--bg)', border: '1px solid var(--bg4)', borderRadius: '8px', minHeight: '48px', padding: '8px 12px', display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+      {selected.map((tag, idx) => (<span key={idx} style={{ backgroundColor: 'var(--bg3)', color: '#60a5fa', border: '1px solid #3b82f6', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}>{tag} <span onClick={() => onChange(selected.filter(t => t !== tag))} style={{ cursor: 'pointer', color: '#fff' }}>×</span></span>))}
       <input value={inputValue} onChange={(e) => { setInputValue(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} onKeyDown={handleKeyDown} placeholder={selected.length === 0 ? placeholder : ''} style={{ flex: 1, minWidth: '150px', background: 'transparent', border: 'none', color: '#fff', fontSize: '14px', outline: 'none', padding: '4px' }} />
       {showDropdown && (inputValue || options.length > 0) && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#1f2937', border: '1px solid #374151', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
-          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid #374151' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='#374151'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: '#9ca3af', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
+        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: 'var(--bg3)', border: '1px solid var(--bg4)', borderRadius: '8px', marginTop: '4px', maxHeight: '200px', overflowY: 'auto', zIndex: 1000 }}>
+          {filteredOptions.length > 0 ? filteredOptions.map((opt, i) => (<div key={i} onClick={() => handleSelect(opt)} style={{ padding: '10px 15px', color: '#fff', cursor: 'pointer', borderBottom: '1px solid var(--bg4)' }} onMouseOver={e=>e.currentTarget.style.backgroundColor='var(--bg4)'} onMouseOut={e=>e.currentTarget.style.backgroundColor='transparent'}>{opt}</div>)) : (<div style={{ padding: '10px 15px', color: 'var(--mu)', fontStyle: 'italic' }}>Press Enter to add custom</div>)}
         </div>
       )}
     </div>
@@ -111,16 +111,16 @@ export default function NewCandidate() {
   const removeEmp = (idx) => { setEmployments(employments.filter((_, i) => i !== idx)); };
   const removeEdu = (idx) => { setEducations(educations.filter((_, i) => i !== idx)); };
 
-  const inputStyle = { width: '100%', backgroundColor: '#0b0e14', border: '1px solid #374151', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '14px', outline: 'none' };
-  const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '800', color: '#9ca3af', marginBottom: '8px', textTransform: 'uppercase' };
-  const sectionStyle = { backgroundColor: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937', marginBottom: '30px' };
+  const inputStyle = { width: '100%', backgroundColor: 'var(--bg)', border: '1px solid var(--bg4)', color: '#fff', padding: '12px', borderRadius: '8px', fontSize: '14px', outline: 'none' };
+  const labelStyle = { display: 'block', fontSize: '12px', fontWeight: '800', color: 'var(--mu)', marginBottom: '8px', textTransform: 'uppercase' };
+  const sectionStyle = { backgroundColor: 'var(--bg2)', padding: '30px', borderRadius: '16px', border: '1px solid var(--bg3)', marginBottom: '30px' };
 
   return (
     <>
-      <header style={{ padding: '20px 40px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0b0e14' }}>
+      <header style={{ padding: '20px 40px', borderBottom: '1px solid var(--bg3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg)' }}>
         <h1 style={{ color: '#fff', fontSize: '24px', margin: 0 }}>Add New Candidate (V2)</h1>
         <div style={{ display: 'flex', gap: '15px' }}>
-          <button type="button" onClick={() => cvInputRef.current.click()} style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: '#1f2937', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 'bold' }}>{uploadedCVName || "📄 Upload CV & Parse"}</button>
+          <button type="button" onClick={() => cvInputRef.current.click()} style={{ padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', background: 'var(--bg3)', color: '#60a5fa', border: '1px solid #3b82f6', fontWeight: 'bold' }}>{uploadedCVName || "📄 Upload CV & Parse"}</button>
           <button type="button" onClick={handleSave} disabled={saving} style={{ padding: '10px 30px', borderRadius: '8px', cursor: 'pointer', background: '#3dd68c', color: '#000', border: 'none', fontWeight: 'bold' }}>{saving ? "Saving..." : "Save Profile"}</button>
         </div>
       </header>
@@ -131,7 +131,7 @@ export default function NewCandidate() {
         
         {/* PERSONAL DETAILS */}
         <div style={sectionStyle}>
-          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Personal Details</h2>
+          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>Personal Details</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             <div><label style={labelStyle}>Full Name</label><input style={inputStyle} value={basic.name} onChange={e=>setBasic({...basic, name: e.target.value})} /></div>
             <div><label style={labelStyle}>Mobile Number</label><input style={inputStyle} value={basic.mobile} onChange={e=>setBasic({...basic, mobile: e.target.value})} /></div>
@@ -159,7 +159,7 @@ export default function NewCandidate() {
 
         {/* PROFESSIONAL */}
         <div style={sectionStyle}>
-          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>Professional Details & Preferences</h2>
+          <h2 style={{ color: '#fff', fontSize: '18px', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>Professional Details & Preferences</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Headline</label><input style={inputStyle} value={professional.headline} onChange={e=>setProfessional({...professional, headline: e.target.value})} /></div>
             <div style={{ gridColumn: '1/-1' }}><label style={labelStyle}>Smart Key Skills</label><SmartMultiSelect options={suggestedSkills} selected={professional.skills} onChange={(val) => setProfessional({...professional, skills: val})} placeholder="Type skill and press Enter..." /></div>
@@ -172,30 +172,30 @@ export default function NewCandidate() {
 
         {/* INLINE EMPLOYMENT */}
         <div style={sectionStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Employment History</h2>
             <button type="button" onClick={() => setEmployments([...employments, { company: '', designation: '', start: '', end: '', current: false, details: '' }])} style={{ background: 'transparent', color: '#60a5fa', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
           </div>
           {employments.map((emp, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151', position: 'relative' }}>
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: 'var(--bg)', padding: '15px', borderRadius: '8px', border: '1px solid var(--bg4)', position: 'relative' }}>
               {employments.length > 1 && <button onClick={() => removeEmp(idx)} style={{position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer'}}>✖</button>}
               <div><label style={labelStyle}>Company</label><input style={inputStyle} value={emp.company} onChange={e=>updateEmp(idx, 'company', e.target.value)} /></div>
               <div><label style={labelStyle}>Designation</label><input style={inputStyle} value={emp.designation} onChange={e=>updateEmp(idx, 'designation', e.target.value)} /></div>
               <div><label style={labelStyle}>Start Date</label><input type="month" style={inputStyle} value={emp.start} onChange={e=>updateEmp(idx, 'start', e.target.value)} /></div>
               <div><label style={labelStyle}>End Date</label><input type="month" style={inputStyle} value={emp.end} disabled={emp.current} onChange={e=>updateEmp(idx, 'end', e.target.value)} /></div>
-              <div style={{ gridColumn: '1/-1' }}><label style={{color: '#d1d5db', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px'}}><input type="checkbox" checked={emp.current} onChange={e=>updateEmp(idx, 'current', e.target.checked)} /> Currently Working Here</label></div>
+              <div style={{ gridColumn: '1/-1' }}><label style={{color: 'var(--tx)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px'}}><input type="checkbox" checked={emp.current} onChange={e=>updateEmp(idx, 'current', e.target.checked)} /> Currently Working Here</label></div>
             </div>
           ))}
         </div>
 
         {/* INLINE EDUCATION */}
         <div style={sectionStyle}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid #1f2937', paddingBottom: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', borderBottom: '1px solid var(--bg3)', paddingBottom: '10px' }}>
             <h2 style={{ color: '#fff', fontSize: '18px', margin: 0 }}>Education</h2>
             <button type="button" onClick={() => setEducations([...educations, { course: '', branch: '', institute: '', year: '' }])} style={{ background: 'transparent', color: '#3dd68c', border: 'none', cursor: 'pointer', fontWeight: 'bold' }}>+ Add Row</button>
           </div>
           {educations.map((edu, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: '#0b0e14', padding: '15px', borderRadius: '8px', border: '1px solid #374151', position: 'relative' }}>
+            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '15px', marginBottom: '15px', background: 'var(--bg)', padding: '15px', borderRadius: '8px', border: '1px solid var(--bg4)', position: 'relative' }}>
               {educations.length > 1 && <button onClick={() => removeEdu(idx)} style={{position: 'absolute', top: '10px', right: '10px', background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer'}}>✖</button>}
               <div><label style={labelStyle}>Course</label>
                 <select style={inputStyle} value={edu.course} onChange={e=>{updateEdu(idx, 'course', e.target.value); updateEdu(idx, 'branch', '');}}>

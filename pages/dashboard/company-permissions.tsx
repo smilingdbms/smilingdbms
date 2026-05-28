@@ -145,15 +145,15 @@ export default function CompanyPermissionsPage() {
   }
 
   const S = {
-    page: { minHeight: '100vh', background: '#111318', color: '#e8eaf0', fontFamily: "'Outfit',sans-serif" },
-    nav: { background: '#0d0f14', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
+    page: { minHeight: '100vh', background: 'var(--bg)', color: 'var(--tx)', fontFamily: "'Outfit',sans-serif" },
+    nav: { background: 'var(--bg)', borderBottom: '1px solid rgba(255,255,255,0.06)', padding: '12px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky' as const, top: 0, zIndex: 50 },
     body: { padding: '24px', maxWidth: 1000, margin: '0 auto' },
-    card: { background: '#1a1d24', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 20, marginBottom: 16 },
-    inp: { background: '#22262f', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: '#e8eaf0', fontSize: 13, fontFamily: 'inherit', outline: 'none' },
+    card: { background: 'var(--bg2)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)', padding: 20, marginBottom: 16 },
+    inp: { background: 'var(--bg3)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 12px', color: 'var(--tx)', fontSize: 13, fontFamily: 'inherit', outline: 'none' },
     btn: (bg: string, col: string) => ({ background: bg, color: col, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' } as const),
   }
 
-  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#7a7f90' }}>Loading...</div></div>
+  if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: 'var(--mu)' }}>Loading...</div></div>
 
   const currentGroup = PERMISSION_GROUPS.find(g => g.group === activeGroup)!
 
@@ -164,7 +164,7 @@ export default function CompanyPermissionsPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
-        select option{background:#22262f}
+        select option{background:var(--bg3)}
         .tog{position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer}
         .tog input{opacity:0;width:0;height:0}
         .sl{position:absolute;inset:0;border-radius:26px;transition:.25s;cursor:pointer}
@@ -175,7 +175,7 @@ export default function CompanyPermissionsPage() {
         .tog input:not(:checked)+.sl:before{background:#ff5050}
         .tog input:disabled+.sl{opacity:0.5;cursor:not-allowed}
         .prow:hover{background:rgba(255,255,255,0.02);border-radius:10px}
-        .grp-btn{padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.07);background:transparent;color:#7a7f90;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .15s;white-space:nowrap}
+        .grp-btn{padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.07);background:transparent;color:var(--mu);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:all .15s;white-space:nowrap}
         .grp-btn.on{background:rgba(108,140,255,0.15);color:#6c8cff;border-color:rgba(108,140,255,0.3)}
       `}</style>
 
@@ -188,7 +188,7 @@ export default function CompanyPermissionsPage() {
           <div style={{ width: 30, height: 30, borderRadius: 8, background: 'rgba(108,140,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#6c8cff', fontSize: 14 }}>R</div>
           <div>
             <div style={{ fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}>RecruitBase Pro</div>
-            <div style={{ fontSize: 9, color: '#505468', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Recruitment OS</div>
+            <div style={{ fontSize: 9, color: 'var(--mu2)', letterSpacing: '1.5px', textTransform: 'uppercase' }}>Recruitment OS</div>
           </div>
           <span style={{ fontSize: 12, padding: '2px 10px', borderRadius: 20, background: 'rgba(255,215,10,0.1)', color: '#ffd60a' }}>⚙️ Permissions</span>
         </div>
@@ -198,7 +198,7 @@ export default function CompanyPermissionsPage() {
       <div style={S.body}>
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 700 }}>Team Permissions</div>
-          <div style={{ color: '#7a7f90', fontSize: 13, marginTop: 4 }}>
+          <div style={{ color: 'var(--mu)', fontSize: 13, marginTop: 4 }}>
             {company?.name} — Control what each role can do
           </div>
         </div>
@@ -208,7 +208,7 @@ export default function CompanyPermissionsPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' as const }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>Default role for new members</div>
-              <div style={{ fontSize: 12, color: '#7a7f90' }}>When someone joins via company code, assign this role automatically</div>
+              <div style={{ fontSize: 12, color: 'var(--mu)' }}>When someone joins via company code, assign this role automatically</div>
             </div>
             <select value={defaultRole} onChange={e => saveDefaultRole(e.target.value)} style={{ ...S.inp, minWidth: 160 }}>
               {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
@@ -239,7 +239,7 @@ export default function CompanyPermissionsPage() {
             <div key={p.key} className="prow" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 8px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 13, fontWeight: 500 }}>{p.label}</div>
-                <div style={{ fontSize: 11, color: '#505468', marginTop: 3 }}>
+                <div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: 3 }}>
                   Applies to: {p.roles.map(r => (
                     <span key={r} style={{ background: 'rgba(108,140,255,0.1)', color: '#6c8cff', borderRadius: 4, padding: '1px 6px', marginRight: 4, fontSize: 10 }}>{ROLE_LABELS[r] || r}</span>
                   ))}
@@ -265,23 +265,23 @@ export default function CompanyPermissionsPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' as const, fontSize: 12 }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', color: '#505468', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const }}>Permission</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--mu2)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const }}>Permission</th>
                   {ALL_ROLES.map(r => (
-                    <th key={r} style={{ padding: '8px 10px', color: '#505468', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const }}>{ROLE_LABELS[r]}</th>
+                    <th key={r} style={{ padding: '8px 10px', color: 'var(--mu2)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, whiteSpace: 'nowrap' as const }}>{ROLE_LABELS[r]}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {PERMISSION_GROUPS.flatMap(g => g.perms).map(p => (
                   <tr key={p.key} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)' }}>
-                    <td style={{ padding: '7px 10px', color: '#7a7f90' }}>{p.label}</td>
+                    <td style={{ padding: '7px 10px', color: 'var(--mu)' }}>{p.label}</td>
                     {ALL_ROLES.map(r => (
                       <td key={r} style={{ padding: '7px 10px', textAlign: 'center' as const }}>
                         {p.roles.includes(r) && permissions[p.key]
                           ? <span style={{ color: '#3dd68c', fontSize: 14 }}>✓</span>
                           : p.roles.includes(r) && !permissions[p.key]
                             ? <span style={{ color: '#ff5050', fontSize: 14 }}>✗</span>
-                            : <span style={{ color: '#2a2d35', fontSize: 12 }}>—</span>
+                            : <span style={{ color: 'var(--bg3)', fontSize: 12 }}>—</span>
                         }
                       </td>
                     ))}

@@ -84,7 +84,7 @@ export default function InvitePage() {
   const BADGE: any = {
     active: {bg:'rgba(52,211,153,0.1)',color:'#34d399'},
     pending: {bg:'rgba(255,159,67,0.1)',color:'#ff9f43'},
-    inactive: {bg:'rgba(100,100,120,0.2)',color:'#888'},
+    inactive: {bg:'rgba(100,100,120,0.2)',color:'var(--mu)'},
     rejected: {bg:'rgba(255,107,107,0.1)',color:'#ff6b6b'},
   }
 
@@ -95,7 +95,7 @@ export default function InvitePage() {
     avatar: (name:string)=>({width:38,height:38,borderRadius:'50%',background:'var(--acbg)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,color:'var(--ac)',fontSize:15,flexShrink:0}),
   }
 
-  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,#0e1117)'}}><div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>
+  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,var(--bg))'}}><div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>
 
   return (
     <>
@@ -132,7 +132,7 @@ export default function InvitePage() {
                 <div style={{background:'var(--bg3)',borderRadius:10,padding:14}}>
                   <span style={S.label}>Invite Link</span>
                   <div style={{display:'flex',gap:6}}>
-                    <input readOnly value={inviteLink} style={{flex:1,background:'var(--bg4,#2a2f45)',border:'1px solid var(--bd)',borderRadius:6,padding:'6px 10px',color:'var(--mu)',fontSize:11,fontFamily:'monospace',outline:'none'}}/>
+                    <input readOnly value={inviteLink} style={{flex:1,background:'var(--bg4,var(--bg3))',border:'1px solid var(--bd)',borderRadius:6,padding:'6px 10px',color:'var(--mu)',fontSize:11,fontFamily:'monospace',outline:'none'}}/>
                     <button onClick={()=>copyToClipboard(inviteLink,'link')}
                       style={{padding:'4px 10px',borderRadius:6,background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd)',cursor:'pointer',fontSize:11,fontFamily:'inherit',whiteSpace:'nowrap'}}>
                       {copied==='link'?'✓ Copied!':'Copy Link'}

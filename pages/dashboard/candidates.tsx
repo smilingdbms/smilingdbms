@@ -10,7 +10,7 @@ export default function CandidatesRedirect() {
     router.replace(`/dashboard/master${action}${hash}`)
   }, [router.isReady])
   return (
-    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'#050810',color:'#9CA3AF',fontFamily:'Outfit,sans-serif'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',background:'var(--bg)',color:'var(--mu)',fontFamily:'Outfit,sans-serif'}}>
       Loading...
     </div>
   )

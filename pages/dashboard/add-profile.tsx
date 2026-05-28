@@ -25,7 +25,7 @@ const QUAL_BRANCHES: Record<string,string[]> = {
   'M.Tech':['Computer Science','IT','Electronics','Electrical','Mechanical','Civil','VLSI','AI & ML','Data Science'],
 }
 const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
-  'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
+  'New':{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'},
 }
 const SEGMENT_CONFIG: any = {
   fresher:    { label:'Freshers',          icon:'🎓', color:'#3dd68c' },
@@ -36,7 +36,7 @@ const SEGMENT_CONFIG: any = {
 const PIPELINE_STATUSES = ['New','Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later','Contacted - Number Busy','Contacted - Not Reachable','Resume Received','Resume Shortlisted','Interview Scheduled','Interview Done - Selected','Interview Done - Rejected','Interview Done - On Hold','Offer Discussed','Offer Accepted','Offer Declined','Did Not Join','Joined Successfully']
 const PIPELINE_EMOJI: Record<string,string> = {'New':'🆕','Contacted - Interested':'✅','Contacted - Not Interested':'❌','Contacted - Call Back Later':'📞','Contacted - Number Busy':'📵','Contacted - Not Reachable':'🔕','Resume Received':'📄','Resume Shortlisted':'⭐','Interview Scheduled':'📅','Interview Done - Selected':'🎯','Interview Done - Rejected':'❌','Interview Done - On Hold':'⏸️','Offer Discussed':'💬','Offer Accepted':'✅','Offer Declined':'🚫','Did Not Join':'😔','Joined Successfully':'🎉'}
 const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
-  'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
+  'New':{bg:'rgba(100,100,120,0.3)',color:'var(--mu)'},
   'Contacted - Interested':{bg:'rgba(30,160,100,0.25)',color:'#3dd68c'},
   'Resume Shortlisted':{bg:'rgba(150,80,255,0.2)',color:'#c77dff'},
   'Interview Scheduled':{bg:'rgba(0,140,255,0.2)',color:'#60b0ff'},
@@ -288,7 +288,7 @@ export default function AddProfilePage() {
         @keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
         @keyframes slideUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
         input:focus,select:focus,textarea:focus{border-color:var(--ac)!important;outline:none;}
-        select option{background:var(--bg3,#22262f);color:var(--tx,#fff);}
+        select option{background:var(--bg3,var(--bg3));color:var(--tx,#fff);}
         ::-webkit-scrollbar{width:5px;height:5px}::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:4px}
       `}</style>
 

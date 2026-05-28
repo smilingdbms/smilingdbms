@@ -2,12 +2,12 @@ import { useRouter } from 'next/router'
 export default function Privacy() {
   const router = useRouter()
   return (
-    <div style={{minHeight:'100vh',background:'#111318',color:'#e8eaf0',fontFamily:'Outfit,Inter,sans-serif',padding:'40px 24px'}}>
+    <div style={{minHeight:'100vh',background:'var(--bg)',color:'var(--tx)',fontFamily:'Outfit,Inter,sans-serif',padding:'40px 24px'}}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}`}</style>
       <div style={{maxWidth:800,margin:'0 auto'}}>
         <button onClick={()=>router.back()} style={{marginBottom:24,padding:'8px 16px',borderRadius:8,background:'rgba(108,140,255,0.1)',color:'#6c8cff',border:'1px solid rgba(108,140,255,0.3)',cursor:'pointer',fontFamily:'inherit',fontSize:13}}>← Back</button>
         <h1 style={{fontSize:28,fontWeight:700,color:'#6c8cff',marginBottom:8}}>Privacy Policy</h1>
-        <p style={{color:'#7a7f90',marginBottom:32,fontSize:13}}>Last updated: March 2026 | RecruitBase Pro by Smiling DBMS</p>
+        <p style={{color:'var(--mu)',marginBottom:32,fontSize:13}}>Last updated: March 2026 | RecruitBase Pro by Smiling DBMS</p>
         {[
           ['1. Information We Collect', 'We collect information you provide directly to us, including: Full name and email address when you register via Google OAuth. Candidate profile data including name, mobile number, email, qualifications, skills, work experience, city, industry, and resume files. Feedback notes and activity logs within the platform. We do not collect passwords — authentication is handled entirely by Google.'],
           ['2. How We Use Your Information', 'We use the information we collect to: Provide, maintain, and improve our recruitment management services. Sync candidate profiles to your linked Google Sheets. Store resume files securely for easy access. Track activity and award performance points to recruiters. Send notifications when you are tagged in notes (when enabled). We do not sell, rent, or share your data with third parties for advertising or marketing purposes.'],
@@ -22,7 +22,7 @@ export default function Privacy() {
         ].map(([title, content]) => (
           <div key={title} style={{marginBottom:28}}>
             <h2 style={{fontSize:16,fontWeight:700,color:'#3dd68c',marginBottom:10}}>{title}</h2>
-            <p style={{fontSize:14,lineHeight:1.7,color:'#c8c8d8'}}>{content}</p>
+            <p style={{fontSize:14,lineHeight:1.7,color:'var(--tx)'}}>{content}</p>
           </div>
         ))}
       </div>
