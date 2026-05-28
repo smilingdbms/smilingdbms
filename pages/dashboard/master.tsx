@@ -979,7 +979,7 @@ export default function Dashboard() {
           </button>
           {canAddProfiles && <>
             <button onClick={()=>setShowUpload(true)} style={{background:'var(--ac)',color:'#fff',border:'none',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>📄 Upload CV</button>
-            <button onClick={()=>{setForm({...EMPTY_PROFILE,segment:activeSegment==='all'?'experienced':activeSegment});setShowAdd(true);setShowProfile(null);setWizardStep(1)}} style={{background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd2)',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>+ Add Profile</button>
+            <button onClick={()=>router.push('/dashboard/add-profile')} style={{background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd2)',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>+ Add Profile</button>
           </>}
         </div>
       </div>
