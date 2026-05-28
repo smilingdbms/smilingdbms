@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 // ══════════════════════════════════════════════════════════
 // CV PARSER v3.0 — Gemini AI + Regex Fallback
 // Uses pdf-parse for text extraction
-// Gemini 2.0 Flash for AI parsing, regex as fallback
+// Gemini 2.5 Flash-Lite for AI parsing (free tier), regex as fallback
 // Auto-compresses uploads to 125KB
 // ══════════════════════════════════════════════════════════
 
@@ -216,7 +216,7 @@ async function parseWithAI(text: string): Promise<Record<string, any>> {
     if (!apiKey) throw new Error('GEMINI_API_KEY not set')
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
