@@ -252,6 +252,7 @@ export default function Dashboard() {
   const [pointsLog, setPointsLog] = useState<any[]>([])
   const [wizardStep, setWizardStep] = useState(1)
   const [statusToast, setStatusToast] = useState<{msg:string,color:string}|null>(null)
+  const [successToast, setSuccessToast] = useState<string|null>(null)
   const [errorModal, setErrorModal] = useState<{title:string,msg:string}|null>(null)
   const [bulkImportModal, setBulkImportModal] = useState(false)
   const [importResult, setImportResult] = useState<{ok:number,fail:number,errors:string[]}|null>(null)
@@ -292,6 +293,12 @@ export default function Dashboard() {
       await supabase.from('app_users').upsert(au)
     }
     setAppUser(au)
+
+    // Block job seekers from accessing dashboard
+    if (au.role === 'job_seeker') {
+      router.replace('/jobseeker')
+      return
+    }
 
     // Load company
     if (au.company_id) {
@@ -477,6 +484,11 @@ export default function Dashboard() {
     setPhotoUploading(false)
   }
 
+  function showSuccess(msg: string) {
+    setSuccessToast(msg)
+    setTimeout(()=>setSuccessToast(null), 3000)
+  }
+
   function showStatusToast(status: string) {
     const sc = STATUS_COLORS[status]||{color:'#fff'}
     setStatusToast({msg:`${STATUS_EMOJI[status]||''} Status → ${status}`, color:sc.color})
@@ -576,6 +588,7 @@ export default function Dashboard() {
       if (error) { showError('Update Failed', error.message); setSaving(false); return }
       if (data) {
         setProfiles(prev=>prev.map(p=>p.id===data.id?data:p))
+        showSuccess('✅ Profile updated successfully!')
         logActivity(data.id, 'edited', showProfile.status, data.status)
         if (showProfile.status !== data.status) logActivity(data.id, 'status_changed', showProfile.status, data.status)
       }
@@ -597,6 +610,7 @@ export default function Dashboard() {
       }
       if (data) {
         setProfiles(prev=>[data,...prev])
+        showSuccess('✅ Profile added successfully!')
         setShowAdd(false)
         setShowProfile(null)
         logActivity(data.id, 'created')
@@ -618,6 +632,7 @@ export default function Dashboard() {
     await supabase.from('profiles').delete().eq('id',id)
     setProfiles(prev=>prev.filter(p=>p.id!==id))
     setShowProfile(null)
+    showSuccess('🗑️ Profile deleted successfully.')
   }
 
   async function addNote() {
@@ -847,6 +862,16 @@ export default function Dashboard() {
       `}</style>
 
 
+      {successToast && (
+        <div style={{position:'fixed',top:24,right:24,zIndex:99999,
+          background:'var(--gnbg)',border:'1px solid var(--gn)',
+          borderRadius:12,padding:'12px 20px',fontSize:13,fontWeight:700,
+          color:'var(--gn)',boxShadow:'var(--sh)',
+          display:'flex',alignItems:'center',gap:8,
+          animation:'slideDown 0.25s ease'}}>
+          {successToast}
+        </div>
+      )}
       {statusToast && (
         <div style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',zIndex:99999,background:'var(--bg2)',border:`1px solid ${statusToast.color}`,borderRadius:14,padding:'12px 28px',fontSize:14,fontWeight:700,color:statusToast.color,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',display:'flex',alignItems:'center',gap:10,whiteSpace:'nowrap' as const,animation:'slideDown 0.25s ease'}}>
           {statusToast.msg}
@@ -1617,7 +1642,7 @@ export default function Dashboard() {
       {/* ── ADD / VIEW PROFILE MODAL — WIZARD ───────────────────── */}
       {(showAdd||showProfile)&&(
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:100,padding:16,overflowY:'auto'}} onClick={e=>{if(e.target===e.currentTarget){setShowAdd(false);setShowProfile(null)}}}>
-          <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:680,marginTop:20,marginBottom:20,boxShadow:'0 24px 80px rgba(0,0,0,0.5)',animation:'fadeIn 0.2s ease'}}>
+          <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:700,marginTop:16,marginBottom:16,boxShadow:'0 24px 80px rgba(0,0,0,0.5)',animation:'fadeIn 0.2s ease',maxHeight:'92vh',overflowY:'auto' as const}}>
 
             {/* Header */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:20}}>
@@ -1634,8 +1659,8 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* Wizard Steps Indicator — only for Add mode */}
-            {showAdd && !showProfile && (
+            {/* Wizard Steps Indicator — View mode only */}
+            {showProfile && (
               <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:24}}>
                 {[
                   {n:1,l:'Basic Info'},
@@ -1667,8 +1692,20 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* Section headers for add mode */}
+            {showAdd && !showProfile && (
+              <div style={{display:'flex',gap:16,marginBottom:20,padding:'10px 14px',background:'var(--bg3)',borderRadius:10,fontSize:11,color:'var(--mu)',flexWrap:'wrap' as const}}>
+                <span>📋 <strong style={{color:'var(--tx)'}}>Basic Info</strong></span>
+                <span style={{color:'var(--bd2)'}}>→</span>
+                <span>💼 <strong style={{color:'var(--tx)'}}>Professional</strong></span>
+                <span style={{color:'var(--bd2)'}}>→</span>
+                <span>📍 <strong style={{color:'var(--tx)'}}>Location</strong></span>
+                <span style={{color:'var(--bd2)'}}>→</span>
+                <span>⚙️ <strong style={{color:'var(--tx)'}}>Pipeline</strong></span>
+              </div>
+            )}
             {/* ── STEP 1: BASIC INFO ─────────────────────────────── */}
-            {wizardStep===1 && (
+            {(showProfile ? wizardStep===1 : true) && (
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div style={{gridColumn:'1/-1'}}>
                   <label style={LS}>Profile Segment *</label>
@@ -1760,7 +1797,7 @@ export default function Dashboard() {
             )}
 
             {/* ── STEP 2: PROFESSIONAL ──────────────────────────── */}
-            {wizardStep===2 && (
+            {(showProfile ? wizardStep===2 : true) && (
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div style={{gridColumn:'1/-1'}}>
                   <label style={LS}>Role / Designation *</label>
@@ -1884,7 +1921,7 @@ export default function Dashboard() {
             )}
 
             {/* ── STEP 3: LOCATION ──────────────────────────────── */}
-            {wizardStep===3 && (
+            {(showProfile ? wizardStep===3 : true) && (
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div>
                   <label style={LS}>City *</label>
@@ -2045,34 +2082,17 @@ export default function Dashboard() {
 
             {/* ── NAVIGATION BUTTONS ────────────────────────────── */}
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:24,paddingTop:16,borderTop:'1px solid var(--bd)'}}>
-              <button onClick={()=>{
-                if(wizardStep===1){setShowAdd(false);setShowProfile(null);setWizardStep(1)}
-                else setWizardStep(s=>s-1)
-              }} style={{padding:'9px 20px',borderRadius:10,background:'transparent',color:'var(--mu)',border:'1px solid var(--bd)',cursor:'pointer',fontSize:13,fontFamily:'inherit'}}>
-                {wizardStep===1?'Cancel':'← Back'}
+              <button onClick={()=>{setShowAdd(false);setShowProfile(null);setWizardStep(1)}} style={{padding:'9px 20px',borderRadius:10,background:'transparent',color:'var(--mu)',border:'1px solid var(--bd)',cursor:'pointer',fontSize:13,fontFamily:'inherit'}}>
+                Cancel
               </button>
 
-              <div style={{display:'flex',alignItems:'center',gap:6}}>
-                {showAdd && !showProfile && [1,2,3,4].map(s=>(
-                  <div key={s} style={{width:s===wizardStep?20:6,height:6,borderRadius:3,background:s===wizardStep?'var(--ac)':s<wizardStep?'var(--gn)':'var(--bd)',transition:'all .3s'}}/>
-                ))}
-              </div>
+              <div/>
 
-              {/* Next / Save button */}
+              {/* Save button */}
               {showAdd && !showProfile ? (
-                wizardStep < 4 ? (
-                  <button onClick={async()=>{
-                    if(wizardStep===1&&!form.name?.trim()){showError('Name Required',"Please enter the candidate's full name.");return}
-                    // Auto-save draft to state and move next
-                    setWizardStep(s=>s+1)
-                  }} style={{padding:'9px 28px',borderRadius:10,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',display:'flex',alignItems:'center',gap:8}}>
-                    Next →
-                  </button>
-                ) : (
                   <button onClick={saveProfile} disabled={saving} style={{padding:'9px 28px',borderRadius:10,background:'var(--gn)',color:'#fff',border:'none',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit',opacity:saving?0.7:1,display:'flex',alignItems:'center',gap:8}}>
                     {saving?'⏳ Saving...':'✅ Save Profile'}
                   </button>
-                )
               ) : (
                 <button onClick={saveProfile} disabled={saving} style={{padding:'9px 28px',borderRadius:10,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:14,fontWeight:700,fontFamily:'inherit',opacity:saving?0.7:1}}>
                   {saving?'Saving...':'Save Changes'}
@@ -2097,11 +2117,42 @@ export default function Dashboard() {
           const res = await fetch('/api/parse-cv', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'PARSE_CV',b64,mimeType:file.type||'application/pdf',filename:file.name}) })
           const json = await res.json()
           if (json.profile) {
-            setForm({...EMPTY_PROFILE,...json.profile,
-              segment: activeSegment!=='all'?activeSegment:'experienced',
+            const p = json.profile || {}
+            setForm({
+              ...EMPTY_PROFILE,
+              // Step 1 — Basic Info
+              name: p.name||'',
+              mobile: (p.mobile||'').replace(/\D/g,'').slice(-10),
+              email: p.email||'',
+              gender: p.gender||'Male',
+              age: p.age||'',
+              linkedin: p.linkedin||'',
+              photo_url: p.photo_url||'',
+              // Step 2 — Professional
+              role: p.role||'',
+              experience: p.experience||'',
+              total_experience: p.experience||'',
+              industry: p.industry||'',
+              qualification: p.qualification||'',
+              skills: p.skills||'',
+              current_company: p.current_company||'',
+              current_ctc: p.current_ctc||'',
+              expected_ctc: p.expected_ctc||'',
+              notice_period: p.notice_period||'',
+              work_mode: p.work_mode||'',
+              willing_to_relocate: p.willing_to_relocate==='true',
+              // Step 3 — Location
+              city: p.city||'',
+              address: p.address||'',
+              // Step 4 — Review
+              ai_summary: p.ai_summary||p.summary||'',
+              status: 'New',
+              source: 'Direct',
+              // Meta
+              segment: activeSegment!=='all'?activeSegment:(p.segment||'experienced'),
+              country_code: p.country_code||'+91 India',
               company_id: appUser?.company_id,
               team_id: appUser?.team_id,
-              status:'New',source:'Direct',country_code:json.profile.country_code||'+91 India'
             })
             setShowUpload(false); setShowAdd(true); setParsing(false); setParseMsg('')
           } else {
