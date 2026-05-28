@@ -7,3 +7,10 @@ out/
 .DS_Store
 
 .vercel
+*.themebak
+*.hydrabak*
+*.bak
+scan-colors.js
+codemod-theme.js
+fix-hydration.js
+patch-add-profile-button.js

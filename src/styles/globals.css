@@ -1238,6 +1238,65 @@ button { cursor: pointer; }
 [data-theme="light"] .card-h:hover { border-color: var(--ac) !important; }
 
 /* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — fix hardcoded white headings (color:#fff inline)
+   Big page titles use inline color:#fff which vanishes on light bg.
+   Force them dark in light theme. Buttons/badges (not h1/h2) untouched.
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] .os-main-content h1,
+[data-theme="light"] .os-main-content h2,
+[data-theme="light"] .os-main-content h3 {
+  color: #1a1a1a !important;
+}
+/* Page subtitles/descriptions that use light/white inline text */
+[data-theme="light"] .os-main-content h1 + div,
+[data-theme="light"] .os-main-content h2 + div {
+  color: #4a4a4a !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME — UNIVERSAL TEXT DARKENING (the real catch-all)
+   Many pages hardcode color:#fff / #e8eaf0 / #f9fafb on text inside
+   tables and cards. On a light bg that text turns invisible. This
+   forces ALL main-content text to a readable dark — EXCEPT elements
+   that legitimately need white text (buttons, badges, colored pills,
+   avatars, the dark sidebar). Inline styles are overridden via !important.
+   ═══════════════════════════════════════════════════════════════ */
+[data-theme="light"] .os-main-content,
+[data-theme="light"] .os-main-content div,
+[data-theme="light"] .os-main-content span,
+[data-theme="light"] .os-main-content p,
+[data-theme="light"] .os-main-content td,
+[data-theme="light"] .os-main-content th,
+[data-theme="light"] .os-main-content label,
+[data-theme="light"] .os-main-content h1,
+[data-theme="light"] .os-main-content h2,
+[data-theme="light"] .os-main-content h3,
+[data-theme="light"] .os-main-content h4 {
+  color: #1f1f1f !important;
+}
+
+/* Re-allow white/colored text where it's CORRECT (buttons, badges, pills,
+   avatars, anything with a colored/dark background). These keep their look. */
+[data-theme="light"] .os-main-content button,
+[data-theme="light"] .os-main-content button *,
+[data-theme="light"] .os-main-content .badge,
+[data-theme="light"] .os-main-content .badge *,
+[data-theme="light"] .os-main-content .tag-pill,
+[data-theme="light"] .os-main-content .av,
+[data-theme="light"] .os-main-content .ba,
+[data-theme="light"] .os-main-content .ba *,
+[data-theme="light"] .os-main-content [class*="pill"],
+[data-theme="light"] .os-main-content [class*="chip"],
+[data-theme="light"] .os-main-content a {
+  color: revert !important;
+}
+/* Brand accent text (links, percentages) stays its accent color */
+[data-theme="light"] .os-main-content .sv,
+[data-theme="light"] .os-main-content .np2 + .ns2 {
+  color: revert !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
    LIGHT THEME — UNIVERSAL READABILITY (reaches inline-styled pages)
    Inline styles on master/admin/add-profile use var() tokens, so the
    improved light tokens above already help. These rules add the final
