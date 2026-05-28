@@ -508,14 +508,8 @@ export default function Dashboard() {
   }
 
   function openProfile(p: any) {
-    setShowProfile(p); setShowAdd(false)
-    setForm({...EMPTY_PROFILE,...p,
-      channels: Array.isArray(p.channels)?p.channels:p.channels?JSON.parse(p.channels):[],
-      photos: Array.isArray(p.photos)?p.photos:p.photos?JSON.parse(p.photos):[],
-    })
-    setWizardStep(1)
-    loadFeedbacks(p.id)
-    logActivity(p.id, 'viewed')
+    // Open the dedicated full-page editor instead of the in-page modal
+    router.push('/dashboard/edit-profile?id=' + p.id)
   }
 
   async function saveProfile() {
@@ -1440,7 +1434,7 @@ export default function Dashboard() {
                             <div style={{display:'flex',gap:3}}>
                               {p.mobile&&<button onClick={()=>{const cc=((p.country_code||'+91 India').split(' ')[0]).replace('+','');window.open(`https://wa.me/${cc+(p.mobile||'').replace(/\D/g,'')}`)}} style={{background:'rgba(37,211,102,0.15)',border:'none',borderRadius:5,width:26,height:26,cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}} title="WhatsApp">💬</button>}
                               {p.email&&<button onClick={()=>window.open(`mailto:${p.email}`)} style={{background:'var(--acbg)',border:'none',borderRadius:5,width:26,height:26,cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}} title="Email">✉</button>}
-                              <button onClick={()=>router.push('/dashboard/edit-profile?id='+p.id)} style={{background:'transparent',border:'none',color:'var(--ac)',cursor:'pointer',fontSize:11,fontFamily:'inherit',padding:'0 4px'}}>View →</button>
+                              <button onClick={()=>openProfile(p)} style={{background:'transparent',border:'none',color:'var(--ac)',cursor:'pointer',fontSize:11,fontFamily:'inherit',padding:'0 4px'}}>View →</button>
                             </div>
                           </td>
                         </tr>
