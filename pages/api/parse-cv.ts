@@ -3,9 +3,9 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
 // ══════════════════════════════════════════════════════════
-// CV PARSER v2.0 — Open Source, Unlimited, Free
-// Uses pdf-parse for text extraction + regex for parsing
-// No external API dependency — runs 100% on server
+// CV PARSER v3.0 — Gemini AI + Regex Fallback
+// Uses pdf-parse for text extraction
+// Gemini 2.0 Flash for AI parsing, regex as fallback
 // Auto-compresses uploads to 125KB
 // ══════════════════════════════════════════════════════════
 
@@ -209,6 +209,91 @@ function parseCV(text: string): Record<string, string> {
   return result
 }
 
+// ── AI-Powered CV Parser (Gemini) ────────────────────────
+async function parseWithAI(text: string): Promise<Record<string, any>> {
+  try {
+    const apiKey = process.env.GEMINI_API_KEY || ''
+    if (!apiKey) throw new Error('GEMINI_API_KEY not set')
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Extract information from this CV/Resume text. Return ONLY valid JSON, no explanation, no markdown.
+
+CV TEXT:
+${text.substring(0, 6000)}
+
+Extract these fields (use null if not found):
+{
+  "name": "Full name of the person (NOT job title or company)",
+  "email": "email address",
+  "mobile": "10-digit mobile number only digits",
+  "gender": "Male/Female/Other",
+  "age": "age as number string if found",
+  "linkedin": "LinkedIn URL if found",
+  "role": "current/desired job title/designation",
+  "experience": "total years of experience as number",
+  "current_company": "current employer name",
+  "current_ctc": "current CTC in LPA as number",
+  "expected_ctc": "expected CTC in LPA as number",
+  "notice_period": "notice period e.g. Immediate/30 days/1 month",
+  "qualification": "highest qualification e.g. B.Tech/MBA/MBBS",
+  "qualification_branch": "specialization e.g. Computer Science",
+  "skills": "comma separated top skills max 15",
+  "industry": "industry sector",
+  "city": "current city",
+  "work_mode": "WFH/Office/Hybrid if mentioned",
+  "willing_to_relocate": "true/false if mentioned",
+  "ai_summary": "2-3 line professional summary",
+  "languages": "languages known comma separated",
+  "college": "college/university name",
+  "graduation_year": "graduation year as 4-digit string"
+}`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 1500
+          }
+        })
+      }
+    )
+
+    if (!response.ok) {
+      const errBody = await response.text()
+      console.error('Gemini API error:', response.status, errBody)
+      throw new Error('Gemini API failed: ' + response.status)
+    }
+
+    const data = await response.json()
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+
+    // Clean and parse JSON
+    const jsonStr = content.replace(/```json|```/g, '').trim()
+    const parsed = JSON.parse(jsonStr)
+
+    // Clean mobile - digits only, last 10
+    if (parsed.mobile) {
+      parsed.mobile = String(parsed.mobile).replace(/\D/g, '').slice(-10)
+    }
+
+    // Set segment based on experience
+    const exp = parseFloat(parsed.experience || '0')
+    parsed.segment = exp <= 1 ? 'fresher' : 'experienced'
+
+    return parsed
+  } catch(e) {
+    console.error('AI parse error:', e)
+    // Fallback to regex parser
+    return parseCV(text)
+  }
+}
+
 // ── Main handler ─────────────────────────────────────────
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -261,7 +346,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
-      const profile = parseCV(extractedText)
+      const profile = await parseWithAI(extractedText)
       return res.status(200).json({ success: true, profile })
     }
 
