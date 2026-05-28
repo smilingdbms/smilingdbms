@@ -78,7 +78,11 @@ const EMPTY_PROFILE = {
   linkedin:'', youtube_url:'', address:'', google_maps_url:'',
   status:'New', assigned_to:'', source:'Direct', source_detail:'',
   ai_summary:'', resume_url:'', resume_name:'', star_rating:0,
-  channels:[] as string[], photos:[] as string[], photo_url:''
+  channels:[] as string[], photos:[] as string[], photo_url:'',
+  work_experiences: [] as any[],
+  education: [] as any[],
+  certifications: [] as any[],
+  achievements: [] as any[],
 }
 
 export default function EditProfilePage() {
@@ -130,9 +134,14 @@ export default function EditProfilePage() {
     // Load the existing profile to edit
     const { data: p, error } = await supabase.from('profiles').select('*').eq('id', id).single()
     if (error || !p) { showError('Not Found','This profile could not be loaded. It may have been deleted.'); setLoading(false); return }
+    const parseArr = (v:any) => Array.isArray(v) ? v : (v ? (typeof v === 'string' ? JSON.parse(v) : v) : [])
     setForm({...EMPTY_PROFILE, ...p,
-      channels: Array.isArray(p.channels)?p.channels:(p.channels?JSON.parse(p.channels):[]),
-      photos: Array.isArray(p.photos)?p.photos:(p.photos?JSON.parse(p.photos):[]),
+      channels: parseArr(p.channels),
+      photos: parseArr(p.photos),
+      work_experiences: parseArr(p.work_experiences),
+      education: parseArr(p.education),
+      certifications: parseArr(p.certifications),
+      achievements: parseArr(p.achievements),
     })
     setOrigAssigned(p.assigned_to || '')
     setLoading(false)
@@ -141,6 +150,18 @@ export default function EditProfilePage() {
   const sf = (k:string,v:any) => setForm((f:any)=>({...f,[k]:v}))
   function showError(title: string, msg: string) { setErrorModal({title, msg}) }
   function showSuccess(msg: string) { setSuccessToast(msg); setTimeout(()=>setSuccessToast(null), 3000) }
+
+  // ── Helpers for the 4 array sections (work/edu/cert/achievement) ──
+  function pushTo(key: string, item: any) { setForm((f:any) => ({...f, [key]: [...(Array.isArray(f[key])?f[key]:[]), item]})) }
+  function updateAt(key: string, idx: number, patch: any) { setForm((f:any) => ({...f, [key]: (f[key]||[]).map((x:any,i:number) => i===idx ? {...x, ...patch} : x)})) }
+  function removeAt(key: string, idx: number) {
+    if (!window.confirm('Remove this entry?')) return
+    setForm((f:any) => ({...f, [key]: (f[key]||[]).filter((_:any,i:number) => i!==idx)}))
+  }
+  // Nested: work_experiences[idx].bullets[]
+  function addBullet(idx: number) { setForm((f:any) => ({...f, work_experiences: (f.work_experiences||[]).map((w:any,i:number) => i===idx ? {...w, bullets:[...(w.bullets||[]), '']} : w)})) }
+  function updateBullet(idx: number, bIdx: number, val: string) { setForm((f:any) => ({...f, work_experiences: (f.work_experiences||[]).map((w:any,i:number) => i===idx ? {...w, bullets:(w.bullets||[]).map((b:string,j:number) => j===bIdx?val:b)} : w)})) }
+  function removeBullet(idx: number, bIdx: number) { setForm((f:any) => ({...f, work_experiences: (f.work_experiences||[]).map((w:any,i:number) => i===idx ? {...w, bullets:(w.bullets||[]).filter((_:any,j:number) => j!==bIdx)} : w)})) }
 
   async function logActivity(profileId: string, action: string, oldVal='', newVal='') {
     try {
@@ -244,6 +265,10 @@ export default function EditProfilePage() {
       available_immediately: form.available_immediately!==false,
       assigned_to: u(form.assigned_to),
       channels: Array.isArray(form.channels)?form.channels:[], photos: Array.isArray(form.photos)?form.photos:[],
+      work_experiences: Array.isArray(form.work_experiences)?form.work_experiences:[],
+      education: Array.isArray(form.education)?form.education:[],
+      certifications: Array.isArray(form.certifications)?form.certifications:[],
+      achievements: Array.isArray(form.achievements)?form.achievements:[],
     }
     const { data, error } = await supabase.from('profiles').update(payload).eq('id', profileId).select().single()
     if (error) {
@@ -278,6 +303,13 @@ export default function EditProfilePage() {
   const LS:any = {display:'block',fontSize:10,fontWeight:600,color:'var(--mu)',textTransform:'uppercase',letterSpacing:1,marginBottom:4,marginTop:10}
   const SECTION:any = {background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:16,padding:'18px 20px',marginBottom:16}
   const SECTITLE:any = {fontSize:13,fontWeight:700,color:'var(--ac)',marginBottom:4,display:'flex',alignItems:'center',gap:8}
+  const ENTRY_CARD:any = {background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:12,padding:'14px 16px',marginTop:10,position:'relative'}
+  const ADD_BTN:any = {background:'var(--acbg)',color:'var(--ac)',border:'1px dashed var(--bd2)',borderRadius:10,padding:'9px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',marginTop:10,width:'100%'}
+  const DEL_BTN:any = {position:'absolute',top:10,right:10,background:'var(--rdbg)',color:'var(--rd)',border:'none',borderRadius:6,width:26,height:26,cursor:'pointer',fontSize:12,fontWeight:700}
+  const CUR_YEAR = new Date().getFullYear()
+  const YEARS: string[] = []
+  for (let y = CUR_YEAR + 2; y >= 1975; y--) YEARS.push(String(y))
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
   if (loading) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',flexDirection:'column',gap:12}}>
@@ -462,6 +494,171 @@ export default function EditProfilePage() {
               <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.willing_to_relocate||false} onChange={e=>sf('willing_to_relocate',e.target.checked)}/> Willing to relocate</label>
             </div>
           </div>
+        </div>
+
+        {/* ── SECTION 2.5: WORK EXPERIENCE (multiple jobs) ── */}
+        <div style={SECTION}>
+          <div style={{...SECTITLE,justifyContent:'space-between',width:'100%'}}>
+            <span>💼 Work Experience ({(form.work_experiences||[]).length})</span>
+          </div>
+          {(form.work_experiences||[]).map((w:any, idx:number) => (
+            <div key={idx} style={ENTRY_CARD}>
+              <button onClick={()=>removeAt('work_experiences', idx)} style={DEL_BTN} title="Remove this job">✕</button>
+              <div style={{fontSize:11,fontWeight:600,color:'var(--mu)',marginBottom:8}}>JOB #{idx+1}</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Company *</label>
+                  <input style={IS} value={w.company||''} onChange={e=>updateAt('work_experiences',idx,{company:e.target.value})} placeholder="e.g. Agratas Infotech Pvt Ltd"/>
+                </div>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Role / Designation *</label>
+                  <input style={IS} value={w.role||''} onChange={e=>updateAt('work_experiences',idx,{role:e.target.value})} placeholder="e.g. Talent Acquisition Lead"/>
+                </div>
+                <div>
+                  <label style={LS}>From — Month</label>
+                  <select style={IS} value={w.from_month||''} onChange={e=>updateAt('work_experiences',idx,{from_month:e.target.value})}>
+                    <option value="">Month</option>{MONTHS.map(m=><option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={LS}>From — Year</label>
+                  <select style={IS} value={w.from_year||''} onChange={e=>updateAt('work_experiences',idx,{from_year:e.target.value})}>
+                    <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={LS}>To — Month</label>
+                  {w.current
+                    ? <div style={{...IS,color:'var(--gn)',fontWeight:600}}>Present</div>
+                    : <select style={IS} value={w.to_month||''} onChange={e=>updateAt('work_experiences',idx,{to_month:e.target.value})}>
+                        <option value="">Month</option>{MONTHS.map(m=><option key={m}>{m}</option>)}
+                      </select>
+                  }
+                </div>
+                <div>
+                  <label style={LS}>To — Year</label>
+                  {w.current
+                    ? <div style={{...IS,color:'var(--gn)',fontWeight:600}}>Present</div>
+                    : <select style={IS} value={w.to_year||''} onChange={e=>updateAt('work_experiences',idx,{to_year:e.target.value})}>
+                        <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                      </select>
+                  }
+                </div>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)',marginTop:4}}>
+                    <input type="checkbox" checked={!!w.current} onChange={e=>updateAt('work_experiences',idx,{current:e.target.checked, to_month: e.target.checked?'':w.to_month, to_year: e.target.checked?'':w.to_year})}/> Currently working here
+                  </label>
+                </div>
+              </div>
+              <label style={{...LS,marginTop:14}}>Responsibilities (bullet points)</label>
+              {(w.bullets||[]).map((b:string, bIdx:number) => (
+                <div key={bIdx} style={{display:'flex',gap:6,marginBottom:6,alignItems:'flex-start'}}>
+                  <span style={{color:'var(--ac)',paddingTop:9,fontWeight:700}}>•</span>
+                  <input style={{...IS,flex:1}} value={b||''} onChange={e=>updateBullet(idx,bIdx,e.target.value)} placeholder="e.g. Led end-to-end recruitment lifecycle..."/>
+                  <button onClick={()=>removeBullet(idx,bIdx)} style={{background:'transparent',border:'none',cursor:'pointer',color:'var(--rd)',padding:'0 8px',fontSize:14}} title="Remove bullet">✕</button>
+                </div>
+              ))}
+              <button onClick={()=>addBullet(idx)} style={{background:'transparent',color:'var(--ac)',border:'1px dashed var(--bd2)',borderRadius:8,padding:'6px 12px',fontSize:11,cursor:'pointer',fontFamily:'inherit',marginTop:4}}>+ Add bullet point</button>
+            </div>
+          ))}
+          <button onClick={()=>pushTo('work_experiences',{company:'',role:'',from_month:'',from_year:'',to_month:'',to_year:'',current:false,bullets:[]})} style={ADD_BTN}>+ Add Work Experience</button>
+        </div>
+
+        {/* ── SECTION 2.6: EDUCATION (multiple degrees) ── */}
+        <div style={SECTION}>
+          <div style={{...SECTITLE,justifyContent:'space-between',width:'100%'}}>
+            <span>🎓 Education ({(form.education||[]).length})</span>
+          </div>
+          {(form.education||[]).map((ed:any, idx:number) => (
+            <div key={idx} style={ENTRY_CARD}>
+              <button onClick={()=>removeAt('education', idx)} style={DEL_BTN} title="Remove">✕</button>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <label style={LS}>Degree</label>
+                  <select style={IS} value={ed.degree||''} onChange={e=>updateAt('education',idx,{degree:e.target.value})}>
+                    <option value="">Select</option>{QUALIFICATIONS.map(q=><option key={q}>{q}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={LS}>Specialization / Branch</label>
+                  <input style={IS} value={ed.specialization||''} onChange={e=>updateAt('education',idx,{specialization:e.target.value})} placeholder="e.g. Computer Science"/>
+                </div>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Institution / University</label>
+                  <input style={IS} value={ed.institution||''} onChange={e=>updateAt('education',idx,{institution:e.target.value})} placeholder="e.g. Jamia Hamdard University"/>
+                </div>
+                <div>
+                  <label style={LS}>Passing Year</label>
+                  <select style={IS} value={ed.year||''} onChange={e=>updateAt('education',idx,{year:e.target.value})}>
+                    <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={LS}>CGPA / Percentage</label>
+                  <input style={IS} value={ed.percentage_or_cgpa||''} onChange={e=>updateAt('education',idx,{percentage_or_cgpa:e.target.value})} placeholder="e.g. 8.5 or 78%"/>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>pushTo('education',{degree:'',specialization:'',institution:'',year:'',percentage_or_cgpa:''})} style={ADD_BTN}>+ Add Education</button>
+        </div>
+
+        {/* ── SECTION 2.7: CERTIFICATIONS ── */}
+        <div style={SECTION}>
+          <div style={{...SECTITLE,justifyContent:'space-between',width:'100%'}}>
+            <span>📜 Certifications ({(form.certifications||[]).length})</span>
+          </div>
+          {(form.certifications||[]).map((c:any, idx:number) => (
+            <div key={idx} style={ENTRY_CARD}>
+              <button onClick={()=>removeAt('certifications', idx)} style={DEL_BTN} title="Remove">✕</button>
+              <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 100px',gap:12}}>
+                <div>
+                  <label style={LS}>Certificate Name</label>
+                  <input style={IS} value={c.name||''} onChange={e=>updateAt('certifications',idx,{name:e.target.value})} placeholder="e.g. Generative AI Skills"/>
+                </div>
+                <div>
+                  <label style={LS}>Issued By</label>
+                  <input style={IS} value={c.issuer||''} onChange={e=>updateAt('certifications',idx,{issuer:e.target.value})} placeholder="e.g. Growthschool.ai"/>
+                </div>
+                <div>
+                  <label style={LS}>Year</label>
+                  <select style={IS} value={c.year||''} onChange={e=>updateAt('certifications',idx,{year:e.target.value})}>
+                    <option value="">—</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>pushTo('certifications',{name:'',issuer:'',year:''})} style={ADD_BTN}>+ Add Certification</button>
+        </div>
+
+        {/* ── SECTION 2.8: ACHIEVEMENTS & AWARDS ── */}
+        <div style={SECTION}>
+          <div style={{...SECTITLE,justifyContent:'space-between',width:'100%'}}>
+            <span>🏆 Achievements & Awards ({(form.achievements||[]).length})</span>
+          </div>
+          {(form.achievements||[]).map((a:any, idx:number) => (
+            <div key={idx} style={ENTRY_CARD}>
+              <button onClick={()=>removeAt('achievements', idx)} style={DEL_BTN} title="Remove">✕</button>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 100px',gap:12}}>
+                <div>
+                  <label style={LS}>Title *</label>
+                  <input style={IS} value={a.title||''} onChange={e=>updateAt('achievements',idx,{title:e.target.value})} placeholder="e.g. Best Employee Award"/>
+                </div>
+                <div>
+                  <label style={LS}>Year</label>
+                  <select style={IS} value={a.year||''} onChange={e=>updateAt('achievements',idx,{year:e.target.value})}>
+                    <option value="">—</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Description (optional)</label>
+                  <textarea rows={2} style={{...IS,resize:'none'}} value={a.description||''} onChange={e=>updateAt('achievements',idx,{description:e.target.value})} placeholder="e.g. Won government tenders worth ₹250 Crore..."/>
+                </div>
+              </div>
+            </div>
+          ))}
+          <button onClick={()=>pushTo('achievements',{title:'',description:'',year:''})} style={ADD_BTN}>+ Add Achievement</button>
         </div>
 
         {/* ── SECTION 3: LOCATION ── */}
