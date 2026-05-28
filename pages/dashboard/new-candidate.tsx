@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Layout from '../../src/components/Layout';
 
 // --- DATA CONSTANTS ---
 const indianLocations = {
@@ -117,7 +116,7 @@ export default function NewCandidate() {
   const sectionStyle = { backgroundColor: '#111827', padding: '30px', borderRadius: '16px', border: '1px solid #1f2937', marginBottom: '30px' };
 
   return (
-    <Layout>
+    <>
       <header style={{ padding: '20px 40px', borderBottom: '1px solid #1f2937', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#0b0e14' }}>
         <h1 style={{ color: '#fff', fontSize: '24px', margin: 0 }}>Add New Candidate (V2)</h1>
         <div style={{ display: 'flex', gap: '15px' }}>
@@ -217,6 +216,6 @@ export default function NewCandidate() {
         </div>
 
       </div>
-    </Layout>
+    </>
   );
 }

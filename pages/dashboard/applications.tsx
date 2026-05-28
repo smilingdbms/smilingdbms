@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { logApplicationStatusChanged, startIdleTracking } from '../../src/lib/activityLogger'
-import DashboardNav from '../../src/components/DashboardNav'
 
 const STATUSES = ['Applied','Reviewing','Shortlisted','Interview','Rejected','Hired']
 const STATUS_COLORS: any = {
@@ -133,8 +132,9 @@ export default function ApplicationsPage() {
   if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ color: '#7a7f90' }}>Loading applications...</span></div>
 
   return (
+    <>
     <div style={S.page}>
-      <DashboardNav />
+      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -324,5 +324,6 @@ export default function ApplicationsPage() {
         )}
       </div>
     </div>
+    </>
   )
 }

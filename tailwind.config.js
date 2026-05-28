@@ -1,13 +1,20 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-  content: ['./src/**/*.{js,ts,jsx,tsx}'],
+  // ─── FIXED: was missing pages/ — all Tailwind classes in pages were purged ───
+  content: [
+    './pages/**/*.{js,ts,jsx,tsx}',
+    './src/**/*.{js,ts,jsx,tsx}',
+  ],
   theme: {
     extend: {
       colors: {
-        brand: { DEFAULT: '#6c8cff', dark: '#4a6de8' },
-        surface: { DEFAULT: '#1a1d24', light: '#22262f', dark: '#111318' }
+        brand: { DEFAULT: 'var(--ac)', dark: 'var(--ac)' },
+        surface: { DEFAULT: 'var(--bg2)', light: 'var(--bg3)', dark: 'var(--bg)' }
       },
-      fontFamily: { sans: ['Inter', 'sans-serif'] }
+      fontFamily: {
+        sans: ['Outfit', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
+      },
     }
   },
   plugins: []

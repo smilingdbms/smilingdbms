@@ -1,30 +1,220 @@
-export const THEMES: Record<string,Record<string,string>> = {
-  light:{'--bg':'#f0f2f8','--bg2':'#ffffff','--bg3':'#eef0f7','--bg4':'#e4e7f0','--tx':'#1a1d2e','--mu':'#6b7280','--mu2':'#9ca3af','--bd':'rgba(0,0,0,0.08)','--bd2':'rgba(0,0,0,0.14)','--ac':'#4c6ef5','--acbg':'rgba(76,110,245,0.1)','--nb':'#f8f9fc','--nbr':'rgba(0,0,0,0.06)','--gn':'#2da44e','--gnbg':'rgba(45,164,78,0.1)','--rd':'#e53e3e','--rdbg':'rgba(229,62,62,0.1)','--gd':'#d69e2e','--gdbg':'rgba(214,158,46,0.1)','--or':'#dd6b20','--orbg':'rgba(221,107,32,0.1)','--pu':'#7c3aed','--pubg':'rgba(124,58,237,0.1)','--tl':'#0891b2','--tlbg':'rgba(8,145,178,0.1)'},
-  dark:{'--bg':'#0e1117','--bg2':'#161b22','--bg3':'#1f2430','--bg4':'#262d3a','--tx':'#e8eaf0','--mu':'#7a7f90','--mu2':'#505468','--bd':'rgba(255,255,255,0.08)','--bd2':'rgba(255,255,255,0.13)','--ac':'#6c8cff','--acbg':'rgba(108,140,255,0.12)','--nb':'#0d0f14','--nbr':'rgba(255,255,255,0.05)','--gn':'#3dd68c','--gnbg':'rgba(61,214,140,0.1)','--rd':'#ff6b6b','--rdbg':'rgba(255,107,107,0.1)','--gd':'#ffd60a','--gdbg':'rgba(255,214,10,0.1)','--or':'#ff9f43','--orbg':'rgba(255,159,67,0.1)','--pu':'#c77dff','--pubg':'rgba(199,125,255,0.1)','--tl':'#48cae4','--tlbg':'rgba(72,202,228,0.1)'},
-  ocean:{'--bg':'#060d1c','--bg2':'#0a1628','--bg3':'#0d1f38','--bg4':'#112347','--tx':'#c8dff8','--mu':'#5b8db8','--mu2':'#3a5278','--bd':'rgba(72,202,228,0.1)','--bd2':'rgba(72,202,228,0.2)','--ac':'#38bdf8','--acbg':'rgba(56,189,248,0.12)','--nb':'#04080f','--nbr':'rgba(56,189,248,0.08)','--gn':'#34d399','--gnbg':'rgba(52,211,153,0.1)','--rd':'#f87171','--rdbg':'rgba(248,113,113,0.1)','--gd':'#fde68a','--gdbg':'rgba(253,230,138,0.1)','--or':'#fbbf24','--orbg':'rgba(251,191,36,0.1)','--pu':'#a78bfa','--pubg':'rgba(167,139,250,0.1)','--tl':'#2dd4bf','--tlbg':'rgba(45,212,191,0.1)'},
-  forest:{'--bg':'#0b1a0e','--bg2':'#112018','--bg3':'#172a1e','--bg4':'#1d3426','--tx':'#d4f0dc','--mu':'#5a8a68','--mu2':'#3a6048','--bd':'rgba(74,222,128,0.1)','--bd2':'rgba(74,222,128,0.2)','--ac':'#4ade80','--acbg':'rgba(74,222,128,0.1)','--nb':'#070f09','--nbr':'rgba(74,222,128,0.07)','--gn':'#4ade80','--gnbg':'rgba(74,222,128,0.1)','--rd':'#f87171','--rdbg':'rgba(248,113,113,0.1)','--gd':'#fcd34d','--gdbg':'rgba(252,211,77,0.1)','--or':'#fb923c','--orbg':'rgba(251,146,60,0.1)','--pu':'#c084fc','--pubg':'rgba(192,132,252,0.1)','--tl':'#34d399','--tlbg':'rgba(52,211,153,0.1)'},
-  purple:{'--bg':'#0d0b1a','--bg2':'#150d2a','--bg3':'#1e1235','--bg4':'#261640','--tx':'#ede8ff','--mu':'#7a5a9a','--mu2':'#5a3a7a','--bd':'rgba(199,125,255,0.12)','--bd2':'rgba(199,125,255,0.22)','--ac':'#c77dff','--acbg':'rgba(199,125,255,0.12)','--nb':'#090614','--nbr':'rgba(199,125,255,0.07)','--gn':'#a78bfa','--gnbg':'rgba(167,139,250,0.1)','--rd':'#f87171','--rdbg':'rgba(248,113,113,0.1)','--gd':'#fde68a','--gdbg':'rgba(253,230,138,0.1)','--or':'#fb923c','--orbg':'rgba(251,146,60,0.1)','--pu':'#e879f9','--pubg':'rgba(232,121,249,0.1)','--tl':'#67e8f9','--tlbg':'rgba(103,232,249,0.1)'},
-  crimson:{'--bg':'#160a0a','--bg2':'#1e0f0f','--bg3':'#281414','--bg4':'#341a1a','--tx':'#f5dada','--mu':'#8a5050','--mu2':'#603838','--bd':'rgba(255,107,107,0.12)','--bd2':'rgba(255,107,107,0.22)','--ac':'#f87171','--acbg':'rgba(248,113,113,0.12)','--nb':'#0e0606','--nbr':'rgba(248,113,113,0.07)','--gn':'#86efac','--gnbg':'rgba(134,239,172,0.1)','--rd':'#ff4444','--rdbg':'rgba(255,68,68,0.15)','--gd':'#fde68a','--gdbg':'rgba(253,230,138,0.1)','--or':'#fbbf24','--orbg':'rgba(251,191,36,0.1)','--pu':'#d8b4fe','--pubg':'rgba(216,180,254,0.1)','--tl':'#67e8f9','--tlbg':'rgba(103,232,249,0.1)'},
+// src/components/theme.ts
+// ═══════════════════════════════════════════════════════
+// SINGLE SOURCE OF TRUTH — All theme tokens defined here
+// Used by: _app.tsx (global), globals.css ([data-theme] mirrors these)
+// Never import this in individual pages — only _app.tsx
+// ═══════════════════════════════════════════════════════
+
+export const THEMES: Record<string, Record<string, string>> = {
+
+  dark: {
+    '--bg':    '#0a0d14',
+    '--bg2':   '#111827',
+    '--bg3':   '#1f2937',
+    '--bg4':   '#374151',
+    '--tx':    '#f9fafb',
+    '--mu':    '#9ca3af',
+    '--mu2':   '#6b7280',
+    '--bd':    'rgba(255,255,255,0.08)',
+    '--bd2':   'rgba(255,255,255,0.14)',
+    '--ac':    '#818cf8',
+    '--acbg':  'rgba(129,140,248,0.12)',
+    '--nb':    '#060913',
+    '--nbr':   'rgba(255,255,255,0.05)',
+    '--gn':    '#4ade80',
+    '--gnbg':  'rgba(74,222,128,0.10)',
+    '--rd':    '#f87171',
+    '--rdbg':  'rgba(248,113,113,0.10)',
+    '--gd':    '#fbbf24',
+    '--gdbg':  'rgba(251,191,36,0.10)',
+    '--or':    '#fb923c',
+    '--orbg':  'rgba(251,146,60,0.10)',
+    '--pu':    '#c084fc',
+    '--pubg':  'rgba(192,132,252,0.10)',
+    '--tl':    '#22d3ee',
+    '--tlbg':  'rgba(34,211,238,0.10)',
+    '--sh':    '0 2px 12px rgba(0,0,0,0.4)',
+    '--shl':   '0 8px 40px rgba(0,0,0,0.5)',
+  },
+
+  light: {
+    '--bg':    '#f8fafc',
+    '--bg2':   '#ffffff',
+    '--bg3':   '#f1f5f9',
+    '--bg4':   '#e2e8f0',
+    '--tx':    '#0f172a',
+    '--mu':    '#475569',
+    '--mu2':   '#94a3b8',
+    '--bd':    'rgba(0,0,0,0.08)',
+    '--bd2':   'rgba(0,0,0,0.14)',
+    '--ac':    '#4f46e5',
+    '--acbg':  'rgba(79,70,229,0.10)',
+    '--nb':    '#f1f5f9',
+    '--nbr':   'rgba(0,0,0,0.06)',
+    '--gn':    '#16a34a',
+    '--gnbg':  'rgba(22,163,74,0.10)',
+    '--rd':    '#dc2626',
+    '--rdbg':  'rgba(220,38,38,0.10)',
+    '--gd':    '#d97706',
+    '--gdbg':  'rgba(217,119,6,0.10)',
+    '--or':    '#ea580c',
+    '--orbg':  'rgba(234,88,12,0.10)',
+    '--pu':    '#7c3aed',
+    '--pubg':  'rgba(124,58,237,0.10)',
+    '--tl':    '#0891b2',
+    '--tlbg':  'rgba(8,145,178,0.10)',
+    '--sh':    '0 2px 12px rgba(0,0,0,0.08)',
+    '--shl':   '0 8px 40px rgba(0,0,0,0.15)',
+  },
+
+  gradient: {
+    '--bg':    '#060918',
+    '--bg2':   '#0d1229',
+    '--bg3':   '#131a3a',
+    '--bg4':   '#1a2248',
+    '--tx':    '#e8eeff',
+    '--mu':    '#8899cc',
+    '--mu2':   '#5566aa',
+    '--bd':    'rgba(130,150,255,0.15)',
+    '--bd2':   'rgba(130,150,255,0.28)',
+    '--ac':    '#a78bfa',
+    '--acbg':  'rgba(167,139,250,0.15)',
+    '--nb':    '#040712',
+    '--nbr':   'rgba(130,150,255,0.08)',
+    '--gn':    '#34d399',
+    '--gnbg':  'rgba(52,211,153,0.12)',
+    '--rd':    '#f87171',
+    '--rdbg':  'rgba(248,113,113,0.12)',
+    '--gd':    '#fde68a',
+    '--gdbg':  'rgba(253,230,138,0.12)',
+    '--or':    '#fb923c',
+    '--orbg':  'rgba(251,146,60,0.12)',
+    '--pu':    '#e879f9',
+    '--pubg':  'rgba(232,121,249,0.12)',
+    '--tl':    '#67e8f9',
+    '--tlbg':  'rgba(103,232,249,0.12)',
+    '--sh':    '0 4px 20px rgba(0,0,80,0.5)',
+    '--shl':   '0 12px 48px rgba(0,0,80,0.7)',
+  },
+
+  glass: {
+    '--bg':    '#0f1117',
+    '--bg2':   'rgba(255,255,255,0.07)',
+    '--bg3':   'rgba(255,255,255,0.10)',
+    '--bg4':   'rgba(255,255,255,0.15)',
+    '--tx':    '#f1f5f9',
+    '--mu':    '#94a3b8',
+    '--mu2':   '#64748b',
+    '--bd':    'rgba(255,255,255,0.12)',
+    '--bd2':   'rgba(255,255,255,0.22)',
+    '--ac':    '#38bdf8',
+    '--acbg':  'rgba(56,189,248,0.12)',
+    '--nb':    'rgba(255,255,255,0.04)',
+    '--nbr':   'rgba(255,255,255,0.08)',
+    '--gn':    '#4ade80',
+    '--gnbg':  'rgba(74,222,128,0.10)',
+    '--rd':    '#f87171',
+    '--rdbg':  'rgba(248,113,113,0.10)',
+    '--gd':    '#fbbf24',
+    '--gdbg':  'rgba(251,191,36,0.10)',
+    '--or':    '#fb923c',
+    '--orbg':  'rgba(251,146,60,0.10)',
+    '--pu':    '#c084fc',
+    '--pubg':  'rgba(192,132,252,0.10)',
+    '--tl':    '#22d3ee',
+    '--tlbg':  'rgba(34,211,238,0.10)',
+    '--sh':    '0 4px 24px rgba(0,0,0,0.25)',
+    '--shl':   '0 8px 48px rgba(0,0,0,0.35)',
+  },
+
+  neon: {
+    '--bg':    '#020204',
+    '--bg2':   '#06060e',
+    '--bg3':   '#0a0a18',
+    '--bg4':   '#0f0f22',
+    '--tx':    '#e0e0ff',
+    '--mu':    '#6060c0',
+    '--mu2':   '#404080',
+    '--bd':    'rgba(0,212,255,0.15)',
+    '--bd2':   'rgba(0,212,255,0.30)',
+    '--ac':    '#00d4ff',
+    '--acbg':  'rgba(0,212,255,0.10)',
+    '--nb':    '#030308',
+    '--nbr':   'rgba(0,212,255,0.06)',
+    '--gn':    '#39ff14',
+    '--gnbg':  'rgba(57,255,20,0.08)',
+    '--rd':    '#ff073a',
+    '--rdbg':  'rgba(255,7,58,0.10)',
+    '--gd':    '#fff700',
+    '--gdbg':  'rgba(255,247,0,0.08)',
+    '--or':    '#ff6600',
+    '--orbg':  'rgba(255,102,0,0.10)',
+    '--pu':    '#bf00ff',
+    '--pubg':  'rgba(191,0,255,0.10)',
+    '--tl':    '#00ffcc',
+    '--tlbg':  'rgba(0,255,204,0.08)',
+    '--sh':    '0 0 20px rgba(0,212,255,0.20)',
+    '--shl':   '0 0 40px rgba(0,212,255,0.35)',
+  },
+
+  aurora: {
+    '--bg':    '#030b1a',
+    '--bg2':   '#05122a',
+    '--bg3':   '#081835',
+    '--bg4':   '#0b1e40',
+    '--tx':    '#e8f4f8',
+    '--mu':    '#7ab5cc',
+    '--mu2':   '#4a7a99',
+    '--bd':    'rgba(0,229,255,0.12)',
+    '--bd2':   'rgba(0,229,255,0.22)',
+    '--ac':    '#00e5ff',
+    '--acbg':  'rgba(0,229,255,0.10)',
+    '--nb':    '#020810',
+    '--nbr':   'rgba(0,229,255,0.06)',
+    '--gn':    '#00ff88',
+    '--gnbg':  'rgba(0,255,136,0.08)',
+    '--rd':    '#ff4466',
+    '--rdbg':  'rgba(255,68,102,0.10)',
+    '--gd':    '#ffe066',
+    '--gdbg':  'rgba(255,224,102,0.08)',
+    '--or':    '#ff9f43',
+    '--orbg':  'rgba(255,159,67,0.10)',
+    '--pu':    '#cc44ff',
+    '--pubg':  'rgba(204,68,255,0.10)',
+    '--tl':    '#00ffdd',
+    '--tlbg':  'rgba(0,255,221,0.08)',
+    '--sh':    '0 4px 20px rgba(0,30,60,0.5)',
+    '--shl':   '0 8px 48px rgba(0,30,60,0.7)',
+  },
 }
 
 export const THEME_LIST = [
-  {id:'dark',  color:'#6c8cff', label:'Dark',    emoji:'🌑'},
-  {id:'light', color:'#4c6ef5', label:'Light',   emoji:'☀️'},
-  {id:'ocean', color:'#38bdf8', label:'Ocean',   emoji:'🌊'},
-  {id:'forest',color:'#4ade80', label:'Forest',  emoji:'🌿'},
-  {id:'purple',color:'#c77dff', label:'Purple',  emoji:'💜'},
-  {id:'crimson',color:'#f87171',label:'Crimson', emoji:'🔴'},
+  { id: 'dark',     color: '#818cf8', label: 'Dark',         emoji: '🌑' },
+  { id: 'light',    color: '#4f46e5', label: 'Light',        emoji: '☀️' },
+  { id: 'gradient', color: '#a78bfa', label: 'Gradient Pro', emoji: '🌟' },
+  { id: 'glass',    color: '#38bdf8', label: 'Glass',        emoji: '💎' },
+  { id: 'neon',     color: '#00d4ff', label: 'Neon Dark',    emoji: '🔥' },
+  { id: 'aurora',   color: '#00e5ff', label: 'Aurora',       emoji: '⚡' },
 ]
 
-export function applyTheme(t: string) {
-  const vars = THEMES[t] || THEMES.dark
-  if (typeof document !== 'undefined') {
-    Object.entries(vars).forEach(([k,v]) => document.documentElement.style.setProperty(k,v))
-    document.documentElement.setAttribute('data-theme', t)
-  }
+// Apply theme: sets CSS vars on <html> AND data-theme attribute
+export function applyTheme(themeId: string): void {
+  const vars = THEMES[themeId] || THEMES.dark
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  // Set data-theme for CSS [data-theme] selectors in globals.css
+  root.setAttribute('data-theme', themeId)
+  // Set CSS variables via inline style (higher specificity — wins over stylesheet)
+  Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v))
 }
 
 export function getSavedTheme(): string {
-  if (typeof localStorage !== 'undefined') return localStorage.getItem('rbp_theme') || 'dark'
-  return 'dark'
+  if (typeof localStorage === 'undefined') return 'dark'
+  return localStorage.getItem('rbp_theme') || 'dark'
+}
+
+export function saveTheme(themeId: string): void {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('rbp_theme', themeId)
+  }
 }

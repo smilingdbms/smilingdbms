@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 const STAKEHOLDER_TYPES = ['Client','Vendor','Partner','Consultant','Investor','Government','Media','Other']
 const STATUSES = ['Active','Inactive','Prospect','Blacklisted']
@@ -135,8 +134,9 @@ export default function Stakeholders() {
   if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)'}}>Loading Stakeholders...</div>
 
   return (
+    <>
     <div style={S.page}>
-      <DashboardNav />
+      
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
@@ -339,5 +339,6 @@ export default function Stakeholders() {
         </div>
       )}
     </div>
+    </>
   )
 }

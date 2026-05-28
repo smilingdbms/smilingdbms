@@ -1,7 +1,6 @@
 // ══════════════════════════════════════════════════════════
-// JOBSEEKER UTILITIES v2.0 — Production Grade
-// Match %, profile strength, image compression, geo (GPS + IP fallback),
-// share, streak, XP, daily tips, ad slots, debounce, cache
+// JOBSEEKER UTILITIES v2.1 — Production Grade (FIXED)
+// Auth check corrected: Job seekers stay in /jobseeker portal
 // ══════════════════════════════════════════════════════════
 
 import { supabase } from './supabase'
@@ -153,14 +152,10 @@ export function validateFileSize(file: File, maxMB: number = 1): { ok: boolean; 
 
 // ── Geolocation (GPS + IP fallback) ──────────────────────
 export async function getUserLocation(): Promise<{ lat: number; lng: number; source: 'gps' | 'ip' } | null> {
-  // Try GPS first
   const gps = await getGPSLocation()
   if (gps) return { ...gps, source: 'gps' }
-
-  // Fallback to IP-based location
   const ip = await getIPLocation()
   if (ip) return { ...ip, source: 'ip' }
-
   return null
 }
 
@@ -354,7 +349,9 @@ export async function saveUserLocation(userId: string): Promise<{ lat: number; l
   return null
 }
 
-// ── Auth Guard (single, reusable — fixes dual auth flash) ─
+// ── Auth Guard (FIXED) ──────────────────────────────────────────
+// Job seekers accessing /jobseeker should NOT be redirected to /dashboard
+// Only staff members trying to access job seeker routes should be redirected
 export async function checkJobSeekerAuth(): Promise<{
   user: AppUser | null
   redirect: string | null
@@ -366,7 +363,10 @@ export async function checkJobSeekerAuth(): Promise<{
   const cached = getCached<AppUser>(cacheKey)
   if (cached) {
     if (cached.status === 'disabled') return { user: null, redirect: '/' }
-    if (!['job_seeker', 'super_admin'].includes(cached.role)) return { user: null, redirect: '/dashboard' }
+    // ✅ FIXED: Job seekers can access /jobseeker, others go to /dashboard
+    if (cached.role !== 'job_seeker' && !['super_admin', 'platform_admin', 'platform_manager'].includes(cached.role)) {
+      return { user: null, redirect: '/dashboard' }
+    }
     return { user: cached, redirect: null }
   }
 
@@ -386,7 +386,8 @@ export async function checkJobSeekerAuth(): Promise<{
     return { user: null, redirect: '/' }
   }
 
-  if (!['job_seeker', 'super_admin'].includes(au.role)) {
+  // ✅ FIXED: Allow job_seeker and super_admin, reject others
+  if (au.role !== 'job_seeker' && !['super_admin', 'platform_admin', 'platform_manager'].includes(au.role)) {
     return { user: null, redirect: '/dashboard' }
   }
 

@@ -1,9 +1,7 @@
-import Layout from '../../src/components/Layout'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 const EMPTY_JD = { title:'', company:'', location:'', industry:'', experience_min:'', experience_max:'', qualification:'', skills:'', description:'', status:'Open', openings:1 }
 
@@ -27,7 +25,7 @@ export default function Jobs() {
     const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
     setAppUser(au)
     try {
-      const { data: js } = await supabase.from('job_descriptions').select('*').order('created_at', { ascending: false })
+      let _q = supabase.from('job_descriptions').select('*').order('created_at', { ascending: false }); if (!['super_admin','platform_admin','platform_manager'].includes(au?.role)) _q = _q.eq('company_id', au?.company_id); const { data: js } = await _q; // company isolated
       setJobs(js || [])
     } catch(e) { console.warn('Jobs table not ready yet') }
     setLoading(false)
@@ -41,7 +39,12 @@ export default function Jobs() {
         if (error) throw error
         setJobs(prev => prev.map(j => j.id === data.id ? data : j))
       } else {
-        const { data, error } = await supabase.from('job_descriptions').insert({ ...form, created_by: appUser?.id }).select().single()
+        const { data, error } = await supabase.from('job_descriptions').insert({ 
+            ...form, 
+            created_by: appUser?.id,
+            company_id: appUser?.company_id,
+            is_public: false
+          }).select().single()
         if (error) throw error
         setJobs(prev => [data, ...prev])
       }
@@ -63,8 +66,9 @@ export default function Jobs() {
   if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'#111318',color:'#e8eaf0'}}>Loading...</div>
 
   return (
+    <>
     <div style={{minHeight:'100vh',background:'#111318',color:'#e8eaf0',fontFamily:'Outfit,Inter,sans-serif'}}>
-      <DashboardNav />
+      
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
       
       
@@ -192,5 +196,6 @@ export default function Jobs() {
         </div>
       )}
     </div>
+    </>
   )
 }

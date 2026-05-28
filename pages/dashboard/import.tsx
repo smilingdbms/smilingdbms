@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 // ── FIELD MAPPING CONFIG ─────────────────────────────────────────
 const SYSTEM_FIELDS = [
@@ -265,8 +264,9 @@ export default function ImportPage() {
   const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'#7a7f90', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
 
   return (
+    <>
     <div style={{minHeight:'100vh', background:'#111318', color:'#e8eaf0', fontFamily:"'Outfit',Inter,sans-serif"}}>
-      <DashboardNav />
+      
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
       {/* Nav */}
@@ -581,5 +581,6 @@ export default function ImportPage() {
         )}
       </div>
     </div>
+    </>
   )
 }

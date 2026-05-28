@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
@@ -30,6 +31,7 @@ const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
   'Rejected':{bg:'rgba(200,50,50,0.25)',color:'#ff6b6b'},
   'On Hold':{bg:'rgba(80,80,100,0.3)',color:'#888'}
 }
+const STATUS_EMOJI: Record<string,string> = {'New':'🆕','Contacted':'📞','Screening':'🔍','Shortlisted':'⭐','Interview Scheduled':'📅','Offer Made':'💼','Placed':'🎯','Rejected':'❌','On Hold':'⏸️'}
 const SEGMENT_CONFIG = {
   all:        { label:'All Profiles',   icon:'👥', color:'var(--ac)',  desc:'All segments combined' },
   fresher:    { label:'Freshers',        icon:'🎓', color:'#3dd68c',  desc:'0-1 year, students, interns' },
@@ -83,7 +85,79 @@ function getSkillSugs(role: string, ind: string, qual: string): string[] {
   return SKILL_SETS['default']
 }
 
+function exportCSV(profiles: any[]) {
+  const headers = ['Name','Mobile','Email','Role','Experience','Current CTC','Expected CTC','Notice Period','Qualification','Skills','City','Status','Source','Star Rating','Added On']
+  const rows = profiles.map(p => [
+    p.name||'', p.mobile||'', p.email||'', p.role||'',
+    p.experience||'', p.current_ctc||'', p.expected_ctc||'',
+    p.notice_period||'', p.qualification||'', p.skills||'',
+    p.city||'', p.status||'', p.source||'', p.star_rating||'',
+    new Date(p.created_at).toLocaleDateString('en-IN')
+  ])
+  const csv = [headers,...rows].map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `candidates_${new Date().toISOString().split('T')[0]}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function downloadTemplate() {
+  const headers = ['name','mobile','email','role','experience','current_ctc','expected_ctc','notice_period','qualification','skills','city','gender','age','source','linkedin','current_company','industry','work_mode']
+  const sample = ['John Doe','9876543210','john@email.com','Software Engineer','3','8','12','1 month','B.Tech','React, Node.js','Delhi','Male','26','Direct','linkedin.com/in/john','ABC Corp','IT / Software','Hybrid']
+  const csv = [headers, sample].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n')
+  const blob = new Blob([csv],{type:'text/csv'})
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href=url; a.download='candidate_import_template.csv'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+const ADMIN_ROLES = ['super_admin','platform_admin','platform_manager','account_owner']
+
+// Extended pipeline statuses (17 detailed stages)
+const PIPELINE_STATUSES = [
+  'New','Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later',
+  'Contacted - Number Busy','Contacted - Not Reachable','Resume Received',
+  'Resume Shortlisted','Interview Scheduled','Interview Done - Selected',
+  'Interview Done - Rejected','Interview Done - On Hold','Offer Discussed',
+  'Offer Accepted','Offer Declined','Did Not Join','Joined Successfully'
+]
+const PIPELINE_EMOJI: Record<string,string> = {
+  'New':'🆕','Contacted - Interested':'✅','Contacted - Not Interested':'❌',
+  'Contacted - Call Back Later':'📞','Contacted - Number Busy':'📵',
+  'Contacted - Not Reachable':'🔕','Resume Received':'📄','Resume Shortlisted':'⭐',
+  'Interview Scheduled':'📅','Interview Done - Selected':'🎯',
+  'Interview Done - Rejected':'❌','Interview Done - On Hold':'⏸️',
+  'Offer Discussed':'💬','Offer Accepted':'✅','Offer Declined':'🚫',
+  'Did Not Join':'😔','Joined Successfully':'🎉'
+}
+const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
+  'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
+  'Contacted - Interested':{bg:'rgba(30,160,100,0.25)',color:'#3dd68c'},
+  'Contacted - Not Interested':{bg:'rgba(200,50,50,0.2)',color:'#ff6b6b'},
+  'Contacted - Call Back Later':{bg:'rgba(30,90,200,0.25)',color:'#7ab3ff'},
+  'Contacted - Number Busy':{bg:'rgba(150,100,0,0.25)',color:'#ffb347'},
+  'Contacted - Not Reachable':{bg:'rgba(100,80,0,0.25)',color:'#ffd60a'},
+  'Resume Received':{bg:'rgba(0,160,160,0.2)',color:'#48cae4'},
+  'Resume Shortlisted':{bg:'rgba(150,80,255,0.2)',color:'#c77dff'},
+  'Interview Scheduled':{bg:'rgba(0,140,255,0.2)',color:'#60b0ff'},
+  'Interview Done - Selected':{bg:'rgba(30,200,100,0.25)',color:'#6fcf6f'},
+  'Interview Done - Rejected':{bg:'rgba(200,50,50,0.25)',color:'#ff6b6b'},
+  'Interview Done - On Hold':{bg:'rgba(80,80,100,0.3)',color:'#888'},
+  'Offer Discussed':{bg:'rgba(150,80,255,0.2)',color:'#c77dff'},
+  'Offer Accepted':{bg:'rgba(30,200,30,0.25)',color:'#3dd68c'},
+  'Offer Declined':{bg:'rgba(200,50,50,0.2)',color:'#ff6b6b'},
+  'Did Not Join':{bg:'rgba(150,50,50,0.2)',color:'#ff8888'},
+  'Joined Successfully':{bg:'rgba(30,160,30,0.3)',color:'#6fcf6f'},
+}
+const FEEDBACK_OPTIONS = ['Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later','Contacted - Number Busy','Contacted - Not Reachable','Resume Received','Resume Shortlisted','Interview Scheduled','Interview Done - Selected','Interview Done - Rejected','Interview Done - On Hold','Offer Discussed','Offer Accepted','Offer Declined','Did Not Join','Joined Successfully','Custom']
+
 export default function Dashboard() {
+  // All users can access - RLS handles data isolation
+
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [appUser, setAppUser] = useState<any>(null)
@@ -177,6 +251,16 @@ export default function Dashboard() {
   const [bulkType, setBulkType] = useState('whatsapp')
   const [pointsLog, setPointsLog] = useState<any[]>([])
   const [wizardStep, setWizardStep] = useState(1)
+  const [statusToast, setStatusToast] = useState<{msg:string,color:string}|null>(null)
+  const [errorModal, setErrorModal] = useState<{title:string,msg:string}|null>(null)
+  const [bulkImportModal, setBulkImportModal] = useState(false)
+  const [importResult, setImportResult] = useState<{ok:number,fail:number,errors:string[]}|null>(null)
+  const [importing, setImporting] = useState(false)
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [selectedFeedback, setSelectedFeedback] = useState('')
+  const [filterAddedBy, setFilterAddedBy] = useState('')
+  const photoRef = useRef<any>(null)
+  const bulkFileRef = useRef<any>(null)
 
   useEffect(() => {
     applyTheme(getSavedTheme())
@@ -188,6 +272,17 @@ export default function Dashboard() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_,session) => { if (!session) router.push('/') })
     return () => subscription.unsubscribe()
   }, [])
+
+  // Auto-open add form when redirected from /dashboard/add-profile
+  useEffect(() => {
+    if (router.query.action === 'add' && !loading) {
+      setForm({...EMPTY_PROFILE, segment: activeSegment === 'all' ? 'experienced' : activeSegment});
+      setShowAdd(true);
+      setShowProfile(null);
+      setWizardStep(1);
+      router.replace('/dashboard/master', undefined, { shallow: true });
+    }
+  }, [router.query.action, loading])
 
   async function loadAll(u: any) {
     // Load user
@@ -214,8 +309,11 @@ export default function Dashboard() {
     const { data: perms } = await supabase.from('user_permissions').select('*').eq('user_id', u.id).single()
     setMyPermissions(perms)
 
-    // Load company users
-    if (au.company_id) {
+    // Load company users (all for super admin, company-scoped for others)
+    if (['super_admin','platform_admin','platform_manager'].includes(au.role)) {
+      const { data: users } = await supabase.from('app_users').select('*').order('full_name')
+      setAllUsers(users || [])
+    } else if (au.company_id) {
       const { data: users } = await supabase.from('app_users').select('*').eq('company_id', au.company_id)
       setAllUsers(users || [])
     }
@@ -278,21 +376,117 @@ export default function Dashboard() {
 
   async function loadFeedbacks(profileId: string) {
     const { data } = await supabase.from('feedbacks')
-      .select('*, app_users(full_name)').eq('profile_id', profileId).order('created_at',{ascending:false})
-    setFeedbacks(data || [])
+      .select('*').eq('profile_id', profileId).order('created_at',{ascending:false})
+    if (data) {
+      // Enrich with user names from allUsers
+      const enriched = data.map((f:any) => {
+        const creator = allUsers.find((u:any)=>u.id===f.created_by)
+        return { ...f, app_users: { full_name: creator?.full_name||'Unknown' } }
+      })
+      setFeedbacks(enriched)
+    } else {
+      setFeedbacks([])
+    }
+  }
+
+  // ── Inline status change from table row ──────────────────
+  async function quickStatusChange(profileId: string, oldStatus: string, newStatus: string) {
+    if (oldStatus === newStatus) return
+    const { error } = await supabase.from('profiles').update({ status: newStatus }).eq('id', profileId)
+    if (!error) {
+      setProfiles(prev => prev.map(p => p.id === profileId ? { ...p, status: newStatus } : p))
+      logActivity(profileId, 'status_changed', oldStatus, newStatus)
+      showStatusToast(newStatus)
+    }
   }
 
   async function logActivity(profileId: string, action: string, oldVal='', newVal='') {
-    await supabase.rpc('log_profile_action', {
-      p_profile_id: profileId, p_actor_id: user?.id,
-      p_action: action, p_old_val: oldVal, p_new_val: newVal
-    }).catch(()=>{})
+    try {
+      await supabase.rpc('log_profile_action', {
+        p_profile_id: profileId, p_actor_id: user?.id,
+        p_action: action, p_old_val: oldVal, p_new_val: newVal
+      })
+    } catch(e) { /* silent fail - activity log is non-critical */ }
+  }
+
+  function showError(title: string, msg: string) {
+    setErrorModal({title, msg})
+  }
+
+  async function handleBulkImport(file: File) {
+    if(!file) return
+    setImporting(true)
+    const text = await file.text()
+    const rows = text.split('\n').filter(r=>r.trim())
+    const headers = rows[0].replace(/"/g,'').split(',').map(h=>h.trim().toLowerCase())
+    let ok=0, fail=0, errors: string[]=[]
+    for(let i=1; i<rows.length; i++) {
+      const vals = rows[i].match(/(".*?"|[^,]+)/g)?.map(v=>v.replace(/^"|"$/g,'').trim())||[]
+      const row: any = {}
+      headers.forEach((h,idx)=>{ row[h]=vals[idx]||'' })
+      if(!row.name) { fail++; errors.push(`Row ${i+1}: Name is required`); continue }
+      const payload = {
+        name:row.name, mobile:row.mobile||'', email:row.email||'',
+        role:row.role||'', experience:row.experience||null,
+        current_ctc:row.current_ctc||null, expected_ctc:row.expected_ctc||null,
+        notice_period:row.notice_period||'', qualification:row.qualification||'',
+        skills:row.skills||'', city:row.city||'', gender:row.gender||'Male',
+        age:row.age||null, source:row.source||'Direct',
+        linkedin:row.linkedin||'', current_company:row.current_company||'',
+        industry:row.industry||'', work_mode:row.work_mode||'',
+        status:'New', segment:'experienced',
+        company_id:appUser?.company_id||null,
+        team_id:appUser?.team_id||null,
+        created_by:user?.id
+      }
+      const {error} = await supabase.from('profiles').insert(payload)
+      if(error) { fail++; errors.push(`Row ${i+1} (${row.name}): ${error.message}`) }
+      else ok++
+    }
+    setImportResult({ok,fail,errors})
+    setImporting(false)
+    if(ok>0) loadProfiles(appUser)
+  }
+
+  async function handlePhotoUpload(file: File) {
+    if(!file||!user) return
+    setPhotoUploading(true)
+    try {
+      const blob = await new Promise<Blob>((resolve,reject)=>{
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const img = new Image()
+          img.onload = () => {
+            const canvas = document.createElement('canvas')
+            let w=img.width, h=img.height, maxDim=600
+            if(w>maxDim||h>maxDim){ if(w>h){h=Math.round(h*maxDim/w);w=maxDim}else{w=Math.round(w*maxDim/h);h=maxDim} }
+            canvas.width=w; canvas.height=h
+            canvas.getContext('2d')!.drawImage(img,0,0,w,h)
+            canvas.toBlob(b=>b?resolve(b):reject(new Error('Failed')),'image/jpeg',0.8)
+          }
+          img.src = e.target?.result as string
+        }
+        reader.readAsDataURL(file)
+      })
+      const path = `profiles/${user.id}/${Date.now()}.jpg`
+      const {error:upErr} = await supabase.storage.from('photos').upload(path,blob,{upsert:true,contentType:'image/jpeg'})
+      if(upErr){ showError('Upload Failed',upErr.message); setPhotoUploading(false); return }
+      const {data:urlData} = supabase.storage.from('photos').getPublicUrl(path)
+      if(urlData?.publicUrl) sf('photo_url', urlData.publicUrl)
+    } catch(e){ showError('Upload Error','Could not upload photo. Try a JPG or PNG image.') }
+    setPhotoUploading(false)
+  }
+
+  function showStatusToast(status: string) {
+    const sc = STATUS_COLORS[status]||{color:'#fff'}
+    setStatusToast({msg:`${STATUS_EMOJI[status]||''} Status → ${status}`, color:sc.color})
+    setTimeout(()=>setStatusToast(null), 2500)
   }
 
   async function revealContact(profileId: string) {
-    if (!myPermissions?.can_reveal_contacts) { alert('You do not have permission to reveal contacts. Ask your Account Owner.'); return }
+    if (!myPermissions?.can_reveal_contacts) { showError('Permission Denied','You do not have permission to reveal contacts. Ask your Account Owner.'); return }
     setRevealedContacts(prev => new Set([...prev, profileId]))
-    await supabase.from('contact_views').insert({ profile_id: profileId, viewed_by: user?.id }).catch(()=>{})
+    try { await supabase.from('contact_views').insert({ profile_id: profileId, viewed_by: user?.id }) } catch(e) {}
     logActivity(profileId, 'viewed')
   }
 
@@ -313,11 +507,8 @@ export default function Dashboard() {
   }
 
   async function saveProfile() {
-    if (!form.name?.trim()) { alert('Name is required'); return }
-    if (!appUser?.company_id) {
-      alert('⚠️ You must be part of a Company before adding profiles.\n\nAsk your Account Owner for the Company Code and join from the signup page.')
-      return
-    }
+    if (!form.name?.trim()) { showError('Name Required',"Please enter the candidate's full name."); return }
+    // SA can add without company_id - RLS handles isolation
     setSaving(true)
     // All numeric columns are now TEXT in DB - just send strings safely
     const n = (v:any) => (v===null||v===undefined||String(v).trim()==='')?null:String(v).trim()
@@ -382,7 +573,7 @@ export default function Dashboard() {
     }
     if (showProfile?.id) {
       const { data, error } = await supabase.from('profiles').update(payload).eq('id',showProfile.id).select().single()
-      if (error) { alert('Update failed: ' + error.message); setSaving(false); return }
+      if (error) { showError('Update Failed', error.message); setSaving(false); return }
       if (data) {
         setProfiles(prev=>prev.map(p=>p.id===data.id?data:p))
         logActivity(data.id, 'edited', showProfile.status, data.status)
@@ -393,14 +584,14 @@ export default function Dashboard() {
       if (error) {
         if (error.code === '23505') {
           if (error.message.includes('mobile')) {
-            alert('⚠️ This mobile number already exists in your company database!\n\nPlease check before adding a duplicate profile.')
+            showError('Duplicate Mobile','This mobile number already exists in your database.')
           } else if (error.message.includes('email')) {
-            alert('⚠️ This email address already exists in your company database!\n\nPlease check before adding a duplicate profile.')
+            showError('Duplicate Email','This email already exists in your database.')
           } else {
-            alert('⚠️ Duplicate entry found. This profile may already exist.')
+            showError('Duplicate Entry','A similar profile already exists.')
           }
         } else {
-          alert('Save failed: ' + error.message + '\n\nCode: ' + error.code)
+          showError('Save Failed', error.message)
         }
         setSaving(false); return
       }
@@ -421,7 +612,7 @@ export default function Dashboard() {
 
   async function deleteProfile(id: string) {
     if (!myPermissions?.can_delete_profiles && !['super_admin','admin','account_owner'].includes(appUser?.role)) {
-      alert('You do not have permission to delete profiles.'); return
+      showError('Permission Denied','You do not have permission to delete profiles.'); return
     }
     if (!confirm('Delete this profile permanently?')) return
     await supabase.from('profiles').delete().eq('id',id)
@@ -430,24 +621,43 @@ export default function Dashboard() {
   }
 
   async function addNote() {
-    if (!newNote.trim() || !showProfile?.id) return
+    if ((!newNote.trim() && !selectedFeedback) || !showProfile?.id) return
     setSavingNote(true)
-    const tagName = taggedUser ? allUsers.find(u=>u.id===taggedUser)?.full_name||'' : ''
-    const { data, error } = await supabase.from('feedbacks').insert({
-      profile_id:showProfile.id, text:newNote+(tagName?` [@${tagName}]`:''),
-      status:form.status, created_by:user.id, tagged_user:taggedUser||null
-    }).select('*, app_users(full_name)').single()
-    if (!error && data) {
-      setFeedbacks(prev=>[data,...prev]); setNewNote(''); setTaggedUser('')
-      logActivity(showProfile.id, 'note_added', '', newNote.slice(0,50))
-      if (taggedUser && taggedUser !== user.id) {
-        await supabase.from('notifications').insert({
-          user_id:taggedUser, from_user_id:user.id, type:'mention',
-          title:`${appUser?.full_name||'Someone'} mentioned you`,
-          message:`On profile ${showProfile?.name}: "${newNote.slice(0,80)}"`,
-          is_read:false, company_id:appUser?.company_id
-        })
+    try {
+      const tagName = taggedUser ? allUsers.find((u:any)=>u.id===taggedUser)?.full_name||'' : ''
+      const noteText = selectedFeedback&&selectedFeedback!=='Custom'
+        ? selectedFeedback+(newNote.trim()?' — '+newNote.trim():'')
+        : newNote.trim()
+      const finalText = noteText+(tagName?` [@${tagName}]`:'')
+      // Insert note - simple insert without join
+      const { data, error } = await supabase.from('feedbacks').insert({
+        profile_id: showProfile.id,
+        text: finalText,
+        created_by: user?.id,
+        tagged_user: taggedUser||null
+      }).select().single()
+      if (error) {
+        showError('Note Failed', error.message)
+      } else if (data) {
+        // Fetch creator name separately
+        const authorName = appUser?.full_name || 'You'
+        const noteWithAuthor = { ...data, app_users: { full_name: authorName } }
+        setFeedbacks(prev=>[noteWithAuthor,...prev])
+        setNewNote(''); setSelectedFeedback(''); setTaggedUser('')
+        logActivity(showProfile.id, 'note_added', '', finalText.slice(0,50))
+        if (taggedUser && taggedUser !== user?.id) {
+          try {
+            await supabase.from('notifications').insert({
+              user_id: taggedUser, from_user_id: user?.id, type: 'mention',
+              title: `${appUser?.full_name||'Someone'} mentioned you`,
+              message: `On profile ${showProfile?.name}: "${noteText.slice(0,80)}"`,
+              is_read: false, company_id: appUser?.company_id
+            })
+          } catch(e) {}
+        }
       }
+    } catch(e: any) {
+      showError('Note Error', e?.message||'Could not save note. Please try again.')
     }
     setSavingNote(false)
   }
@@ -478,8 +688,23 @@ export default function Dashboard() {
     setFilterHasResume(''); setFilterHasVideo(''); setFilterStarMin(0); setFilterAssigned('')
     setFilterGradYear(''); setFilterCollege(''); setFilterCGPAMin(''); setFilterHasInternship('')
     setFilterCompletion(''); setFilterAgeMin(''); setFilterAgeMax(''); setFilterWillingToRelocate('')
-    setSearch('')
+    setFilterAddedBy(''); setSearch('')
   }
+
+  const isAdmin = ADMIN_ROLES.includes(appUser?.role||'')
+  function getAddedByLabel(p: any) {
+    if(p.source==='Job Portal') return {label:'Self (JS)',color:'#3dd68c'}
+    // Check in allUsers first (company users)
+    const creator = allUsers.find((u:any)=>u.id===p.created_by)
+    if(creator) return {label:(creator.full_name||'Unknown').split(' ')[0], color:'#c77dff'}
+    // If created_by matches current user (Super Admin / platform user)
+    if(p.created_by === user?.id) return {label:(appUser?.full_name||'Me').split(' ')[0], color:'#ffd60a'}
+    // Has a created_by but not found in company users = platform admin
+    if(p.created_by) return {label:'Platform', color:'#ff9f43'}
+    return {label:'—', color:'var(--mu2)'}
+  }
+  const canAddProfiles = myPermissions?.can_add_profiles !== false || ['super_admin','admin','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter'].includes(appUser?.role||'')
+
 
   const filtered = profiles.filter(p => {
     const q = search.toLowerCase()
@@ -522,6 +747,10 @@ export default function Dashboard() {
       const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days)
       if (new Date(p.created_at) < cutoff) return false
     }
+    if(isAdmin && filterAddedBy) {
+      if(filterAddedBy==='self_js' && p.source!=='Job Portal') return false
+      if(filterAddedBy!=='self_js' && p.created_by!==filterAddedBy) return false
+    }
     return true
   })
 
@@ -542,7 +771,6 @@ export default function Dashboard() {
     return <span style={{padding:'2px 10px',borderRadius:20,fontSize:11,fontWeight:600,background:s.bg,color:s.color,whiteSpace:'nowrap' as const}}>{status||'New'}</span>
   }
 
-  const canAddProfiles = myPermissions?.can_add_profiles !== false || ['super_admin','admin','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter'].includes(appUser?.role||'')
   const assignedUserName = (id: string) => allUsers.find(u=>u.id===id)?.full_name || '—'
   const skillSugs = getSkillSugs(form.role||'', form.industry||'', form.qualification||'')
   const IS:any = {width:'100%',background:'var(--bg3)',border:'1px solid var(--bd2)',borderRadius:8,padding:'9px 12px',color:'var(--tx)',fontSize:13,outline:'none',fontFamily:'inherit',boxSizing:'border-box'}
@@ -550,16 +778,30 @@ export default function Dashboard() {
   const tdPad = viewDensity==='compact'?'7px 12px':'11px 14px'
 
   if (loading) return (
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,#0e1117)',flexDirection:'column',gap:12}}>
-      <div style={{width:40,height:40,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{fontSize:13,color:'var(--mu,#7a7f90)',fontFamily:'Outfit,sans-serif'}}>Loading {company?.name||'RecruitBase Pro'}...</div>
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',flexDirection:'column',gap:12}}>
+      <div style={{width:40,height:40,border:'3px solid var(--ac)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}
+        @keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
+        /* ── Light theme overrides ── */
+        [data-theme='light'] .rh:hover td{background:rgba(0,0,0,0.04)!important;}
+        [data-theme='light'] select option{background:#fff;color:#1a1a2e;}
+        [data-theme='light'] input::placeholder,[data-theme='light'] textarea::placeholder{color:#999;}
+        [data-theme='light'] .seg-btn{background:#f5f5f5;color:#555;}
+        [data-theme='light'] .seg-btn.on{background:rgba(108,140,255,0.12);color:#4a6cf7;}
+        [data-theme='light'] .filter-chip{background:transparent;color:#666;}
+        [data-theme='light'] .filter-chip.on,.filter-chip:hover{background:rgba(108,140,255,0.1);color:#4a6cf7;}
+        [data-theme='light'] .tag-pill{background:rgba(108,140,255,0.1);color:#4a6cf7;}
+        [data-theme='light'] .status-sel{filter:brightness(0.9);}`}</style>
+      <div style={{fontSize:13,color:'var(--mu)',fontFamily:'Outfit,sans-serif'}}>Loading {company?.name||'RecruitBase Pro'}...</div>
     </div>
   )
 
   return (
-    <Layout appUser={appUser} unreadCount={unreadCount}>
-      <style>{`html,body,#__next{overscroll-behavior:none !important;overscroll-behavior-x:none !important;}*{-webkit-overflow-scrolling:touch;}`}</style>
+    <>
+      <style>{`html,body,#__next{overscroll-behavior:none !important;overscroll-behavior-x:none !important;}*{-webkit-overflow-scrolling:touch;}
+        select option{background:var(--bg3,#22262f);color:var(--tx,#fff);}
+      `}</style>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
@@ -583,7 +825,85 @@ export default function Dashboard() {
         .tag-pill .rm{cursor:pointer;opacity:0.6;font-size:10px;}
         .tag-pill .rm:hover{opacity:1;}
         @media(max-width:900px){.hide-sm{display:none!important;}}
+        /* Light theme refinements */
+        [data-theme='light'] select option{background:#f1f5f9;color:#0f172a;}
+        [data-theme='light'] .seg-btn{background:#f1f5f9;color:#475569;border-color:rgba(0,0,0,0.1);}
+        [data-theme='light'] .seg-btn.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
+        [data-theme='light'] .filter-chip{color:#475569;border-color:rgba(0,0,0,0.12);}
+        [data-theme='light'] .filter-chip.on{background:rgba(79,70,229,0.1);color:#4f46e5;border-color:#4f46e5;}
+        [data-theme='light'] .tag-pill{background:rgba(79,70,229,0.1);color:#4f46e5;}
+        [data-theme='light'] .rh:hover td{background:rgba(0,0,0,0.03)!important;}
+        [data-theme='light'] .card-h:hover{border-color:#4f46e5!important;}
+        [data-theme='light'] input:focus,[data-theme='light'] select:focus,[data-theme='light'] textarea:focus{border-color:#4f46e5!important;}
+        /* ══ LIGHT THEME - Professional LinkedIn/Naukri quality ══ */
+        body[class~='light'] *,:root:has(body.light) *{transition:background .2s,color .2s,border-color .2s;}
+        .light-theme input,.light-theme select,.light-theme textarea{background:#fff!important;color:#1a1a2e!important;border-color:#d0d5dd!important;}
+        .light-theme .rh:hover td{background:#f0f4ff!important;}
+        .light-theme .seg-btn{background:#f2f4f8!important;color:#444!important;border-color:#dde1ec!important;}
+        .light-theme .seg-btn.on{background:#eef2ff!important;color:#4a6cf7!important;border-color:#4a6cf7!important;}
+        .light-theme .filter-chip{background:transparent!important;color:#555!important;border-color:#d0d5dd!important;}
+        .light-theme .filter-chip.on{background:#eef2ff!important;color:#4a6cf7!important;border-color:#4a6cf7!important;}
+        .light-theme .tag-pill{background:#eef2ff!important;color:#4a6cf7!important;}
       `}</style>
+
+
+      {statusToast && (
+        <div style={{position:'fixed',top:24,left:'50%',transform:'translateX(-50%)',zIndex:99999,background:'var(--bg2)',border:`1px solid ${statusToast.color}`,borderRadius:14,padding:'12px 28px',fontSize:14,fontWeight:700,color:statusToast.color,boxShadow:'0 8px 32px rgba(0,0,0,0.6)',display:'flex',alignItems:'center',gap:10,whiteSpace:'nowrap' as const,animation:'slideDown 0.25s ease'}}>
+          {statusToast.msg}
+        </div>
+      )}
+      {errorModal && (
+        <div style={{position:'fixed',inset:0,zIndex:100100,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'var(--bg2)',border:'1px solid rgba(255,107,107,0.3)',borderRadius:18,padding:28,maxWidth:400,width:'100%',textAlign:'center' as const,animation:'fadeIn 0.2s ease'}}>
+            <div style={{fontSize:40,marginBottom:12}}>⚠️</div>
+            <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>{errorModal.title}</div>
+            <div style={{fontSize:13,color:'var(--mu)',lineHeight:1.6,marginBottom:20}}>{errorModal.msg}</div>
+            <button onClick={()=>setErrorModal(null)} style={{padding:'10px 28px',borderRadius:10,background:'rgba(255,107,107,0.12)',color:'#ff6b6b',border:'1px solid rgba(255,107,107,0.3)',cursor:'pointer',fontFamily:'inherit',fontWeight:600,fontSize:14}}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {bulkImportModal && (
+        <div style={{position:'fixed',inset:0,zIndex:100100,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+          <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:480,boxShadow:'0 24px 80px rgba(0,0,0,0.5)',animation:'fadeIn 0.2s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+              <div style={{fontSize:15,fontWeight:700}}>⬆ Bulk Import Candidates</div>
+              <button onClick={()=>{setBulkImportModal(false);setImportResult(null)}} style={{background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:8,width:28,height:28,cursor:'pointer',color:'var(--tx)',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center'}}>✕</button>
+            </div>
+            {!importResult ? (
+              <>
+                <div style={{background:'var(--bg3)',borderRadius:12,padding:16,marginBottom:14,border:'1px solid var(--bd)'}}>
+                  <div style={{fontSize:13,fontWeight:600,marginBottom:6}}>📋 How it works:</div>
+                  <div style={{fontSize:12,color:'var(--mu)',lineHeight:1.8}}>1. Download the template CSV<br/>2. Fill in candidate data in Excel/Sheets<br/>3. Upload filled CSV here<br/>4. System imports all rows automatically</div>
+                </div>
+                <button onClick={downloadTemplate} style={{width:'100%',padding:'10px',borderRadius:10,background:'rgba(108,140,255,0.12)',color:'var(--ac)',border:'1px solid rgba(108,140,255,0.3)',cursor:'pointer',fontFamily:'inherit',fontWeight:600,fontSize:13,marginBottom:10}}>📄 Download Template CSV</button>
+                <div style={{border:'2px dashed var(--bd2)',borderRadius:12,padding:'28px 20px',textAlign:'center' as const,background:'var(--bg3)',marginBottom:14}}>
+                  {importing ? (
+                    <div><div style={{width:32,height:32,border:'3px solid var(--ac)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite',margin:'0 auto 10px'}}/><div style={{fontSize:13,color:'var(--mu)'}}>Importing candidates...</div></div>
+                  ) : (
+                    <>
+                      <div style={{fontSize:28,marginBottom:6}}>📂</div>
+                      <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Drop CSV file here or click to browse</div>
+                      <div style={{fontSize:11,color:'var(--mu)',marginBottom:12}}>Only CSV format · Max 500 rows per upload</div>
+                      <input ref={bulkFileRef} type='file' accept='.csv' style={{display:'none'}} onChange={e=>{const f=e.target.files?.[0];if(f)handleBulkImport(f)}}/>
+                      <button onClick={()=>bulkFileRef.current?.click()} style={{padding:'8px 20px',borderRadius:8,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>Browse CSV File</button>
+                    </>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div>
+                <div style={{display:'flex',gap:12,marginBottom:16}}>
+                  <div style={{flex:1,background:'rgba(61,214,140,0.1)',border:'1px solid rgba(61,214,140,0.3)',borderRadius:12,padding:'14px',textAlign:'center' as const}}><div style={{fontSize:28,fontWeight:800,color:'#3dd68c'}}>{importResult.ok}</div><div style={{fontSize:11,color:'var(--mu)',fontWeight:600}}>IMPORTED ✅</div></div>
+                  <div style={{flex:1,background:'rgba(255,107,107,0.1)',border:'1px solid rgba(255,107,107,0.3)',borderRadius:12,padding:'14px',textAlign:'center' as const}}><div style={{fontSize:28,fontWeight:800,color:'#ff6b6b'}}>{importResult.fail}</div><div style={{fontSize:11,color:'var(--mu)',fontWeight:600}}>FAILED ❌</div></div>
+                </div>
+                {importResult.errors.length>0&&<div style={{background:'var(--bg3)',borderRadius:10,padding:12,maxHeight:150,overflowY:'auto' as const,marginBottom:14}}>{importResult.errors.map((e,i)=><div key={i} style={{fontSize:11,color:'#ff6b6b',padding:'2px 0'}}>{e}</div>)}</div>}
+                <button onClick={()=>{setBulkImportModal(false);setImportResult(null)}} style={{width:'100%',padding:'10px',borderRadius:10,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600,fontSize:13}}>Done</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── TOP BAR ─────────────────────────────────────────────── */}
       <div style={{background:'var(--bg2)',borderBottom:'1px solid var(--bd)',padding:'0 20px',height:54,display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
@@ -607,6 +927,10 @@ export default function Dashboard() {
               <button key={v} onClick={()=>setViewDensity(v)} style={{padding:'6px 9px',border:'none',cursor:'pointer',fontSize:11,fontFamily:'inherit',background:viewDensity===v?'var(--acbg)':'transparent',color:viewDensity===v?'var(--ac)':'var(--mu)',transition:'all .15s'}}>{icon}</button>
             ))}
           </div>
+          {/* Export CSV */}
+          <button onClick={()=>exportCSV(filtered)} title="Export to CSV" style={{background:'rgba(61,214,140,0.1)',color:'#3dd68c',border:'1px solid rgba(61,214,140,0.2)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>⬇ CSV</button>
+          <button onClick={()=>setBulkImportModal(true)} style={{background:'rgba(108,140,255,0.1)',color:'var(--ac)',border:'1px solid rgba(108,140,255,0.2)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>⬆ Bulk Import</button>
+          <button onClick={downloadTemplate} style={{background:'rgba(255,214,10,0.1)',color:'#ffd60a',border:'1px solid rgba(255,214,10,0.2)',borderRadius:8,padding:'6px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',whiteSpace:'nowrap' as const}}>📄 Template</button>
           {/* Notifications */}
           <div style={{position:'relative'}}>
             <button onClick={()=>setShowNotifications(v=>!v)} style={{position:'relative',background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:8,width:36,height:36,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:15}}>
@@ -730,10 +1054,10 @@ export default function Dashboard() {
                 <div>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--mu)',textTransform:'uppercase' as const,letterSpacing:'1px',marginBottom:8}}>Pipeline Status</div>
                   <div style={{display:'flex',flexWrap:'wrap' as const,gap:4}}>
-                    {STATUSES.map(s=>{
-                      const sc=STATUS_COLORS[s]||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
+                    {PIPELINE_STATUSES.map(s=>{
+                      const sc=PIPELINE_COLORS[s]||STATUS_COLORS[s]||{bg:'rgba(100,100,120,0.3)',color:'#aaa'}
                       const on=filterStatus.includes(s)
-                      return <button key={s} onClick={()=>toggleFilter(filterStatus,s,setFilterStatus)} style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',border:`1px solid ${on?sc.color:'var(--bd)'}`,background:on?sc.bg:'transparent',color:on?sc.color:'var(--mu)',fontFamily:'inherit'}}>{s}</button>
+                      return <button key={s} onClick={()=>toggleFilter(filterStatus,s,setFilterStatus)} style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:600,cursor:'pointer',border:`1px solid ${on?sc.color:'var(--bd)'}`,background:on?sc.bg:'transparent',color:on?sc.color:'var(--mu)',fontFamily:'inherit'}}>{PIPELINE_EMOJI[s]||''} {s}</button>
                     })}
                   </div>
                 </div>
@@ -882,6 +1206,17 @@ export default function Dashboard() {
               </div>
             )}
 
+                {isAdmin && (
+                  <div>
+                    <div style={{fontSize:11,fontWeight:700,color:'#ffd60a',textTransform:'uppercase' as const,letterSpacing:'1px',marginBottom:8}}>🔐 Added By <span style={{fontSize:9,fontWeight:400,color:'var(--mu2)'}}>(Admin only)</span></div>
+                    <select value={filterAddedBy} onChange={e=>setFilterAddedBy(e.target.value)} style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:8,padding:'8px 12px',color:'var(--tx)',fontSize:12,fontFamily:'inherit',outline:'none'}}>
+                      <option value=''>All — Everyone</option>
+                      <option value='self_js'>🟢 Self-registered (Job Seeker)</option>
+                      {allUsers.map((u:any)=><option key={u.id} value={u.id}>{u.full_name} · {u.role?.replace(/_/g,' ')}</option>)}
+                    </select>
+                    {filterAddedBy&&<div style={{marginTop:4,fontSize:10,color:'#ffd60a'}}>✓ Filtering by: {filterAddedBy==='self_js'?'Self-registered JS':allUsers.find((u:any)=>u.id===filterAddedBy)?.full_name}</div>}
+                  </div>
+                )}
             {/* ACTIVITY FILTERS */}
             {filterSection==='activity' && (
               <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:16}}>
@@ -995,6 +1330,7 @@ export default function Dashboard() {
                 {filterHasResume&&<span className="tag-pill">{filterHasResume==='yes'?'Has Resume':'No Resume'}</span>}
                 {filterGradYear&&<span className="tag-pill">Grad {filterGradYear}</span>}
                 {filterWillingToRelocate&&<span className="tag-pill">Relocate:{filterWillingToRelocate}</span>}
+                {isAdmin&&filterAddedBy&&<span className="tag-pill" style={{background:'rgba(255,214,10,0.12)',color:'#ffd60a'}}>By: {filterAddedBy==='self_js'?'Self (JS)':allUsers.find((u:any)=>u.id===filterAddedBy)?.full_name?.split(' ')[0]}</span>}
               </div>
             )}
           </div>
@@ -1011,8 +1347,9 @@ export default function Dashboard() {
                 <thead>
                   <tr style={{background:'var(--bg3)'}}>
                     <th style={{width:36,padding:'9px 12px'}}><input type="checkbox" onChange={e=>{if(e.target.checked)setSelectedProfiles(filtered.map(p=>p.id));else setSelectedProfiles([])}} checked={selectedProfiles.length===filtered.length&&filtered.length>0}/></th>
-                    {['Name / Contact','Segment','Role','Qualification','Exp','CTC','Status','City','Source','★','Team','Actions'].map(h=>(
-                      <th key={h} style={{textAlign:'left',padding:'9px 14px',fontSize:10,fontWeight:700,color:'var(--mu)',textTransform:'uppercase' as const,letterSpacing:'1px',whiteSpace:'nowrap' as const,cursor:'pointer'}}>{h}</th>
+                    {[...['Name / Contact','Segment','Role','Qualification','Exp','CTC','Status','City','Source','★','Team'],...(isAdmin?['Added By']:[]),'Actions'].map(h=>(
+
+                      <th key={h} style={{textAlign:'left' as const,padding:'9px 14px',fontSize:10,fontWeight:700,color:h==='Added By'?'#ffd60a':'var(--mu)',textTransform:'uppercase' as const,letterSpacing:'1px',whiteSpace:'nowrap' as const}}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -1058,13 +1395,22 @@ export default function Dashboard() {
                             {p.current_ctc?`₹${p.current_ctc}L`:'—'}
                             {p.expected_ctc?<div style={{fontSize:9,color:'var(--mu2)'}}>Exp: ₹{p.expected_ctc}L</div>:null}
                           </td>
-                          <td style={{padding:tdPad}} onClick={()=>openProfile(p)}>{statusBadge(p.status||'New')}</td>
+                          <td style={{padding:tdPad}} onClick={e=>e.stopPropagation()}>
+                            <select
+                              value={p.status||'New'}
+                              onChange={e=>quickStatusChange(p.id, p.status||'New', e.target.value)}
+                              style={{background:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.bg||'rgba(100,100,120,0.3)',color:(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'#aaa',border:`1px solid ${(STATUS_COLORS[p.status||'New']||PIPELINE_COLORS[p.status||'New'])?.color||'#aaa'}44`,borderRadius:20,padding:'4px 10px',fontSize:11,fontWeight:700,cursor:'pointer',fontFamily:'inherit',outline:'none',minWidth:145}}
+                            >
+                              {PIPELINE_STATUSES.map(s=><option key={s} value={s} style={{background:'var(--bg3)',color:'var(--tx)',padding:6}}>{PIPELINE_EMOJI[s]||''} {s}</option>)}
+                            </select>
+                          </td>
                           <td style={{padding:tdPad,fontSize:12,color:'var(--mu)'}} onClick={()=>openProfile(p)}>{p.city||'—'}</td>
                           <td style={{padding:tdPad,fontSize:10,color:'var(--mu)'}} onClick={()=>openProfile(p)}>{p.source&&<span style={{padding:'2px 6px',borderRadius:20,background:'var(--bg3)',border:'1px solid var(--bd)'}}>{p.source}</span>}</td>
                           <td style={{padding:tdPad,fontSize:12,color:'#ffd60a'}} onClick={()=>openProfile(p)}>{p.star_rating>0?'★'.repeat(p.star_rating):'—'}</td>
                           <td style={{padding:tdPad,fontSize:11}} onClick={()=>openProfile(p)}>
                             {allUsers.find(u=>u.team_id&&u.id===p.created_by)?.full_name?.split(' ')[0]||'—'}
                           </td>
+                          {isAdmin&&(()=>{const ab=getAddedByLabel(p);return(<td style={{padding:tdPad,fontSize:10}} onClick={()=>openProfile(p)}><span style={{color:ab.color,fontWeight:ab.label==='Self (JS)'?700:400,background:ab.label==='Self (JS)'?'rgba(61,214,140,0.1)':'transparent',padding:ab.label==='Self (JS)'?'2px 7px':'0',borderRadius:20}}>{ab.label}</span></td>)})()}
                           <td style={{padding:tdPad}} onClick={e=>e.stopPropagation()}>
                             <div style={{display:'flex',gap:3}}>
                               {p.mobile&&<button onClick={()=>{const cc=((p.country_code||'+91 India').split(' ')[0]).replace('+','');window.open(`https://wa.me/${cc+(p.mobile||'').replace(/\D/g,'')}`)}} style={{background:'rgba(37,211,102,0.15)',border:'none',borderRadius:5,width:26,height:26,cursor:'pointer',fontSize:12,display:'flex',alignItems:'center',justifyContent:'center'}} title="WhatsApp">💬</button>}
@@ -1183,7 +1529,7 @@ export default function Dashboard() {
 
       {/* ── POINTS MODAL ──────────────────────────────────────── */}
       {showPoints&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget)setShowPoints(false)}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget)setShowPoints(false)}}>
           <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:440,maxHeight:'80vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
               <div><div style={{fontSize:15,fontWeight:700}}>⭐ My Points</div><div style={{fontSize:12,color:'var(--mu)'}}>Total: <strong style={{color:'#ffd60a'}}>{appUser?.points||0} pts</strong></div></div>
@@ -1211,7 +1557,7 @@ export default function Dashboard() {
 
       {/* ── BULK MESSAGE MODAL ─────────────────────────────────── */}
       {showBulkMsg&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.7)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget)setShowBulkMsg(false)}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.55)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget)setShowBulkMsg(false)}}>
           <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:500,boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <div style={{fontSize:15,fontWeight:700}}>📨 Bulk Message ({selectedProfiles.length})</div>
@@ -1240,7 +1586,7 @@ export default function Dashboard() {
 
       {/* ── UPLOAD CV MODAL ────────────────────────────────────── */}
       {showUpload&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.75)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget){setShowUpload(false);setParsing(false);setParseMsg('')}}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:100,padding:16}} onClick={e=>{if(e.target===e.currentTarget){setShowUpload(false);setParsing(false);setParseMsg('')}}}>
           <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:480,boxShadow:'0 24px 80px rgba(0,0,0,0.5)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
               <div style={{fontSize:15,fontWeight:700}}>📄 Upload CV / Resume</div>
@@ -1270,7 +1616,7 @@ export default function Dashboard() {
 
       {/* ── ADD / VIEW PROFILE MODAL — WIZARD ───────────────────── */}
       {(showAdd||showProfile)&&(
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.78)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:100,padding:16,overflowY:'auto'}} onClick={e=>{if(e.target===e.currentTarget){setShowAdd(false);setShowProfile(null)}}}>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'flex-start',justifyContent:'center',zIndex:100,padding:16,overflowY:'auto'}} onClick={e=>{if(e.target===e.currentTarget){setShowAdd(false);setShowProfile(null)}}}>
           <div style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderRadius:20,padding:24,width:'100%',maxWidth:680,marginTop:20,marginBottom:20,boxShadow:'0 24px 80px rgba(0,0,0,0.5)',animation:'fadeIn 0.2s ease'}}>
 
             {/* Header */}
@@ -1336,6 +1682,22 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div style={{gridColumn:'1/-1'}}>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Profile Photo</label>
+                  <div style={{display:'flex',alignItems:'center',gap:14}}>
+                    <div style={{width:56,height:56,borderRadius:14,background:'var(--acbg)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',border:'2px solid var(--bd2)',flexShrink:0}}>
+                      {form.photo_url?<img src={form.photo_url} alt='' style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:22,color:'var(--ac)',fontWeight:700}}>{(form.name||'?')[0]?.toUpperCase()||'?'}</span>}
+                    </div>
+                    <div>
+                      <input ref={photoRef} type='file' accept='image/*' onChange={e=>{const f=e.target.files?.[0];if(f)handlePhotoUpload(f)}} style={{display:'none'}} disabled={photoUploading}/>
+                      <button onClick={()=>photoRef.current?.click()} disabled={photoUploading} style={{background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd2)',borderRadius:8,padding:'7px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit',opacity:photoUploading?0.5:1}}>
+                        {photoUploading?'Uploading...':'📸 Upload Photo'}
+                      </button>
+                      {form.photo_url&&<button onClick={()=>sf('photo_url','')} style={{marginLeft:8,background:'transparent',color:'#ff6b6b',border:'none',cursor:'pointer',fontSize:11,fontFamily:'inherit'}}>Remove</button>}
+                      <div style={{fontSize:10,color:'var(--mu)',marginTop:4}}>Any size · Auto-compressed to 600px · JPG/PNG</div>
+                    </div>
+                  </div>
+                </div>
                   <label style={LS}>Full Name *</label>
                   <input style={IS} value={form.name||''} onChange={e=>sf('name',e.target.value)} placeholder="Full name of the candidate"/>
                 </div>
@@ -1353,7 +1715,7 @@ export default function Dashboard() {
                       const mob = e.target.value.replace(/\D/g,'')
                       if(mob.length >= 10 && appUser?.company_id) {
                         const {data} = await supabase.from('profiles').select('id,name').eq('mobile',mob).eq('company_id',appUser.company_id).maybeSingle()
-                        if(data) alert('⚠️ Mobile ' + mob + ' already exists — ' + data.name + '\nPlease check for duplicates.')
+                        if(data) showError('Duplicate Mobile',`Mobile ${mob} already exists for "${data.name}". Please check.`)
                       }
                     }}
                     placeholder="10-digit number"/>
@@ -1366,7 +1728,7 @@ export default function Dashboard() {
                       const em = e.target.value.trim()
                       if(em && appUser?.company_id) {
                         const {data} = await supabase.from('profiles').select('id,name').eq('email',em).eq('company_id',appUser.company_id).maybeSingle()
-                        if(data) alert('⚠️ Email ' + em + ' already exists — ' + data.name + '\nPlease check for duplicates.')
+                        if(data) showError('Duplicate Email',`Email ${em} already exists for "${data.name}". Please check.`)
                       }
                     }}
                     placeholder="email@example.com"/>
@@ -1615,9 +1977,12 @@ export default function Dashboard() {
                 <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                   <div>
                     <label style={LS}>Pipeline Status</label>
-                    <select style={{...IS,background:STATUS_COLORS[form.status||'New']?.bg,color:STATUS_COLORS[form.status||'New']?.color,fontWeight:600}} value={form.status||'New'} onChange={e=>sf('status',e.target.value)}>
-                      {STATUSES.map(s=><option key={s}>{s}</option>)}
-                    </select>
+                    <div style={{position:'relative' as const}}>
+                      <select style={{width:'100%',background:'var(--bg3)',border:'1px solid var(--bd2)',borderRadius:10,color:(PIPELINE_COLORS[form.status||'New']||STATUS_COLORS[form.status||'New'])?.color||'var(--tx)',fontSize:13,fontFamily:'inherit',outline:'none',padding:'10px 14px',cursor:'pointer',fontWeight:600,appearance:'auto' as const}} value={form.status||'New'} onChange={e=>sf('status',e.target.value)}>
+                        {PIPELINE_STATUSES.map(s=><option key={s} value={s} style={{background:'var(--bg3)',color:'var(--tx)',padding:8,fontWeight:400}}>{PIPELINE_EMOJI[s]||''} {s}</option>)}
+                      </select>
+                    </div>
+                    {form.status&&<div style={{marginTop:6,display:'flex',alignItems:'center',gap:6,fontSize:12,fontWeight:700,color:(PIPELINE_COLORS[form.status]||STATUS_COLORS[form.status])?.color||'var(--mu)',background:(PIPELINE_COLORS[form.status]||STATUS_COLORS[form.status])?.bg||'var(--acbg)',padding:'4px 12px',borderRadius:20,width:'fit-content' as const}}>{PIPELINE_EMOJI[form.status]||''} {form.status}</div>}
                   </div>
                   <div>
                     <label style={LS}>Assign To</label>
@@ -1649,6 +2014,7 @@ export default function Dashboard() {
               <div style={{marginTop:14}}>
                 <div style={{background:'var(--bg3)',borderRadius:10,padding:14}}>
                   <div style={{fontSize:11,fontWeight:700,color:'var(--mu)',textTransform:'uppercase' as const,letterSpacing:'1px',marginBottom:10}}>Activity Notes</div>
+
                   <div style={{display:'flex',gap:8,marginBottom:10}}>
                     <textarea value={newNote} onChange={e=>setNewNote(e.target.value)} placeholder="Add a note..." rows={2} style={{...IS,flex:1,resize:'none' as const}}/>
                   </div>
@@ -1657,7 +2023,7 @@ export default function Dashboard() {
                       <option value="">@Tag teammate</option>
                       {allUsers.filter(u=>u.id!==user?.id).map(u=><option key={u.id} value={u.id}>{u.full_name}</option>)}
                     </select>
-                    <button onClick={addNote} disabled={savingNote||!newNote.trim()} style={{padding:'7px 16px',borderRadius:8,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit',opacity:savingNote||!newNote.trim()?0.5:1}}>
+                    <button onClick={addNote} disabled={savingNote||(!newNote.trim()&&!selectedFeedback)} style={{padding:'7px 16px',borderRadius:8,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit',opacity:savingNote||(!newNote.trim()&&!selectedFeedback)?0.5:1}}>
                       {savingNote?'Adding...':'Add Note'}
                     </button>
                   </div>
@@ -1696,7 +2062,7 @@ export default function Dashboard() {
               {showAdd && !showProfile ? (
                 wizardStep < 4 ? (
                   <button onClick={async()=>{
-                    if(wizardStep===1&&!form.name?.trim()){alert('Please enter the full name');return}
+                    if(wizardStep===1&&!form.name?.trim()){showError('Name Required',"Please enter the candidate's full name.");return}
                     // Auto-save draft to state and move next
                     setWizardStep(s=>s+1)
                   }} style={{padding:'9px 28px',borderRadius:10,background:'var(--ac)',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:700,fontFamily:'inherit',display:'flex',alignItems:'center',gap:8}}>
@@ -1717,7 +2083,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
-    </Layout>
+    </>
   )
 
   async function handleCVUpload(file: File) {

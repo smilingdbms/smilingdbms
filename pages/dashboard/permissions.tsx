@@ -148,14 +148,14 @@ export default function PermissionsPage() {
 
   if (loading) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,#0e1117)'}}>
-      <DashboardNav />
+      
       <div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 
   return (
-    <Layout appUser={appUser} unreadCount={0}>
+    <>
       <div style={{flex:1, overflowY:'auto', padding:'20px'}}>
         <div style={{maxWidth:800, margin:'0 auto'}}>
 
@@ -241,6 +241,6 @@ export default function PermissionsPage() {
           )}
         </div>
       </div>
-    </Layout>
+    </>
   )
 }

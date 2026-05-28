@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 export default function CompanyDashboard() {
   const router = useRouter()
@@ -89,7 +88,7 @@ export default function CompanyDashboard() {
 
   if (!company) return (
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg)',color:'var(--tx)',flexDirection:'column' as any,gap:16}}>
-      <DashboardNav />
+      
       <div style={{fontSize:40}}>🏢</div>
       <div style={{fontSize:18,fontWeight:600}}>No Company Found</div>
       <div style={{fontSize:13,color:'var(--mu)'}}>You are not linked to any company yet.</div>
@@ -98,6 +97,7 @@ export default function CompanyDashboard() {
   )
 
   return (
+    <>
     <div style={S.page}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:#22262f}`}</style>
 
@@ -312,5 +312,6 @@ export default function CompanyDashboard() {
         )}
       </div>
     </div>
+    </>
   )
 }

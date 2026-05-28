@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 const PLANS = ['basic','seeker','pro','elite']
 const PLAN_COLORS: any = {
@@ -92,8 +91,9 @@ export default function CompaniesPage() {
   if (loading) return <div style={{ ...S.page, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><div style={{ color: '#7a7f90' }}>Loading...</div></div>
 
   return (
+    <>
     <div style={S.page}>
-      <DashboardNav />
+      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -240,5 +240,6 @@ export default function CompaniesPage() {
         )}
       </div>
     </div>
+    </>
   )
 }

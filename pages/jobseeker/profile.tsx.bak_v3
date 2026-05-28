@@ -1,0 +1,495 @@
+// @ts-nocheck
+import { useEffect, useState, useRef } from 'react'
+import { useRouter } from 'next/router'
+import { supabase } from '../../src/lib/supabase'
+import {
+  checkJobSeekerAuth, calculateProfileStrength, compressImage,
+  validateFileSize, saveUserLocation,
+  getNightModePreference, setNightModePreference,
+} from '../../src/lib/jobseeker-utils'
+import JobSeekerSidebar from '../../src/components/JobSeekerSidebar'
+
+// ══════════════════════════════════════════════════════════
+// JOB SEEKER PROFILE v3.0 — Full Rewrite
+// Fixes: name/email locked to signup data, one profile per JS,
+// photo upload, multi-select work modes, mobile prepopulated
+// ══════════════════════════════════════════════════════════
+
+const CITIES = ['Delhi','Mumbai','Bangalore','Hyderabad','Pune','Chennai','Noida','Gurgaon','Kolkata','Ahmedabad','Jaipur','Lucknow','Chandigarh','Kochi','Nagpur','Indore','Bhopal','Surat','Vadodara','Patna','Ranchi','Coimbatore','Visakhapatnam','Bhubaneswar','Other']
+const QUALIFICATIONS = ['B.Tech/B.E.','M.Tech/M.E.','MCA','BCA','MBA/PGDM','B.Sc','M.Sc','BBA','B.Com','M.Com','BA','MA','MBBS','BDS','B.Pharm','M.Pharm','CA','CS','CMA/ICWA','LLB','LLM','PhD','Diploma','ITI','12th Pass','10th Pass','Other']
+const NOTICE_PERIODS = ['Immediate','7 days','15 days','1 month','2 months','3 months']
+const WORK_MODES = ['WFH','WFO','Hybrid']
+const JOB_TYPES = ['Full Time','Part Time']
+const EMP_TYPES = ['Permanent','Temporary','Contractual']
+const VIBE_MODES = [
+  { value: 'fun', label: '🎮 Fun & Social' },
+  { value: 'professional', label: '💼 Professional' },
+  { value: 'focus', label: '🎯 Quick Apply' },
+]
+
+// ── Multi-select toggle ─────────────────────────────────
+function multiToggle(current: string, val: string): string {
+  const arr = current ? current.split(',').map(s => s.trim()).filter(Boolean) : []
+  const idx = arr.indexOf(val)
+  if (idx === -1) arr.push(val)
+  else arr.splice(idx, 1)
+  return arr.join(', ')
+}
+function hasVal(current: string, val: string): boolean {
+  return (current || '').split(',').map(s => s.trim()).includes(val)
+}
+
+export default function JobSeekerProfile() {
+  const router = useRouter()
+  const [user, setUser] = useState(null)
+  const [form, setForm] = useState({})
+  const [profileId, setProfileId] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [profileStrength, setProfileStrength] = useState({ score: 0, missing: [] })
+  const [uploading, setUploading] = useState(false)
+  const [toast, setToast] = useState(null)
+  const [nightMode, setNightMode] = useState(false)
+  const [vibeMode, setVibeMode] = useState('fun')
+  const [locSaved, setLocSaved] = useState(false)
+  const [locLoading, setLocLoading] = useState(false)
+  const [userSettings, setUserSettings] = useState({ segment: 'fresher', vibe: 'fun' })
+  const photoRef = useRef(null)
+
+  function showToast(msg, type = 'success') {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
+
+  function sf(k, v) {
+    const updated = { ...form, [k]: v }
+    setForm(updated)
+    setProfileStrength(calculateProfileStrength(updated))
+  }
+
+  useEffect(() => { setNightMode(getNightModePreference()) }, [])
+
+  // ── Load user + profile ─────────────────────────────
+  useEffect(() => {
+    let cancelled = false
+    async function init() {
+      try {
+        const { user: au, redirect } = await checkJobSeekerAuth()
+        if (cancelled) return
+        if (redirect) { router.push(redirect); return }
+        if (!au) return
+        setUser(au)
+        setVibeMode(au.vibe_mode || 'fun')
+        setUserSettings({ segment: au.experience_segment || 'fresher', vibe: au.vibe_mode || 'fun' })
+        setLocSaved(!!au.latitude)
+
+        // ✅ Load profile locked to this user's auth ID
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('created_by', au.id)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .single()
+
+        if (cancelled) return
+
+        if (profile) {
+          setProfileId(profile.id)
+          // ✅ CRITICAL: Name + Email ALWAYS come from app_users (signup data), never from profile table
+          const merged = {
+            ...profile,
+            name: au.full_name || profile.name || '',      // LOCKED to app_users
+            email: au.email || profile.email || '',         // LOCKED to app_users
+            mobile: au.mobile || profile.mobile || '',      // prepopulated from app_users
+          }
+          setForm(merged)
+          setProfileStrength(calculateProfileStrength(merged))
+        } else {
+          // First time: prepopulate from app_users
+          const initial = {
+            name: au.full_name || '',
+            email: au.email || '',
+            mobile: au.mobile || '',
+          }
+          setForm(initial)
+          setProfileStrength(calculateProfileStrength(initial))
+        }
+        setLoading(false)
+      } catch {
+        if (!cancelled) { setError('Something went wrong. Please refresh.'); setLoading(false) }
+      }
+    }
+    init()
+    return () => { cancelled = true }
+  }, [])
+
+  // ── Save profile (one per JS enforced) ─────────────
+  async function saveProfile() {
+    if (!form.name?.trim()) { showToast('Name is required.', 'error'); return }
+    if (!user) return
+    setSaving(true)
+
+    const payload = {
+      name: user.full_name || form.name || '',   // Always save from app_users
+      email: user.email || form.email || '',      // Always save from app_users
+      mobile: (form.mobile || '').replace(/\D/g, '').slice(0, 15),
+      role: form.role || '',
+      qualification: form.qualification || '',
+      branch: form.branch || '',
+      skills: form.skills || '',
+      experience: form.experience ? parseFloat(String(form.experience)) : null,
+      current_ctc: form.current_ctc ? parseFloat(String(form.current_ctc)) : null,
+      expected_ctc: form.expected_ctc ? parseFloat(String(form.expected_ctc)) : null,
+      notice_period: form.notice_period || '',
+      work_mode: form.work_mode || '',
+      job_type: form.job_type || '',
+      employment_type: form.employment_type || '',
+      city: form.city || '',
+      linkedin: form.linkedin || '',
+      github: form.github || '',
+      segment: form.experience > 1 ? 'experienced' : 'fresher',
+      status: 'New',
+      source: 'Job Portal',
+      created_by: user.id,
+      type: 'Candidate',
+    }
+
+    let saveError
+    if (profileId) {
+      const res = await supabase.from('profiles').update(payload).eq('id', profileId)
+      saveError = res.error
+    } else {
+      // ✅ Check one more time — prevent duplicate profile
+      const { data: existing } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('created_by', user.id)
+        .limit(1)
+        .single()
+
+      if (existing) {
+        setProfileId(existing.id)
+        const res = await supabase.from('profiles').update(payload).eq('id', existing.id)
+        saveError = res.error
+      } else {
+        const res = await supabase.from('profiles').insert(payload).select().single()
+        saveError = res.error
+        if (res.data) setProfileId(res.data.id)
+      }
+    }
+
+    if (saveError) {
+      showToast('Could not save. Please try again.', 'error')
+    } else {
+      setSaved(true)
+      showToast('✅ Profile saved successfully!')
+      setTimeout(() => setSaved(false), 3000)
+    }
+    setSaving(false)
+  }
+
+  // ── Photo Upload ────────────────────────────────────
+  async function handlePhotoUpload(e) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    const sizeCheck = validateFileSize(file, 2)
+    if (!sizeCheck.ok) { showToast(sizeCheck.msg, 'error'); return }
+    setUploading(true)
+    try {
+      const blob = file.type.startsWith('image/') ? await compressImage(file, 250, 600) : file
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `profiles/${user.id}/photo.${ext}`
+      const { error: upErr } = await supabase.storage.from('uploads').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+      if (upErr) { showToast('Upload failed. Try again.', 'error'); setUploading(false); return }
+      const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
+      if (urlData?.publicUrl) {
+        sf('photo_url', urlData.publicUrl)
+        await supabase.from('app_users').update({ photo_url: urlData.publicUrl }).eq('id', user.id)
+        showToast('📸 Photo uploaded!')
+      }
+    } catch { showToast('Upload error.', 'error') }
+    setUploading(false)
+  }
+
+  async function detectLocation() {
+    if (!user) return
+    setLocLoading(true)
+    const loc = await saveUserLocation(user.id)
+    setLocLoading(false)
+    if (loc) { setLocSaved(true); showToast(`📍 Location saved via ${loc.source === 'gps' ? 'GPS' : 'IP'}!`) }
+    else showToast('Could not detect location.', 'error')
+  }
+
+  async function saveSettings() {
+    if (!user) return
+    await supabase.from('app_users').update({ experience_segment: userSettings.segment, vibe_mode: userSettings.vibe }).eq('id', user.id)
+    setVibeMode(userSettings.vibe)
+    showToast('Preferences saved!')
+  }
+
+  // ── Theme ───────────────────────────────────────────
+  const theme = {
+    bg: '#0f1117', bg2: '#161921', bg3: '#1e2230',
+    tx: '#e8eaf0', muted: '#7a7f90', bd: 'rgba(255,255,255,0.06)',
+    accent: '#6c8cff',
+  }
+  const inp = { width: '100%', background: theme.bg3, border: `1px solid ${theme.bd}`, borderRadius: 10, padding: '10px 14px', color: theme.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5, marginTop: 14 }
+  const card = { background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: 22, marginBottom: 16 }
+  const inpRO = { ...inp, opacity: 0.6, cursor: 'not-allowed', background: theme.bg2 } // read-only fields
+
+  const chipBtn = (val, current, onToggle, color = theme.accent) => (
+    <button key={val} onClick={() => onToggle(val)} style={{
+      padding: '7px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+      border: `1px solid ${hasVal(current, val) ? color : theme.bd}`,
+      background: hasVal(current, val) ? `${color}18` : 'rgba(255,255,255,0.03)',
+      color: hasVal(current, val) ? color : theme.muted, transition: 'all 0.15s',
+    }}>{val}</button>
+  )
+
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap')`}</style>
+      <div style={{ color: theme.muted }}>Loading your profile...</div>
+    </div>
+  )
+
+  if (error) return (
+    <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Outfit',sans-serif", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ textAlign: 'center', color: theme.tx }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
+        <div style={{ marginBottom: 12 }}>{error}</div>
+        <button onClick={() => window.location.reload()} style={{ background: theme.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit' }}>Refresh</button>
+      </div>
+    </div>
+  )
+
+  return (
+    <div style={{ minHeight: '100vh', background: theme.bg, color: theme.tx, fontFamily: "'Outfit',sans-serif" }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}input:focus,select:focus,textarea:focus{border-color:${theme.accent}!important}select option{background:${theme.bg3}}`}</style>
+
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, background: toast.type === 'success' ? '#0d2a1a' : '#2a0d0d', border: `1px solid ${toast.type === 'success' ? '#3dd68c55' : '#ff505055'}`, color: toast.type === 'success' ? '#3dd68c' : '#ff5050', padding: '12px 20px', borderRadius: 12, fontSize: 13, fontWeight: 600, maxWidth: 320, boxShadow: '0 4px 20px rgba(0,0,0,0.4)' }}>
+          {toast.msg}
+        </div>
+      )}
+
+      {/* SIDEBAR */}
+      <JobSeekerSidebar
+        userName={user?.full_name || ''}
+        xp={user?.xp_points || 0}
+        streak={user?.streak_count || 0}
+        vibeMode={vibeMode}
+        onVibeChange={(v) => { setVibeMode(v); if (user) supabase.from('app_users').update({ vibe_mode: v }).eq('id', user.id) }}
+        nightMode={nightMode}
+        onNightModeChange={(v) => { setNightMode(v); setNightModePreference(v) }}
+      />
+
+      <div style={{ padding: '16px 20px', maxWidth: 700, margin: '0 auto' }}>
+
+        {/* Header */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 22, fontWeight: 800 }}>My Profile</div>
+          <div style={{ color: theme.muted, fontSize: 13, marginTop: 4 }}>Keep your profile updated — recruiters find you through this data</div>
+        </div>
+
+        {/* Profile Strength */}
+        <div style={{ ...card, borderLeft: `3px solid ${profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b'}` }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 700 }}>Profile Strength</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b' }}>{profileStrength.score}%</span>
+          </div>
+          <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{ height: '100%', width: `${profileStrength.score}%`, background: profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b', borderRadius: 4, transition: 'width 0.5s' }} />
+          </div>
+          {profileStrength.score >= 80
+            ? <div style={{ fontSize: 12, color: '#3dd68c' }}>🎉 Great profile! 1-tap apply is unlocked.</div>
+            : <div style={{ fontSize: 12, color: '#ffd60a' }}>Add: {profileStrength.missing.slice(0, 3).join(', ')} to improve visibility.</div>
+          }
+        </div>
+
+        {/* Photo Upload */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Profile Photo</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 72, height: 72, borderRadius: 18, background: `${theme.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `2px solid ${theme.accent}33`, flexShrink: 0 }}>
+              {form.photo_url || user?.photo_url
+                ? <img src={form.photo_url || user?.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <span style={{ fontSize: 28, color: theme.accent, fontWeight: 700 }}>{(user?.full_name || '?')[0].toUpperCase()}</span>
+              }
+            </div>
+            <div>
+              <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} disabled={uploading} />
+              <button onClick={() => photoRef.current?.click()} disabled={uploading} style={{ background: `${theme.accent}18`, color: theme.accent, border: `1px solid ${theme.accent}33`, borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1 }}>
+                {uploading ? 'Uploading...' : '📸 Upload Photo'}
+              </button>
+              <div style={{ fontSize: 11, color: theme.muted, marginTop: 5 }}>Max 2MB · Auto-compressed · JPG/PNG</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Personal Info */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Personal Information</div>
+
+          {/* ✅ Name & Email LOCKED to signup — read only */}
+          <label style={lbl}>Full Name * <span style={{ color: '#ffd60a', fontSize: 10, fontWeight: 400 }}>(from your account — contact support to change)</span></label>
+          <input style={inpRO} value={user?.full_name || ''} readOnly />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Email * <span style={{ color: '#ffd60a', fontSize: 10 }}>(locked)</span></label>
+              <input style={inpRO} type="email" value={user?.email || ''} readOnly />
+            </div>
+            <div>
+              <label style={lbl}>Mobile</label>
+              <input style={inp} value={form.mobile || ''} onChange={e => sf('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>City</label>
+              <select style={inp} value={form.city || ''} onChange={e => sf('city', e.target.value)}>
+                <option value="">Select City</option>
+                {CITIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>LinkedIn URL</label>
+              <input style={inp} value={form.linkedin || ''} onChange={e => sf('linkedin', e.target.value)} placeholder="linkedin.com/in/..." />
+            </div>
+          </div>
+
+          <div>
+            <label style={lbl}>GitHub / Portfolio URL</label>
+            <input style={inp} value={form.github || ''} onChange={e => sf('github', e.target.value)} placeholder="github.com/username or portfolio link" />
+          </div>
+
+          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button onClick={detectLocation} disabled={locLoading} style={{ background: 'rgba(108,140,255,0.08)', color: theme.accent, border: `1px solid rgba(108,140,255,0.2)`, borderRadius: 10, padding: '8px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', opacity: locLoading ? 0.5 : 1 }}>
+              {locLoading ? 'Detecting...' : '📍 Detect My Location'}
+            </button>
+            {locSaved && <span style={{ fontSize: 11, color: '#3dd68c' }}>Location saved ✓</span>}
+          </div>
+        </div>
+
+        {/* Professional Details */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Professional Details</div>
+
+          <label style={lbl}>Current Role / Designation</label>
+          <input style={inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Engineer, HR Manager, Student" />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Experience (years)</label>
+              <input style={inp} type="number" step="0.5" min="0" max="50" value={form.experience || ''} onChange={e => sf('experience', e.target.value ? parseFloat(e.target.value) : null)} placeholder="0 = Fresher, e.g. 3.5" />
+            </div>
+            <div>
+              <label style={lbl}>Notice Period</label>
+              <select style={inp} value={form.notice_period || ''} onChange={e => sf('notice_period', e.target.value)}>
+                <option value="">Select</option>
+                {NOTICE_PERIODS.map(n => <option key={n}>{n}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Current CTC (₹ LPA)</label>
+              <input style={inp} type="number" step="0.5" min="0" value={form.current_ctc || ''} onChange={e => sf('current_ctc', e.target.value ? parseFloat(e.target.value) : null)} placeholder="e.g. 8.5" />
+            </div>
+            <div>
+              <label style={lbl}>Expected CTC (₹ LPA)</label>
+              <input style={inp} type="number" step="0.5" min="0" value={form.expected_ctc || ''} onChange={e => sf('expected_ctc', e.target.value ? parseFloat(e.target.value) : null)} placeholder="e.g. 12" />
+            </div>
+          </div>
+
+          <label style={lbl}>Work Mode (select all that apply)</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v)), '#6c8cff'))}
+          </div>
+
+          <label style={lbl}>Job Type</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {JOB_TYPES.map(j => chipBtn(j, form.job_type || '', (v) => sf('job_type', multiToggle(form.job_type || '', v)), '#10B981'))}
+          </div>
+
+          <label style={lbl}>Employment Type</label>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {EMP_TYPES.map(e => chipBtn(e, form.employment_type || '', (v) => sf('employment_type', multiToggle(form.employment_type || '', v)), '#F59E0B'))}
+          </div>
+        </div>
+
+        {/* Education */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Education</div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Highest Qualification</label>
+              <select style={inp} value={form.qualification || ''} onChange={e => sf('qualification', e.target.value)}>
+                <option value="">Select</option>
+                {QUALIFICATIONS.map(q => <option key={q}>{q}</option>)}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Branch / Specialization</label>
+              <input style={inp} value={form.branch || ''} onChange={e => sf('branch', e.target.value)} placeholder="e.g. CSE, Finance, Marketing" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>College / University</label>
+              <input style={inp} value={form.college || ''} onChange={e => sf('college', e.target.value)} placeholder="College name" />
+            </div>
+            <div>
+              <label style={lbl}>Graduation Year</label>
+              <select style={inp} value={form.graduation_year || ''} onChange={e => sf('graduation_year', e.target.value)}>
+                <option value="">Select Year</option>
+                {Array.from({ length: 30 }, (_, i) => 2026 - i).map(y => <option key={y}>{y}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Skills */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Skills</div>
+          <div style={{ fontSize: 12, color: theme.muted, marginTop: 4, marginBottom: 8 }}>Add skills comma-separated. Recruiters search by skills.</div>
+          <textarea rows={3} style={{ ...inp, resize: 'none' }} value={form.skills || ''} onChange={e => sf('skills', e.target.value)} placeholder="e.g. React, Node.js, Python, Leadership, Sales, Excel..." />
+        </div>
+
+        {/* Feed Preferences */}
+        <div style={card}>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>Feed Preferences</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Feed Style</label>
+              <select style={inp} value={userSettings.vibe} onChange={e => setUserSettings(p => ({ ...p, vibe: e.target.value }))}>
+                {VIBE_MODES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button onClick={saveSettings} style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: `${theme.accent}18`, color: theme.accent, border: `1px solid ${theme.accent}33`, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Save Preferences
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <button onClick={saveProfile} disabled={saving} style={{ width: '100%', padding: 16, borderRadius: 14, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', background: saved ? '#3dd68c' : theme.accent, color: '#fff', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1, transition: 'all 0.2s', marginBottom: 32 }}>
+          {saving ? 'Saving...' : saved ? '✅ Profile Saved!' : '💾 Save Profile'}
+        </button>
+
+      </div>
+    </div>
+  )
+}

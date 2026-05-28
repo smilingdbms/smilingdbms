@@ -1,14 +1,14 @@
 // @ts-nocheck
 /* eslint-disable */
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Layout from '../../src/components/Layout';
 import dynamic from 'next/dynamic';
 
 const Confetti = dynamic(() => import('react-confetti'), { ssr: false });
 const AuditLogs = dynamic(() => import('../../src/components/AuditLogs'), { ssr: false });
 const TeamManager = dynamic(() => import('../../src/components/TeamManager'), { ssr: false });
-const TenantManager = dynamic(() => import('../../src/components/TenantManager'), { ssr: false }); // <-- NAYA MODULE IMPORT
+const TenantManager = dynamic(() => import('../../src/components/TenantManager'), { ssr: false });
 
 function useWindowSize() {
   const [windowSize, setWindowSize] = useState({ width: undefined, height: undefined });
@@ -110,7 +110,8 @@ const jobSeekerPermissionGroups = {
   ]
 };
 
-const ROLES_LIST = [
+// All roles - Super Admin sees all
+const ALL_ROLES_LIST = [
   'Super Admin', 'Admin', 'Core Team', 'Tech Admin', 'Billing Admin', 'Support Admin',
   'Account Owner', 'Recruitment Manager', 'Recruitment TL', 'Recruitment Senior Executive', 'Recruitment Executive',
   'BD Manager', 'BD TL', 'BD Senior Executive', 'BD Executive',
@@ -118,10 +119,132 @@ const ROLES_LIST = [
   'Job Seeker (Free)', 'Job Seeker (Paid)'
 ];
 
+// Account Owner roles - cannot see/edit Super Admin level roles
+const ACCOUNT_OWNER_ROLES = [
+  'Recruitment Manager', 'Recruitment TL', 'Recruitment Senior Executive', 'Recruitment Executive',
+  'BD Manager', 'BD TL', 'BD Senior Executive', 'BD Executive',
+  'Freelance Recruiter',
+  'Job Seeker (Free)', 'Job Seeker (Paid)'
+];
+
+const ROLES_LIST = []; // will be set dynamically
+
+
+// ══════════════════════════════════════════════════════
+// PENDING APPROVALS COMPONENT
+// Super Admin: sees ALL pending users across all companies
+// Account Owner: sees ONLY their company's pending users
+// ══════════════════════════════════════════════════════
+function PendingApprovals({ companyId, isSuperAdmin }) {
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState('');
+
+  useEffect(() => { fetchPending(); }, []);
+
+  async function fetchPending() {
+    setLoading(true);
+    let query = supabase.from('app_users').select('*').eq('status', 'pending');
+    if (!isSuperAdmin && companyId) {
+      query = query.eq('company_id', companyId);
+    }
+    const { data, error } = await query.order('created_at', { ascending: false });
+    if (!error && data) setPending(data);
+    setLoading(false);
+  }
+
+  async function handleApprove(userId) {
+    setProcessing(userId);
+    const { error } = await supabase.from('app_users').update({ status: 'active' }).eq('id', userId);
+    if (!error) {
+      await supabase.from('audit_logs').insert([{ user_id: userId, action: 'USER_APPROVED', details: 'User approved by admin' }]);
+      fetchPending();
+    } else {
+      alert('Error approving user: ' + error.message);
+    }
+    setProcessing('');
+  }
+
+  async function handleReject(userId) {
+    if (!window.confirm('Are you sure you want to reject this user?')) return;
+    setProcessing(userId);
+    const { error } = await supabase.from('app_users').update({ status: 'rejected' }).eq('id', userId);
+    if (!error) {
+      await supabase.from('audit_logs').insert([{ user_id: userId, action: 'USER_REJECTED', details: 'User rejected by admin' }]);
+      fetchPending();
+    } else {
+      alert('Error rejecting user: ' + error.message);
+    }
+    setProcessing('');
+  }
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '50vh' }}>
+      <div style={{ color: '#9CA3AF' }}>Loading pending users...</div>
+    </div>
+  );
+
+  return (
+    <div>
+      <h2 style={{ color: '#fff', marginBottom: 8 }}>⏳ Pending Approvals</h2>
+      <p style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 24 }}>
+        {isSuperAdmin ? 'All pending users across all companies' : 'Pending users in your company'}
+      </p>
+
+      {pending.length === 0 ? (
+        <div style={{ background: '#11182D', borderRadius: 12, padding: 40, textAlign: 'center', border: '1px solid #1F2937' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+          <div style={{ color: '#9CA3AF', fontSize: 14 }}>No pending approvals</div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {pending.map(user => (
+            <div key={user.id} style={{ background: '#11182D', border: '1px solid #1F2937', borderRadius: 12, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16, color: '#fff' }}>
+                  {(user.full_name || user.email || 'U')[0].toUpperCase()}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 14, color: '#fff' }}>{user.full_name || 'No name'}</div>
+                  <div style={{ fontSize: 12, color: '#9CA3AF', marginTop: 2 }}>{user.email}</div>
+                  <div style={{ fontSize: 11, color: '#6B7280', marginTop: 2 }}>
+                    Role: {user.role} • Joined: {new Date(user.created_at).toLocaleDateString('en-IN')}
+                    {isSuperAdmin && user.company_id && <span> • Company: {user.company_id.slice(0,8)}...</span>}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
+                <button
+                  onClick={() => handleApprove(user.id)}
+                  disabled={processing === user.id}
+                  style={{ background: 'rgba(16,185,129,0.15)', border: '1px solid #10B981', color: '#10B981', padding: '8px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+                >
+                  {processing === user.id ? '...' : '✅ Approve'}
+                </button>
+                <button
+                  onClick={() => handleReject(user.id)}
+                  disabled={processing === user.id}
+                  style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid #EF4444', color: '#EF4444', padding: '8px 20px', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
+                >
+                  {processing === user.id ? '...' : '❌ Reject'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SuperAdminDashboard() {
+  const router = useRouter();
   const { width, height } = useWindowSize();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [activeModule, setActiveModule] = useState('tenants'); // Changed default view
+  const [activeModule, setActiveModule] = useState('tenants');
+  const [currentUserRole, setCurrentUserRole] = useState('');
+  const [currentUserCompanyId, setCurrentUserCompanyId] = useState('');
+  const [securityLoading, setSecurityLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false); 
   const [activeSubMenu, setActiveSubMenu] = useState('role_wise'); 
   const [selectedRole, setSelectedRole] = useState('Account Owner');
   
@@ -130,11 +253,70 @@ export default function SuperAdminDashboard() {
   const [rolePermissions, setRolePermissions] = useState({});
   const [saving, setSaving] = useState(false);
 
+  // --- 🚀 FIX 1: HASH ROUTING LISTENER ---
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash && hash !== activeSubMenu) setActiveSubMenu(hash);
+    };
+    handleHashChange();
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   useEffect(() => { fetchPermissions(); }, [selectedRole]);
 
+  // ── SECURITY: Load current user role ──
+  useEffect(() => {
+    const checkAccess = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/'); return; }
+
+        const { data: userData } = await supabase
+          .from('app_users')
+          .select('role, company_id')
+          .eq('id', user.id)
+          .single();
+
+        if (!userData) { router.push('/'); return; }
+
+        const role = userData.role || '';
+        setCurrentUserRole(role);
+        setCurrentUserCompanyId(userData.company_id || '');
+
+        // Only super_admin gets full access
+        // account_owner gets limited team-only view
+        // Everyone else: access denied
+        const allowed = ['super_admin', 'account_owner'];
+        if (!allowed.includes(role)) {
+          setAccessDenied(true);
+        }
+
+        // Account owners default to team tab, not permissions
+        if (role === 'account_owner') {
+          setActiveSubMenu('team');
+        }
+
+      } catch (e) {
+        console.error('Security check failed:', e);
+        router.push('/');
+      } finally {
+        setSecurityLoading(false);
+      }
+    };
+    checkAccess();
+  }, []);
+
   async function fetchPermissions() {
-    const { data } = await supabase.from('roles').select('permissions_json').eq('role_name', selectedRole).single();
-    setRolePermissions(prev => ({ ...prev, [selectedRole]: data?.permissions_json || {} }));
+    try {
+      const { data, error } = await supabase.from('roles').select('permissions_json').eq('role_name', selectedRole).maybeSingle();
+      if (!error && data) {
+        setRolePermissions(prev => ({ ...prev, [selectedRole]: data.permissions_json || {} }));
+      }
+    } catch (e) {
+      console.log('Error fetching permissions:', e.message);
+    }
   }
 
   const handleRoleToggle = (featureKey) => {
@@ -149,36 +331,74 @@ export default function SuperAdminDashboard() {
     setRolePermissions(prev => ({ ...prev, [selectedRole]: { ...(prev[selectedRole] || {}), ...updates } }));
   };
 
+  // --- 🚀 FIX 2: REAL SUPABASE ERROR HANDLING ---
   const handleSaveMatrix = async () => {
     setSaving(true);
     const currentPerms = rolePermissions[selectedRole] || {};
+    
     try {
-      const { data: existingRole } = await supabase.from('roles').select('id').eq('role_name', selectedRole).single();
-      let roleError;
+      const { data: existingRole, error: fetchErr } = await supabase.from('roles').select('id').eq('role_name', selectedRole).maybeSingle();
+      
       if (existingRole) {
         const { error } = await supabase.from('roles').update({ permissions_json: currentPerms }).eq('id', existingRole.id);
-        roleError = error;
+        if (error) throw error; // Fakes nahi udani, seedha error throw karna hai
       } else {
         const { error } = await supabase.from('roles').insert([{ role_name: selectedRole, permissions_json: currentPerms, is_system_role: true }]);
-        roleError = error;
+        if (error) throw error; 
       }
-      if (roleError) throw roleError;
 
+      // Agar yahan tak code aaya, iska matlab hai Sach mein Save hua hai!
       const userRes = await supabase.auth.getUser();
       if (userRes.data?.user) {
-        await supabase.from('audit_logs').insert([{ user_id: userRes.data.user.id, action: 'PERMISSION_UPDATE', details: `God Mode secured permissions for ${selectedRole}` }]);
+        await supabase.from('audit_logs').insert([{ user_id: userRes.data.user.id, action: 'PERMISSION_UPDATE', details: `Permissions updated for ${selectedRole}` }]);
       }
+      
       setConfettiMessage(`Enterprise Security Locked for ${selectedRole}`);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 4000);
+      
     } catch (error) {
-      alert("Error saving to database: " + error.message);
+      // Yahan abhi apko saaf saaf Laal error dikhega
+      console.error("Supabase Save Error:", error);
+      alert(`🚨 DATABASE ERROR 🚨\n\nReason: ${error.message}\n\nAapka data save nahi hua hai. Supabase mein RLS check karein.`);
     }
     setSaving(false);
   };
 
+  // ── SECURITY LOADING ──
+  if (securityLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050810', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 40, height: 40, border: '3px solid #3B82F6', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ color: '#9CA3AF', fontSize: 14 }}>Verifying access...</div>
+        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+      </div>
+    );
+  }
+
+  // ── ACCESS DENIED ──
+  if (accessDenied) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#050810', flexDirection: 'column', gap: 20 }}>
+        <div style={{ fontSize: 60 }}>🔒</div>
+        <h2 style={{ color: '#EF4444', margin: 0, fontSize: 24 }}>Access Denied</h2>
+        <p style={{ color: '#9CA3AF', textAlign: 'center', maxWidth: 400 }}>
+          You do not have permission to access the Admin Center.
+          Contact your Super Admin if you need access.
+        </p>
+        <button onClick={() => router.push('/dashboard')} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
+          Go to Dashboard
+        </button>
+      </div>
+    );
+  }
+
+  // ── DYNAMIC ROLES LIST based on user role ──
+  const effectiveRolesList = currentUserRole === 'super_admin' ? ALL_ROLES_LIST : ACCOUNT_OWNER_ROLES;
+  const isSuperAdmin = currentUserRole === 'super_admin';
+
   return (
-    <Layout>
+    <>
       {showConfetti && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Confetti width={width} height={height} recycle={false} numberOfPieces={800} gravity={0.15} />
@@ -189,10 +409,6 @@ export default function SuperAdminDashboard() {
 
       <style dangerouslySetInnerHTML={{__html: `
         .admin-layout { display: flex; height: 100vh; background: #050810; color: #fff; width: 100%; overflow: hidden; }
-        .sidebar { background: #11182D; border-right: 1px solid #1F2937; transition: width 0.3s ease; display: flex; flex-direction: column; z-index: 50; }
-        .sidebar-item { padding: 15px 20px; display: flex; alignItems: center; gap: 15px; cursor: pointer; transition: 0.2s; color: #9CA3AF; white-space: nowrap; overflow: hidden; border-left: 3px solid transparent; }
-        .sidebar-item:hover { background: rgba(59, 130, 246, 0.1); color: #fff; }
-        .sidebar-item.active { background: rgba(59, 130, 246, 0.15); color: #60A5FA; border-left-color: #3B82F6; font-weight: bold; }
         .rbac-sidebar { width: 260px; background: #0b0e14; border-right: 1px solid #1F2937; display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
         .rbac-menu-item { padding: 12px 20px; cursor: pointer; color: #9CA3AF; font-size: 13px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.02); transition: 0.2s; display: flex; justify-content: space-between; alignItems: center; }
         .rbac-menu-item:hover { background: rgba(255,255,255,0.05); color: #fff; }
@@ -211,66 +427,57 @@ export default function SuperAdminDashboard() {
       `}} />
 
       <div className="admin-layout">
-        {/* GLOBAL SIDEBAR */}
-        <div className="sidebar" style={{ width: isSidebarOpen ? '240px' : '70px' }}>
-          <div style={{ padding: '20px', display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #1F2937' }}>
-            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: '20px', cursor: 'pointer' }}>☰</button>
-            {isSidebarOpen && <span style={{ fontWeight: '800', fontSize: '18px', background: 'linear-gradient(90deg, #A855F7, #3B82F6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>RecruitOS</span>}
+        
+        {/* INNER ADMIN MENU ONLY - NO GLOBAL SIDEBAR HERE */}
+        <div className="rbac-sidebar">
+          <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid #1F2937', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{ fontSize: '20px' }}>🛡️</span> Admin Center
           </div>
-          <div style={{ flex: 1, paddingTop: '10px' }}>
-            <div className={`sidebar-item ${activeModule === 'overview' ? 'active' : ''}`} onClick={() => setActiveModule('overview')}>
-              <span style={{ fontSize: '18px' }}>🌐</span> {isSidebarOpen && "Global Analytics"}
-            </div>
-            <div className={`sidebar-item ${activeModule === 'rbac' ? 'active' : ''}`} onClick={() => setActiveModule('rbac')}>
-              <span style={{ fontSize: '18px' }}>🛡️</span> {isSidebarOpen && "Control Center"}
-            </div>
-            <div className={`sidebar-item ${activeModule === 'team' ? 'active' : ''}`} onClick={() => setActiveModule('team')}>
-              <span style={{ fontSize: '18px' }}>👥</span> {isSidebarOpen && "Internal Team"}
-            </div>
-            <div className={`sidebar-item ${activeModule === 'tenants' ? 'active' : ''}`} onClick={() => setActiveModule('tenants')}>
-              <span style={{ fontSize: '18px' }}>🏢</span> {isSidebarOpen && "Consultancies"}
-            </div>
-          </div>
+          {/* Super Admin ONLY tabs */}
+          {isSuperAdmin && (<>
+          <div className={`rbac-menu-item ${activeSubMenu === 'role_wise' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('role_wise'); window.location.hash = 'role_wise'; }}>🔐 Role Wise Permissions <span>→</span></div>
+          <div className={`rbac-menu-item ${activeSubMenu === 'job_seeker' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('job_seeker'); window.location.hash = 'job_seeker'; }}>🎯 Job Seeker Access <span>→</span></div>
+          <div className={`rbac-menu-item ${activeSubMenu === 'audit_logs' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('audit_logs'); window.location.hash = 'audit_logs'; }}>🔍 Audit Logs <span>→</span></div>
+          <div className={`rbac-menu-item ${activeSubMenu === 'tenants' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('tenants'); window.location.hash = 'tenants'; }}>🏢 Consultancies <span>→</span></div>
+          </>)}
+          {/* Both Super Admin and Account Owner */}
+          <div className={`rbac-menu-item ${activeSubMenu === 'team' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('team'); window.location.hash = 'team'; }}>👥 {isSuperAdmin ? 'All Users' : 'My Team'} <span>→</span></div>
+          <div className={`rbac-menu-item ${activeSubMenu === 'pending' ? 'active' : ''}`} onClick={() => { setActiveSubMenu('pending'); window.location.hash = 'pending'; }}>⏳ Pending Approvals <span>→</span></div>
         </div>
 
-        {/* MAIN CONTENT */}
-        {activeModule === 'rbac' ? (
-          <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-            {/* RBAC SUB-MENU */}
-            <div className="rbac-sidebar">
-              <div style={{ padding: '20px', color: '#fff', fontWeight: 'bold', fontSize: '14px', textTransform: 'uppercase', borderBottom: '1px solid #1F2937' }}>Permission Center</div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'role_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('role_wise')}>Role Wise Permissions <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'consultant_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('consultant_wise')}>Consultancy Wise <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'dept_wise' ? 'active' : ''}`} onClick={() => setActiveSubMenu('dept_wise')}>Department Wise <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'job_seeker' ? 'active' : ''}`} onClick={() => setActiveSubMenu('job_seeker')}>Job Seeker Access <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'feature_matrix' ? 'active' : ''}`} onClick={() => setActiveSubMenu('feature_matrix')}>Feature Matrix <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'approvals' ? 'active' : ''}`} onClick={() => setActiveSubMenu('approvals')}>Approval Workflows <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'audit_logs' ? 'active' : ''}`} onClick={() => setActiveSubMenu('audit_logs')}>Security Audit Logs <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'templates' ? 'active' : ''}`} onClick={() => setActiveSubMenu('templates')}>Permission Templates <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'custom_role' ? 'active' : ''}`} onClick={() => setActiveSubMenu('custom_role')}>Custom Role Builder <span>→</span></div>
-              <div className={`rbac-menu-item ${activeSubMenu === 'hierarchy' ? 'active' : ''}`} onClick={() => setActiveSubMenu('hierarchy')}>Role Hierarchy Map <span>→</span></div>
-            </div>
-
-            <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-              {(activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') && (
-                <div style={{ width: '300px', borderRight: '1px solid #1F2937', background: '#080C16', overflowY: 'auto' }}>
-                  {ROLES_LIST.filter(r => activeSubMenu === 'job_seeker' ? r.includes('Job Seeker') : !r.includes('Job Seeker')).map(role => (
-                    <div key={role} onClick={() => setSelectedRole(role)} className={`selection-list-item ${selectedRole === role ? 'active' : ''}`}>
-                      <div style={{ fontWeight: 'bold', color: selectedRole === role ? '#60A5FA' : '#E5E7EB', fontSize: '14px' }}>{role}</div>
-                      <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions</div>
-                    </div>
-                  ))}
+        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+          {(activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') && (
+            <div style={{ width: '300px', borderRight: '1px solid #1F2937', background: '#080C16', overflowY: 'auto' }}>
+              {effectiveRolesList.filter(r => activeSubMenu === 'job_seeker' ? r.includes('Job Seeker') : !r.includes('Job Seeker')).map(role => (
+                <div key={role} onClick={() => setSelectedRole(role)} className={`selection-list-item ${selectedRole === role ? 'active' : ''}`}>
+                  <div style={{ fontWeight: 'bold', color: selectedRole === role ? '#60A5FA' : '#E5E7EB', fontSize: '14px' }}>{role}</div>
+                  <div style={{ fontSize: '11px', color: '#6B7280', marginTop: '4px' }}>{Object.keys(rolePermissions[role] || {}).filter(k => rolePermissions[role][k]).length} active permissions</div>
                 </div>
-              )}
+              ))}
+            </div>
+          )}
 
-              <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
+          <div style={{ flex: 1, padding: '30px', overflowY: 'auto' }}>
+            
+            {/* RENDER DYNAMIC MODULES BASED ON SUBMENU CLICK */}
+            {(activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') && !isSuperAdmin ? (
+              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+                <div style={{ fontSize: 50 }}>🔒</div>
+                <h3 style={{ color: '#EF4444', margin: 0 }}>Super Admin Only</h3>
+                <p style={{ color: '#9CA3AF', textAlign: 'center', maxWidth: 400, fontSize: 13 }}>
+                  Role permission management is restricted to Super Admin only.
+                  You can manage your team members from the My Team section.
+                </p>
+              </div>
+            ) : (activeSubMenu === 'role_wise' || activeSubMenu === 'job_seeker') ? (
+              <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', background: '#11182D', padding: '20px', borderRadius: '12px', border: '1px solid #1F2937', position: 'sticky', top: 0, zIndex: 10 }}>
                   <div>
                     <h2 style={{ margin: '0 0 5px 0', color: '#fff', fontSize: '20px' }}>Configuring Access for: <span style={{ color: '#3B82F6' }}>{selectedRole}</span></h2>
                     <div style={{ fontSize: '12px', color: '#9CA3AF' }}>Inheritance Rule: Lower roles can NEVER exceed the permissions granted to their parent role here.</div>
                   </div>
                   <button onClick={handleSaveMatrix} disabled={saving} style={{ background: '#10B981', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 15px rgba(16,185,129,0.3)', whiteSpace: 'nowrap', opacity: saving ? 0.7 : 1 }}>
-                    {saving ? '⏳ Saving to DB...' : '💾 Save Policy'}
+                    {saving ? '⏳ Saving...' : '💾 Save Policy'}
                   </button>
                 </div>
 
@@ -319,27 +526,25 @@ export default function SuperAdminDashboard() {
                     </div>
                   ))
                 }
-                
-                {activeSubMenu === 'audit_logs' && <AuditLogs />}
-                {['consultant_wise', 'dept_wise', 'feature_matrix', 'approvals', 'templates', 'custom_role', 'hierarchy'].includes(activeSubMenu) && (
-                  <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#6B7280' }}>
-                    <div style={{ fontSize: '40px', marginBottom: '20px' }}>🛠️</div>
-                    <h3 style={{ margin: 0, color: '#9CA3AF' }}>{activeSubMenu.replace('_', ' ').toUpperCase()} MODULE</h3>
-                    <p style={{ fontSize: '13px', marginTop: '10px' }}>This section is locked in Phase 2 architecture building.</p>
-                  </div>
-                )}
+              </>
+            ) : activeSubMenu === 'audit_logs' ? (
+              <AuditLogs />
+            ) : activeSubMenu === 'tenants' ? (
+              <TenantManager />
+            ) : activeSubMenu === 'team' ? (
+              <TeamManager />
+            ) : activeSubMenu === 'pending' ? (
+              <PendingApprovals companyId={currentUserCompanyId} isSuperAdmin={isSuperAdmin} />
+            ) : (
+              <div style={{ display: 'flex', height: '60vh', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: '#6B7280' }}>
+                <div style={{ fontSize: '40px', marginBottom: '20px' }}>🛠️</div>
+                <h3 style={{ margin: 0, color: '#9CA3AF' }}>{activeSubMenu.replace('_', ' ').toUpperCase()} MODULE</h3>
+                <p style={{ fontSize: '13px', marginTop: '10px' }}>This section is locked in Phase 2 architecture building.</p>
               </div>
-            </div>
+            )}
           </div>
-        ) : (
-          <div style={{ padding: '30px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            {activeModule === 'overview' && <h1>Global Analytics Dashboard (Coming Soon)</h1>}
-            {activeModule === 'team' && <><h1 style={{marginBottom:'20px'}}>Internal Team</h1><TeamManager /></>}
-            {/* 🏢 YAHAN HUMNE TENANT MANAGER ADD KIYA HAI */}
-            {activeModule === 'tenants' && <TenantManager />}
-          </div>
-        )}
+        </div>
       </div>
-    </Layout>
+    </>
   );
 }

@@ -501,7 +501,7 @@ export default function JobSeekerPortal() {
                   {vibeMode === 'focus' ? (
                     <div className="jcard" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: `1px solid ${theme.bd}`, borderRadius: 10, marginBottom: 6 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{j.title}</div>
+                        <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer' }}>{j.title} <span style={{fontSize:10, color:'#6c8cff'}}>↗</span></div>
                         <div style={{ fontSize: 12, color: '#7a7f90' }}>{j.companies?.name || j.company_name}{j.location || j.city ? ` · ${j.location || j.city}` : ''}</div>
                       </div>
                       {matchPct > 0 && <span style={{ fontSize: 11, color: matchPct > 70 ? '#3dd68c' : '#6c8cff', fontWeight: 700 }}>{matchPct}%</span>}
@@ -527,7 +527,7 @@ export default function JobSeekerPortal() {
                               {(j.companies?.name || j.company_name || 'C')[0]}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <div style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{j.title}</div>
+                              <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer', color: 'inherit' }} title="View job details">{j.title} <span style={{fontSize:11, color:'#6c8cff'}}>↗</span></div>
                               <div style={{ fontSize: 12, color: '#7a7f90' }}>{j.companies?.name || j.company_name || 'Company'}</div>
                             </div>
                           </div>

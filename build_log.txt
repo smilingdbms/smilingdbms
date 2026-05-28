@@ -1,0 +1,42 @@
+  ▲ Next.js 14.2.5
+  - Environments: .env.local
+
+   Skipping validation of types
+   Linting ...
+   Creating an optimized production build ...
+Failed to compile.
+
+./pages/dashboard/master.tsx
+Error: 
+  [31mx[0m Expression expected
+     ,-[[36;1;4mC:\Users\Pravin\OneDrive\Desktop\DBMS Folder\smilingdbms_project\smilingdbms\pages\dashboard\master.tsx[0m:660:1]
+ [2m660[0m |   )
+ [2m661[0m | 
+ [2m662[0m |   return (
+ [2m663[0m |     <>
+     : [31;1m     ^[0m
+ [2m664[0m |       <style>{`html,body,#__next{overscroll-behavior:none !important;overscroll-behavior-x:none !important;}*{-webkit-overflow-scrolling:touch;}`}</style>
+ [2m665[0m |       <style>{`
+ [2m666[0m |         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+     `----
+
+  [31mx[0m Unexpected token ```. Expected identifier, string literal, numeric literal or [ for the computed key
+     ,-[[36;1;4mC:\Users\Pravin\OneDrive\Desktop\DBMS Folder\smilingdbms_project\smilingdbms\pages\dashboard\master.tsx[0m:662:1]
+ [2m662[0m |   return (
+ [2m663[0m |     <>
+ [2m664[0m |       <style>{`html,body,#__next{overscroll-behavior:none !important;overscroll-behavior-x:none !important;}*{-webkit-overflow-scrolling:touch;}`}</style>
+ [2m665[0m |       <style>{`
+     : [31;1m              ^[0m
+ [2m666[0m |         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+ [2m667[0m |         *{box-sizing:border-box;}
+ [2m668[0m |         select option{background:var(--bg3,#22262f);}
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./pages/dashboard/master.tsx
+
+
+> Build failed because of webpack errors

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import DashboardNav from '../../src/components/DashboardNav'
 
 const PERMISSION_GROUPS = [
   {
@@ -159,8 +158,9 @@ export default function CompanyPermissionsPage() {
   const currentGroup = PERMISSION_GROUPS.find(g => g.group === activeGroup)!
 
   return (
+    <>
     <div style={S.page}>
-      <DashboardNav />
+      
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
@@ -293,5 +293,6 @@ export default function CompanyPermissionsPage() {
         </div>
       </div>
     </div>
+    </>
   )
 }

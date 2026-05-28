@@ -1,8 +1,6 @@
-import DashboardNav from '../../src/components/DashboardNav'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
-import Layout from '../../src/components/Layout'
 
 export default function InvitePage() {
   const router = useRouter()
@@ -101,8 +99,8 @@ export default function InvitePage() {
 
   return (
     <>
-      <DashboardNav />
-    <Layout appUser={appUser} unreadCount={0}>
+      
+    
       <div style={{flex:1,overflowY:'auto',padding:'20px'}}>
         <div style={{maxWidth:720,margin:'0 auto'}}>
 
@@ -231,7 +229,6 @@ export default function InvitePage() {
           </div>
         </div>
       </div>
-    </Layout>
-  </>
+    </>
   )
 }
