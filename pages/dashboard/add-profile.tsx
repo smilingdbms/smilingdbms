@@ -112,6 +112,13 @@ export default function AddProfilePage() {
     })
   }, [])
 
+  // If we arrived via /dashboard/add-profile?upload=1 (from master's Upload CV button),
+  // auto-open the CV upload modal once router is ready.
+  useEffect(() => {
+    if (!router.isReady) return
+    if (router.query.upload === '1') setShowCV(true)
+  }, [router.isReady, router.query.upload])
+
   async function loadData(u: any) {
     let { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
     if (!au) { router.push('/dashboard/master'); return }
