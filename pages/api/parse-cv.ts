@@ -3,10 +3,10 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
 // ══════════════════════════════════════════════════════════
-// CV PARSER v3.0 — Gemini AI + Regex Fallback
-// Uses pdf-parse for text extraction
-// Gemini 2.5 Flash-Lite for AI parsing (free tier), regex as fallback
-// Auto-compresses uploads to 125KB
+// CV PARSER v4.0 — Gemini AI (structured arrays) + Regex Fallback
+// Returns work_experiences, education, certifications, achievements
+// as proper arrays for the new structured CV schema.
+// Uses pdf-parse for text extraction. Auto-compresses uploads to 125KB.
 // ══════════════════════════════════════════════════════════
 
 export const config = { api: { bodyParser: { sizeLimit: '15mb' } } }
@@ -206,10 +206,17 @@ function parseCV(text: string): Record<string, string> {
   else if (exp <= 2) result.segment = 'junior'
   else result.segment = 'experienced'
 
+  // Structured arrays — regex fallback can't extract these reliably,
+  // so return empty arrays. The form will let the recruiter add them.
+  ;(result as any).work_experiences = []
+  ;(result as any).education        = []
+  ;(result as any).certifications   = []
+  ;(result as any).achievements     = []
+
   return result
 }
 
-// ── AI-Powered CV Parser (Gemini) ────────────────────────
+// ── AI-Powered CV Parser (Gemini) — v4: STRUCTURED ARRAYS ──
 async function parseWithAI(text: string): Promise<Record<string, any>> {
   try {
     const apiKey = process.env.GEMINI_API_KEY || ''
@@ -223,42 +230,83 @@ async function parseWithAI(text: string): Promise<Record<string, any>> {
         body: JSON.stringify({
           contents: [{
             parts: [{
-              text: `Extract information from this CV/Resume text. Return ONLY valid JSON, no explanation, no markdown.
+              text: `You are a recruitment CV parser. Extract STRUCTURED data from this CV.
+Return ONLY valid JSON — no explanation, no markdown, no code fences.
 
 CV TEXT:
-${text.substring(0, 6000)}
+${text.substring(0, 12000)}
 
-Extract these fields (use null if not found):
+Return this exact JSON shape. Use null / [] / "" when info is missing. Never invent data.
+
 {
   "name": "Full name of the person (NOT job title or company)",
   "email": "email address",
   "mobile": "10-digit mobile number only digits",
-  "gender": "Male/Female/Other",
-  "age": "age as number string if found",
-  "linkedin": "LinkedIn URL if found",
-  "role": "current/desired job title/designation",
-  "experience": "total years of experience as number",
-  "current_company": "current employer name",
-  "current_ctc": "current CTC in LPA as number",
-  "expected_ctc": "expected CTC in LPA as number",
-  "notice_period": "notice period e.g. Immediate/30 days/1 month",
+  "gender": "Male/Female/Other or null",
+  "age": "age as number string or null",
+  "linkedin": "LinkedIn URL or null",
+  "role": "current/most recent job title",
+  "experience": "TOTAL years of work experience as a number string e.g. 5 or 5.5",
+  "current_company": "current/most recent employer name",
+  "current_ctc": "current CTC in LPA as number or null",
+  "expected_ctc": "expected CTC in LPA as number or null",
+  "notice_period": "Immediate / 7 days / 15 days / 1 month / 2 months / 3 months / Negotiable",
   "qualification": "highest qualification e.g. B.Tech/MBA/MBBS",
-  "qualification_branch": "specialization e.g. Computer Science",
-  "skills": "comma separated top skills max 15",
+  "qualification_branch": "specialization for highest qualification e.g. Computer Science",
+  "skills": "comma separated top skills, max 20",
   "industry": "industry sector",
   "city": "current city",
-  "work_mode": "WFH/Office/Hybrid if mentioned",
-  "willing_to_relocate": "true/false if mentioned",
-  "ai_summary": "2-3 line professional summary",
+  "work_mode": "WFH / Office / Hybrid or null",
+  "willing_to_relocate": "true/false as string or null",
+  "ai_summary": "Professional summary in 2-4 lines (use the CV's own summary if present, otherwise compose one)",
   "languages": "languages known comma separated",
-  "college": "college/university name",
-  "graduation_year": "graduation year as 4-digit string"
-}`
+  "college": "college/university name for highest qualification",
+  "graduation_year": "graduation year as 4-digit string for highest qualification",
+
+  "work_experiences": [
+    {
+      "company": "employer name",
+      "role": "designation/title at this employer",
+      "from_month": "Jan/Feb/.../Dec or empty string",
+      "from_year": "4-digit year as string or empty string",
+      "to_month": "Jan/.../Dec or empty string if currently working",
+      "to_year": "4-digit year as string or empty string if currently working",
+      "current": true,
+      "bullets": ["3-8 short responsibility/achievement bullet points, each one line"]
+    }
+  ],
+
+  "education": [
+    {
+      "degree": "e.g. B.Tech / MBA / MBBS / 12th / 10th",
+      "specialization": "branch or stream e.g. Computer Science or empty",
+      "institution": "college/university/school name",
+      "year": "passing/completion year (4-digit string) or empty",
+      "percentage_or_cgpa": "e.g. 8.5 or 78% or empty"
+    }
+  ],
+
+  "certifications": [
+    { "name": "certification name", "issuer": "issuing body", "year": "4-digit year or empty" }
+  ],
+
+  "achievements": [
+    { "title": "award/achievement title", "description": "1-2 lines or empty", "year": "4-digit year or empty" }
+  ]
+}
+
+Important rules:
+- work_experiences: order from MOST RECENT first. Mark the latest one "current": true ONLY if the CV explicitly says "present"/"current"/"till date"/"now".
+- bullets: short crisp lines, no full paragraphs. Strip leading dashes/dots.
+- If the CV has no clear achievements section, return [] for achievements. Do NOT duplicate work bullets as achievements.
+- Only include real certifications (named courses/certificates), not generic skills.
+- Dates: if only year is mentioned, leave month empty. If only "2023" is given for a job duration like "2023 – Present", set from_year=2023, current=true.`
             }]
           }],
           generationConfig: {
             temperature: 0.1,
-            maxOutputTokens: 1500
+            maxOutputTokens: 6000,
+            responseMimeType: 'application/json'
           }
         })
       }
@@ -273,7 +321,8 @@ Extract these fields (use null if not found):
     const data = await response.json()
     const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
 
-    // Clean and parse JSON
+    // Clean and parse JSON (responseMimeType=application/json usually returns clean JSON,
+    // but strip fences as a safety belt for older models / fallbacks)
     const jsonStr = content.replace(/```json|```/g, '').trim()
     const parsed = JSON.parse(jsonStr)
 
@@ -281,6 +330,44 @@ Extract these fields (use null if not found):
     if (parsed.mobile) {
       parsed.mobile = String(parsed.mobile).replace(/\D/g, '').slice(-10)
     }
+
+    // Normalize arrays (Gemini sometimes returns null instead of [])
+    parsed.work_experiences = Array.isArray(parsed.work_experiences) ? parsed.work_experiences : []
+    parsed.education        = Array.isArray(parsed.education)        ? parsed.education        : []
+    parsed.certifications   = Array.isArray(parsed.certifications)   ? parsed.certifications   : []
+    parsed.achievements     = Array.isArray(parsed.achievements)     ? parsed.achievements     : []
+
+    // Sanitize work_experiences entries
+    parsed.work_experiences = parsed.work_experiences.map((w: any) => ({
+      company:    String(w?.company || '').trim(),
+      role:       String(w?.role || '').trim(),
+      from_month: String(w?.from_month || '').trim(),
+      from_year:  String(w?.from_year || '').trim(),
+      to_month:   w?.current ? '' : String(w?.to_month || '').trim(),
+      to_year:    w?.current ? '' : String(w?.to_year || '').trim(),
+      current:    !!w?.current,
+      bullets:    Array.isArray(w?.bullets) ? w.bullets.map((b: any) => String(b||'').trim()).filter(Boolean) : []
+    })).filter((w: any) => w.company || w.role)
+
+    parsed.education = parsed.education.map((e: any) => ({
+      degree:             String(e?.degree || '').trim(),
+      specialization:     String(e?.specialization || '').trim(),
+      institution:        String(e?.institution || '').trim(),
+      year:               String(e?.year || '').trim(),
+      percentage_or_cgpa: String(e?.percentage_or_cgpa || '').trim()
+    })).filter((e: any) => e.degree || e.institution)
+
+    parsed.certifications = parsed.certifications.map((c: any) => ({
+      name:   String(c?.name   || '').trim(),
+      issuer: String(c?.issuer || '').trim(),
+      year:   String(c?.year   || '').trim()
+    })).filter((c: any) => c.name)
+
+    parsed.achievements = parsed.achievements.map((a: any) => ({
+      title:       String(a?.title       || '').trim(),
+      description: String(a?.description || '').trim(),
+      year:        String(a?.year        || '').trim()
+    })).filter((a: any) => a.title)
 
     // Set segment based on experience
     const exp = parseFloat(parsed.experience || '0')

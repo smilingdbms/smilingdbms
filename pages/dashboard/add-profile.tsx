@@ -190,19 +190,32 @@ export default function AddProfilePage() {
           const json = await res.json()
           if (json.profile) {
             const p = json.profile || {}
+            const safeArr = (v:any) => Array.isArray(v) ? v : []
             setForm((prev:any)=>({
               ...EMPTY_PROFILE,
               name: p.name||'', mobile:(p.mobile||'').replace(/\D/g,'').slice(-10), email:p.email||'',
               gender:p.gender||'Male', age:p.age||'', linkedin:p.linkedin||'', photo_url:p.photo_url||'',
               role:p.role||'', experience:p.experience||'', total_experience:p.experience||'',
-              industry:p.industry||'', qualification:p.qualification||'', skills:p.skills||'',
+              industry:p.industry||'', qualification:p.qualification||'', qualification_branch:p.qualification_branch||'',
+              skills:p.skills||'', languages:p.languages||'',
+              college:p.college||'', graduation_year:p.graduation_year||'',
               current_company:p.current_company||'', current_ctc:p.current_ctc||'', expected_ctc:p.expected_ctc||'',
-              notice_period:p.notice_period||'', work_mode:p.work_mode||'', willing_to_relocate:p.willing_to_relocate==='true',
+              notice_period:p.notice_period||'', work_mode:p.work_mode||'', willing_to_relocate:p.willing_to_relocate==='true'||p.willing_to_relocate===true,
               city:p.city||'', address:p.address||'', ai_summary:p.ai_summary||p.summary||'',
               status:'New', source:'Direct', segment:p.segment||'experienced', country_code:p.country_code||'+91 India',
+              work_experiences: safeArr(p.work_experiences),
+              education:        safeArr(p.education),
+              certifications:   safeArr(p.certifications),
+              achievements:     safeArr(p.achievements),
             }))
             setShowCV(false); setParsing(false); setParseMsg('')
-            showSuccess('✅ CV parsed — please review the details below')
+            const counts = [
+              safeArr(p.work_experiences).length && safeArr(p.work_experiences).length + ' job(s)',
+              safeArr(p.education).length        && safeArr(p.education).length        + ' edu',
+              safeArr(p.certifications).length   && safeArr(p.certifications).length   + ' cert(s)',
+              safeArr(p.achievements).length     && safeArr(p.achievements).length     + ' award(s)',
+            ].filter(Boolean).join(' • ')
+            showSuccess('✅ CV parsed' + (counts ? ' — ' + counts : '') + '. Please review.')
           } else {
             setParseMsg('Could not parse. Please add manually.')
             setTimeout(()=>{setShowCV(false);setParsing(false);setParseMsg('')},1500)
