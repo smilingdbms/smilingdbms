@@ -3,10 +3,11 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 
 // ══════════════════════════════════════════════════════════
-// CV PARSER v4.0 — Gemini AI (structured arrays) + Regex Fallback
-// Returns work_experiences, education, certifications, achievements
-// as proper arrays for the new structured CV schema.
-// Uses pdf-parse for text extraction. Auto-compresses uploads to 125KB.
+// CV PARSER v5.0 — Gemini AI (TWO PARALLEL CALLS) + Regex Fallback
+// Splits the work: one Gemini call for flat fields, another for the
+// 4 structured arrays (work_experiences/education/certifications/
+// achievements). Both get full token budget → arrays no longer get
+// truncated by flash-lite. Server-side console logs for diagnosis.
 // ══════════════════════════════════════════════════════════
 
 export const config = { api: { bodyParser: { sizeLimit: '15mb' } } }
@@ -216,128 +217,164 @@ function parseCV(text: string): Record<string, string> {
   return result
 }
 
-// ── AI-Powered CV Parser (Gemini) — v4: STRUCTURED ARRAYS ──
+// ── AI-Powered CV Parser (Gemini) — v5: TWO PARALLEL CALLS ──
+//
+// Why 2 calls?  flash-lite (free tier) struggles when asked for 30+ flat
+// fields PLUS 4 nested arrays in ONE shot — it truncates / skips arrays.
+// We split:
+//   Call A — flat fields  (small output, fast, reliable)
+//   Call B — structured arrays  (focused, gets full output budget)
+// Both fire in parallel → no extra latency. Results merged.
+// ─────────────────────────────────────────────────────────────
+
+const GEMINI_MODEL = 'gemini-2.5-flash-lite'
+const GEMINI_URL = (key: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`
+
+async function callGemini(apiKey: string, prompt: string, label: string): Promise<any> {
+  const r = await fetch(GEMINI_URL(apiKey), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+    })
+  })
+  if (!r.ok) {
+    const body = await r.text()
+    console.error(`[parse-cv] Gemini ${label} ERROR ${r.status}:`, body.slice(0, 300))
+    throw new Error(`Gemini ${label} failed: ${r.status}`)
+  }
+  const data = await r.json()
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
+  console.log(`[parse-cv] Gemini ${label} OK — ${content.length} chars returned`)
+  // Strip code fences if any
+  const jsonStr = content.replace(/```json|```/g, '').trim()
+  try {
+    return JSON.parse(jsonStr)
+  } catch (e) {
+    // Sometimes the model trails extra text; try to grab the JSON object/array
+    const m = jsonStr.match(/^[\s\S]*?(\{[\s\S]*\}|\[[\s\S]*\])\s*$/)
+    if (m) {
+      try { return JSON.parse(m[1]) } catch {}
+    }
+    console.error(`[parse-cv] Gemini ${label} JSON parse FAILED. Snippet:`, jsonStr.slice(0, 300))
+    throw e
+  }
+}
+
 async function parseWithAI(text: string): Promise<Record<string, any>> {
   try {
     const apiKey = process.env.GEMINI_API_KEY || ''
     if (!apiKey) throw new Error('GEMINI_API_KEY not set')
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: `You are a recruitment CV parser. Extract STRUCTURED data from this CV.
-Return ONLY valid JSON — no explanation, no markdown, no code fences.
+    const trimmed = text.substring(0, 10000)
+
+    // ── CALL A — flat profile fields ──
+    const flatPrompt = `You are a recruitment CV parser. Extract the following fields from this CV.
+Return ONLY a JSON object — no markdown, no code fences, no explanation. Use null/"" when not found. Never invent data.
 
 CV TEXT:
-${text.substring(0, 12000)}
-
-Return this exact JSON shape. Use null / [] / "" when info is missing. Never invent data.
+${trimmed}
 
 {
   "name": "Full name of the person (NOT job title or company)",
-  "email": "email address",
-  "mobile": "10-digit mobile number only digits",
+  "email": "email",
+  "mobile": "10-digit mobile, digits only",
   "gender": "Male/Female/Other or null",
   "age": "age as number string or null",
   "linkedin": "LinkedIn URL or null",
   "role": "current/most recent job title",
-  "experience": "TOTAL years of work experience as a number string e.g. 5 or 5.5",
-  "current_company": "current/most recent employer name",
-  "current_ctc": "current CTC in LPA as number or null",
-  "expected_ctc": "expected CTC in LPA as number or null",
-  "notice_period": "Immediate / 7 days / 15 days / 1 month / 2 months / 3 months / Negotiable",
-  "qualification": "highest qualification e.g. B.Tech/MBA/MBBS",
+  "experience": "total years of experience as number string e.g. 5 or 5.5",
+  "current_company": "current/most recent employer",
+  "current_ctc": "current CTC in LPA as number string or null",
+  "expected_ctc": "expected CTC in LPA as number string or null",
+  "notice_period": "Immediate / 7 days / 15 days / 1 month / 2 months / 3 months / Negotiable or null",
+  "qualification": "highest qualification — pick from: MBBS, MD, MS, BDS, MDS, B.Tech, M.Tech, BE, ME, MCA, BCA, B.Sc, M.Sc, MBA, PGDM, BBA, CA (Qualified), CA (Inter), CMA, CS, LLB, LLM, BA, MA, B.Com, M.Com, PhD, Diploma, ITI, 12th Pass, 10th Pass, Graduate, Post Graduate, Other",
   "qualification_branch": "specialization for highest qualification e.g. Computer Science",
-  "skills": "comma separated top skills, max 20",
+  "college": "college/university name for highest qualification",
+  "graduation_year": "4-digit graduation year for highest qualification or null",
+  "skills": "comma separated top skills from the CV, up to 20 actual skills (not generic words)",
   "industry": "industry sector",
   "city": "current city",
   "work_mode": "WFH / Office / Hybrid or null",
   "willing_to_relocate": "true/false as string or null",
-  "ai_summary": "Professional summary in 2-4 lines (use the CV's own summary if present, otherwise compose one)",
-  "languages": "languages known comma separated",
-  "college": "college/university name for highest qualification",
-  "graduation_year": "graduation year as 4-digit string for highest qualification",
+  "ai_summary": "Professional summary in 2-4 lines (use the CV's own summary if present)",
+  "languages": "languages known, comma separated"
+}`
 
+    // ── CALL B — structured arrays ──
+    const arraysPrompt = `Extract structured resume data from this CV.
+Return ONLY a JSON object — no markdown, no code fences, no explanation. Use [] for missing arrays. Never invent data.
+
+CV TEXT:
+${trimmed}
+
+Return EXACTLY this shape:
+
+{
   "work_experiences": [
     {
       "company": "employer name",
-      "role": "designation/title at this employer",
-      "from_month": "Jan/Feb/.../Dec or empty string",
+      "role": "designation at this employer",
+      "from_month": "Jan/Feb/Mar/Apr/May/Jun/Jul/Aug/Sep/Oct/Nov/Dec or empty string",
       "from_year": "4-digit year as string or empty string",
-      "to_month": "Jan/.../Dec or empty string if currently working",
-      "to_year": "4-digit year as string or empty string if currently working",
+      "to_month": "Jan..Dec or empty string (empty if currently working)",
+      "to_year": "4-digit year as string or empty string (empty if currently working)",
       "current": true,
-      "bullets": ["3-8 short responsibility/achievement bullet points, each one line"]
+      "bullets": ["short responsibility/achievement bullets, one line each, 3-8 per job"]
     }
   ],
-
   "education": [
     {
-      "degree": "e.g. B.Tech / MBA / MBBS / 12th / 10th",
-      "specialization": "branch or stream e.g. Computer Science or empty",
-      "institution": "college/university/school name",
-      "year": "passing/completion year (4-digit string) or empty",
-      "percentage_or_cgpa": "e.g. 8.5 or 78% or empty"
+      "degree": "e.g. B.Tech / MBA / MBBS / BCA / 12th / 10th",
+      "specialization": "branch or stream e.g. Computer Science or empty string",
+      "institution": "college/university/school name or empty string",
+      "year": "4-digit passing year as string or empty string",
+      "percentage_or_cgpa": "e.g. 8.5 or 78% or empty string"
     }
   ],
-
   "certifications": [
-    { "name": "certification name", "issuer": "issuing body", "year": "4-digit year or empty" }
+    { "name": "certification name", "issuer": "issuing organization", "year": "4-digit year or empty string" }
   ],
-
   "achievements": [
-    { "title": "award/achievement title", "description": "1-2 lines or empty", "year": "4-digit year or empty" }
+    { "title": "award/achievement title", "description": "1-2 line description or empty string", "year": "4-digit year or empty string" }
   ]
 }
 
-Important rules:
-- work_experiences: order from MOST RECENT first. Mark the latest one "current": true ONLY if the CV explicitly says "present"/"current"/"till date"/"now".
-- bullets: short crisp lines, no full paragraphs. Strip leading dashes/dots.
-- If the CV has no clear achievements section, return [] for achievements. Do NOT duplicate work bullets as achievements.
-- Only include real certifications (named courses/certificates), not generic skills.
-- Dates: if only year is mentioned, leave month empty. If only "2023" is given for a job duration like "2023 – Present", set from_year=2023, current=true.`
-            }]
-          }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 6000,
-            responseMimeType: 'application/json'
-          }
-        })
-      }
-    )
+Rules:
+- work_experiences: include EVERY job in the CV. Most recent first. Mark "current": true ONLY if CV says present/current/now/till date.
+- bullets: short crisp lines, strip leading numbers/dashes/bullets characters.
+- If a CV has only 1 job — return 1. If it has 5 jobs — return 5. Do not skip any.
+- education: include ALL degrees mentioned (Bachelor, Master, 12th, 10th, Diploma).
+- certifications: only real named certifications/courses (not skills).
+- achievements: only real awards/recognitions (not work duties).`
 
-    if (!response.ok) {
-      const errBody = await response.text()
-      console.error('Gemini API error:', response.status, errBody)
-      throw new Error('Gemini API failed: ' + response.status)
+    // Fire both calls in parallel
+    const [flatRes, arraysRes] = await Promise.all([
+      callGemini(apiKey, flatPrompt, 'FLAT').catch(e => ({ __err: String(e) })),
+      callGemini(apiKey, arraysPrompt, 'ARRAYS').catch(e => ({ __err: String(e) }))
+    ])
+
+    // If both failed, throw to trigger regex fallback
+    if ((flatRes as any).__err && (arraysRes as any).__err) {
+      throw new Error('Both Gemini calls failed')
     }
 
-    const data = await response.json()
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}'
-
-    // Clean and parse JSON (responseMimeType=application/json usually returns clean JSON,
-    // but strip fences as a safety belt for older models / fallbacks)
-    const jsonStr = content.replace(/```json|```/g, '').trim()
-    const parsed = JSON.parse(jsonStr)
-
-    // Clean mobile - digits only, last 10
-    if (parsed.mobile) {
-      parsed.mobile = String(parsed.mobile).replace(/\D/g, '').slice(-10)
+    // Merge — flat fields first, then arrays override
+    const parsed: any = {
+      ...(flatRes && !(flatRes as any).__err ? flatRes : {}),
+      ...(arraysRes && !(arraysRes as any).__err ? arraysRes : {})
     }
 
-    // Normalize arrays (Gemini sometimes returns null instead of [])
+    // ── Normalize & sanitize ──
+    if (parsed.mobile) parsed.mobile = String(parsed.mobile).replace(/\D/g, '').slice(-10)
+
     parsed.work_experiences = Array.isArray(parsed.work_experiences) ? parsed.work_experiences : []
     parsed.education        = Array.isArray(parsed.education)        ? parsed.education        : []
     parsed.certifications   = Array.isArray(parsed.certifications)   ? parsed.certifications   : []
     parsed.achievements     = Array.isArray(parsed.achievements)     ? parsed.achievements     : []
 
-    // Sanitize work_experiences entries
     parsed.work_experiences = parsed.work_experiences.map((w: any) => ({
       company:    String(w?.company || '').trim(),
       role:       String(w?.role || '').trim(),
@@ -346,7 +383,7 @@ Important rules:
       to_month:   w?.current ? '' : String(w?.to_month || '').trim(),
       to_year:    w?.current ? '' : String(w?.to_year || '').trim(),
       current:    !!w?.current,
-      bullets:    Array.isArray(w?.bullets) ? w.bullets.map((b: any) => String(b||'').trim()).filter(Boolean) : []
+      bullets:    Array.isArray(w?.bullets) ? w.bullets.map((b: any) => String(b || '').replace(/^[\s\d\.\-•*]+/, '').trim()).filter(Boolean) : []
     })).filter((w: any) => w.company || w.role)
 
     parsed.education = parsed.education.map((e: any) => ({
@@ -369,10 +406,13 @@ Important rules:
       year:        String(a?.year        || '').trim()
     })).filter((a: any) => a.title)
 
-    // Set segment based on experience
+    // Segment based on experience
     const exp = parseFloat(parsed.experience || '0')
     parsed.segment = exp <= 1 ? 'fresher' : 'experienced'
 
+    console.log(
+      `[parse-cv] Parsed counts -> work:${parsed.work_experiences.length}  edu:${parsed.education.length}  cert:${parsed.certifications.length}  award:${parsed.achievements.length}`
+    )
     return parsed
   } catch(e) {
     console.error('AI parse error:', e)
