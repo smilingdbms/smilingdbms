@@ -327,9 +327,11 @@ Return EXACTLY this shape:
   ],
   "education": [
     {
-      "degree": "e.g. B.Tech / MBA / MBBS / BCA / 12th / 10th",
-      "specialization": "branch or stream e.g. Computer Science or empty string",
-      "institution": "college/university/school name or empty string",
+      "level": "one of: 10th / SSC | 12th / HSC | Diploma / ITI | Bachelor (UG) | Master (PG) | Doctorate (PhD) | Super-Speciality / Fellowship",
+      "course": "the EXACT course/degree. Map full names to standard short forms: 'Bachelor of Computer Application'=BCA, 'Master of Computer Application'=MCA, 'Bachelor of Technology'=B.Tech, 'Bachelor of Commerce'=B.Com, 'Bachelor of Arts'=BA, 'Bachelor of Science'=B.Sc, 'Intermediate'=12th / HSC, 'Matriculation'=10th / SSC. Read carefully — BCA and MCA are DIFFERENT.",
+      "branch": "specialization/stream if any, else empty string",
+      "institution": "college/university/school/board name or empty string",
+      "study_status": "completed",
       "year": "4-digit passing year as string or empty string",
       "percentage_or_cgpa": "e.g. 8.5 or 78% or empty string"
     }
@@ -346,7 +348,7 @@ Rules:
 - work_experiences: include EVERY job in the CV. Most recent first. Mark "current": true ONLY if CV says present/current/now/till date.
 - bullets: short crisp lines, strip leading numbers/dashes/bullets characters.
 - If a CV has only 1 job — return 1. If it has 5 jobs — return 5. Do not skip any.
-- education: include ALL degrees mentioned (Bachelor, Master, 12th, 10th, Diploma).
+- education: include ALL qualifications mentioned (Bachelor, Master, 12th/Intermediate, 10th/Matriculation, Diploma). Set the correct "level" for each and map the full degree name to its standard short form. Distinguish BCA (Bachelor) vs MCA (Master) carefully.
 - certifications: only real named certifications/courses (not skills).
 - achievements: only real awards/recognitions (not work duties).`
 
@@ -387,12 +389,15 @@ Rules:
     })).filter((w: any) => w.company || w.role)
 
     parsed.education = parsed.education.map((e: any) => ({
-      degree:             String(e?.degree || '').trim(),
-      specialization:     String(e?.specialization || '').trim(),
+      level:              String(e?.level || '').trim(),
+      course:             String(e?.course || e?.degree || '').trim(),
+      branch:             String(e?.branch || e?.specialization || '').trim(),
+      study_status:       (e?.study_status === 'pursuing') ? 'pursuing' : 'completed',
+      current_period:     String(e?.current_period || '').trim(),
       institution:        String(e?.institution || '').trim(),
       year:               String(e?.year || '').trim(),
       percentage_or_cgpa: String(e?.percentage_or_cgpa || '').trim()
-    })).filter((e: any) => e.degree || e.institution)
+    })).filter((e: any) => e.course || e.institution || e.level)
 
     parsed.certifications = parsed.certifications.map((c: any) => ({
       name:   String(c?.name   || '').trim(),
