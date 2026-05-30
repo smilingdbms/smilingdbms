@@ -10,6 +10,10 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
 import LocationPicker from '../../src/components/LocationPicker'
+import { EDUCATION_LEVELS, coursesForLevel, branchesForCourse } from '../../src/lib/courseBranches'
+
+const STUDY_YEARS = ['1st Year','2nd Year','3rd Year','4th Year','5th Year']
+const STUDY_SEMS = ['1st Sem','2nd Sem','3rd Sem','4th Sem','5th Sem','6th Sem','7th Sem','8th Sem','9th Sem','10th Sem']
 
 // ── CONSTANTS (copied so this page is fully independent) ──────────
 const INDUSTRIES = ['IT / Software','BFSI / Banking','Healthcare / Medical','FMCG / Consumer Goods','Real Estate / Property','Manufacturing / Engineering','E-commerce / Retail','Education / EdTech','Consulting / Advisory','Media / Advertising','Pharma / Biotech','Logistics / Supply Chain','Legal / Law','Hospitality / Travel','Telecom','Automobile','Infrastructure / Construction','Government / PSU','NGO / Social Sector','Other']
@@ -574,43 +578,105 @@ export default function AddProfilePage() {
           <button onClick={()=>pushTo('work_experiences',{company:'',role:'',from_month:'',from_year:'',to_month:'',to_year:'',current:false,bullets:[]})} style={ADD_BTN}>+ Add Work Experience</button>
         </div>
 
-        {/* ── SECTION 2.6: EDUCATION (multiple degrees) ── */}
+        {/* ── SECTION 2.6: EDUCATION (cascading level→course→branch + pursuing/completed) ── */}
         <div style={SECTION}>
           <div style={{...SECTITLE,justifyContent:'space-between',width:'100%'}}>
             <span>🎓 Education ({(form.education||[]).length})</span>
           </div>
-          {(form.education||[]).map((ed:any, idx:number) => (
+          {(form.education||[]).map((ed:any, idx:number) => {
+            const courses = coursesForLevel(ed.level||'')
+            const branches = branchesForCourse(ed.course||'')
+            const pursuing = ed.study_status === 'pursuing'
+            return (
             <div key={idx} style={ENTRY_CARD}>
               <button onClick={()=>removeAt('education', idx)} style={DEL_BTN} title="Remove">✕</button>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
                 <div>
-                  <label style={LS}>Degree</label>
-                  <select style={IS} value={ed.degree||''} onChange={e=>updateAt('education',idx,{degree:e.target.value})}>
-                    <option value="">Select</option>{QUALIFICATIONS.map(q=><option key={q}>{q}</option>)}
+                  <label style={LS}>Education Level</label>
+                  <select style={IS} value={ed.level||''} onChange={e=>updateAt('education',idx,{level:e.target.value, course:'', branch:''})}>
+                    <option value="">Select level</option>{EDUCATION_LEVELS.map(l=><option key={l}>{l}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={LS}>Specialization / Branch</label>
-                  <input style={IS} value={ed.specialization||''} onChange={e=>updateAt('education',idx,{specialization:e.target.value})} placeholder="e.g. Computer Science"/>
+                  <label style={LS}>Course</label>
+                  {courses.length>0 ? (
+                    <select style={IS} value={ed.course||''} onChange={e=>updateAt('education',idx,{course:e.target.value, branch:''})}>
+                      <option value="">Select course</option>{courses.map(c=><option key={c}>{c}</option>)}
+                      <option value="__other">Other (type below)</option>
+                    </select>
+                  ) : (
+                    <input style={IS} value={ed.course||''} onChange={e=>updateAt('education',idx,{course:e.target.value})} placeholder="Select level first / type course"/>
+                  )}
                 </div>
+                {ed.course==='__other' && (
+                  <div style={{gridColumn:'1/-1'}}>
+                    <label style={LS}>Custom Course Name</label>
+                    <input style={IS} value={ed.course_custom||''} onChange={e=>updateAt('education',idx,{course_custom:e.target.value})} placeholder="Type the course name"/>
+                  </div>
+                )}
+                <div>
+                  <label style={LS}>Branch / Specialization</label>
+                  {branches.length>0 ? (
+                    <select style={IS} value={ed.branch||''} onChange={e=>updateAt('education',idx,{branch:e.target.value})}>
+                      <option value="">Select branch</option>{branches.map(b=><option key={b}>{b}</option>)}
+                      <option value="__other">Other (type below)</option>
+                    </select>
+                  ) : (
+                    <input style={IS} value={ed.branch||''} onChange={e=>updateAt('education',idx,{branch:e.target.value})} placeholder="e.g. Computer Science"/>
+                  )}
+                </div>
+                {ed.branch==='__other' && (
+                  <div>
+                    <label style={LS}>Custom Branch</label>
+                    <input style={IS} value={ed.branch_custom||''} onChange={e=>updateAt('education',idx,{branch_custom:e.target.value})} placeholder="Type the branch"/>
+                  </div>
+                )}
                 <div style={{gridColumn:'1/-1'}}>
                   <label style={LS}>Institution / University</label>
-                  <input style={IS} value={ed.institution||''} onChange={e=>updateAt('education',idx,{institution:e.target.value})} placeholder="e.g. Jamia Hamdard University"/>
+                  <input style={IS} value={ed.institution||''} onChange={e=>updateAt('education',idx,{institution:e.target.value})} placeholder="e.g. IIT Delhi"/>
                 </div>
-                <div>
-                  <label style={LS}>Passing Year</label>
-                  <select style={IS} value={ed.year||''} onChange={e=>updateAt('education',idx,{year:e.target.value})}>
-                    <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
-                  </select>
+                <div style={{gridColumn:'1/-1'}}>
+                  <label style={LS}>Status</label>
+                  <div style={{display:'flex',gap:8}}>
+                    <button type="button" onClick={()=>updateAt('education',idx,{study_status:'completed'})} style={{flex:1,padding:'9px',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,border:`1px solid ${!pursuing?'var(--ac)':'var(--bd)'}`,background:!pursuing?'var(--acbg)':'transparent',color:!pursuing?'var(--ac)':'var(--mu)',fontWeight:!pursuing?600:400}}>✓ Completed</button>
+                    <button type="button" onClick={()=>updateAt('education',idx,{study_status:'pursuing'})} style={{flex:1,padding:'9px',borderRadius:8,cursor:'pointer',fontFamily:'inherit',fontSize:13,border:`1px solid ${pursuing?'var(--ac)':'var(--bd)'}`,background:pursuing?'var(--acbg)':'transparent',color:pursuing?'var(--ac)':'var(--mu)',fontWeight:pursuing?600:400}}>⏳ Pursuing</button>
+                  </div>
                 </div>
-                <div>
-                  <label style={LS}>CGPA / Percentage</label>
-                  <input style={IS} value={ed.percentage_or_cgpa||''} onChange={e=>updateAt('education',idx,{percentage_or_cgpa:e.target.value})} placeholder="e.g. 8.5 or 78%"/>
-                </div>
+                {pursuing ? (
+                  <>
+                    <div>
+                      <label style={LS}>Currently In</label>
+                      <select style={IS} value={ed.current_period||''} onChange={e=>updateAt('education',idx,{current_period:e.target.value})}>
+                        <option value="">Year / Semester</option>
+                        <optgroup label="By Year">{STUDY_YEARS.map(y=><option key={y}>{y}</option>)}</optgroup>
+                        <optgroup label="By Semester">{STUDY_SEMS.map(s=><option key={s}>{s}</option>)}</optgroup>
+                      </select>
+                    </div>
+                    <div>
+                      <label style={LS}>Expected Passing Year</label>
+                      <select style={IS} value={ed.year||''} onChange={e=>updateAt('education',idx,{year:e.target.value})}>
+                        <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <label style={LS}>Passing Year</label>
+                      <select style={IS} value={ed.year||''} onChange={e=>updateAt('education',idx,{year:e.target.value})}>
+                        <option value="">Year</option>{YEARS.map(y=><option key={y}>{y}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label style={LS}>CGPA / Percentage</label>
+                      <input style={IS} value={ed.percentage_or_cgpa||''} onChange={e=>updateAt('education',idx,{percentage_or_cgpa:e.target.value})} placeholder="e.g. 8.5 or 78%"/>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          ))}
-          <button onClick={()=>pushTo('education',{degree:'',specialization:'',institution:'',year:'',percentage_or_cgpa:''})} style={ADD_BTN}>+ Add Education</button>
+          )})}
+          <button onClick={()=>pushTo('education',{level:'',course:'',course_custom:'',branch:'',branch_custom:'',study_status:'completed',current_period:'',institution:'',year:'',percentage_or_cgpa:''})} style={ADD_BTN}>+ Add Education</button>
         </div>
 
         {/* ── SECTION 2.7: CERTIFICATIONS ── */}
