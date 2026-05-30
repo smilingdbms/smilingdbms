@@ -194,6 +194,7 @@ export default function Dashboard() {
   const [filterIndustry, setFilterIndustry] = useState<string[]>([])
   const [filterSkills, setFilterSkills] = useState<string[]>([])
   const [filterQual, setFilterQual] = useState<string[]>([])
+  const [eduCriteria, setEduCriteria] = useState<any[]>([])
   const [filterRole, setFilterRole] = useState('')
   const [filterCurrentCompany, setFilterCurrentCompany] = useState('')
   const [filterNoticePeriod, setFilterNoticePeriod] = useState<string[]>([])
@@ -298,6 +299,7 @@ export default function Dashboard() {
     }
     if (q.industry !== undefined)      { setFilterIndustry(arr(q.industry)); touched = true }
     if (q.qualification !== undefined) { setFilterQual(arr(q.qualification)); touched = true }
+    if (q.edu !== undefined) { try { setEduCriteria(JSON.parse(decodeURIComponent(String(q.edu)))); touched = true } catch {} }
     if (q.skills !== undefined)        { setFilterSkills(arr(q.skills).length?arr(q.skills):String(q.skills||'').split(',').map(s=>s.trim()).filter(Boolean)); touched = true }
     if (q.notice !== undefined)        { setFilterNoticePeriod(arr(q.notice)); touched = true }
     if (q.work_mode !== undefined)     { setFilterWorkMode(arr(q.work_mode)); touched = true }
@@ -722,6 +724,7 @@ export default function Dashboard() {
     filterHasResume?1:0, filterHasVideo?1:0, filterStarMin?1:0, filterAssigned?1:0,
     filterGradYear?1:0, filterCollege?1:0, filterCGPAMin?1:0, filterHasInternship?1:0,
     filterCompletion?1:0, filterAgeMin?1:0, filterAgeMax?1:0, filterWillingToRelocate?1:0,
+    eduCriteria.filter((c:any)=>c.level||c.course).length?1:0,
   ].reduce((a,b)=>a+b,0)
 
   function clearAllFilters() {
@@ -733,7 +736,7 @@ export default function Dashboard() {
     setFilterHasResume(''); setFilterHasVideo(''); setFilterStarMin(0); setFilterAssigned('')
     setFilterGradYear(''); setFilterCollege(''); setFilterCGPAMin(''); setFilterHasInternship('')
     setFilterCompletion(''); setFilterAgeMin(''); setFilterAgeMax(''); setFilterWillingToRelocate('')
-    setFilterAddedBy(''); setSearch('')
+    setFilterAddedBy(''); setSearch(''); setEduCriteria([])
   }
 
   const isAdmin = ADMIN_ROLES.includes(appUser?.role||'')
@@ -759,6 +762,33 @@ export default function Dashboard() {
     if (filterCity.length && !filterCity.includes(p.city)) return false
     if (filterIndustry.length && !filterIndustry.includes(p.industry)) return false
     if (filterQual.length && !filterQual.includes(p.qualification)) return false
+    // Education multi-criterion (AND): candidate must satisfy EVERY criterion.
+    // A criterion matches if some education entry has matching level + course +
+    // (branch optional) + (status 'any' or matching study_status).
+    if (eduCriteria.length) {
+      const eduArr = Array.isArray(p.education) ? p.education : []
+      const norm = (x:any) => String(x||'').trim().toLowerCase()
+      const allMatch = eduCriteria.every((cr:any) => {
+        if (!cr.level && !cr.course) return true
+        return eduArr.some((ed:any) => {
+          if (cr.level && norm(ed.level) !== norm(cr.level)) return false
+          if (cr.course) {
+            const edCourse = norm(ed.course) || norm(ed.degree)
+            if (edCourse !== norm(cr.course)) return false
+          }
+          if (cr.branch) {
+            const edBranch = norm(ed.branch) || norm(ed.specialization)
+            if (edBranch !== norm(cr.branch)) return false
+          }
+          if (cr.status && cr.status !== 'any') {
+            const edStatus = norm(ed.study_status) || 'completed'
+            if (edStatus !== norm(cr.status)) return false
+          }
+          return true
+        })
+      })
+      if (!allMatch) return false
+    }
     if (filterSkills.length && !filterSkills.every((s:string) => (p.skills||'').toLowerCase().includes(s.toLowerCase()))) return false
     if (filterSource.length && !filterSource.includes(p.source)) return false
     if (filterNoticePeriod.length && !filterNoticePeriod.includes(p.notice_period)) return false

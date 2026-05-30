@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
+import { EDUCATION_LEVELS, coursesForLevel, branchesForCourse } from '../../src/lib/courseBranches'
 
 // ── DATA ─────────────────────────────────────────────────────────
 const INDUSTRIES = ['IT / Software','BFSI / Banking','Healthcare / Medical','FMCG / Consumer Goods','Real Estate / Property','Manufacturing / Engineering','E-commerce / Retail','Education / EdTech','Consulting / Advisory','Media / Advertising','Pharma / Biotech','Logistics / Supply Chain','Legal / Law','Hospitality / Travel','Telecom','Automobile','Infrastructure / Construction','Government / PSU','NGO / Social Sector','Other']
@@ -83,6 +84,7 @@ const CITIES_BY_STATE: Record<string, string[]> = {
 const EMPTY: any = {
   q: '', segment: 'all', status: [] as string[], city: [] as string[], city_other: '',
   include_relocate: false, industry: [] as string[], qualification: [] as string[],
+  edu_criteria: [] as any[],
   exp_min: '', exp_max: '', cctc_min: '', cctc_max: '', ectc_min: '', ectc_max: '',
   notice: [] as string[], work_mode: [] as string[], only_willing_relocate: false,
   skills: '', languages: [] as string[], gender: '', age_min: '', age_max: '',
@@ -169,7 +171,7 @@ export default function FiltersPage() {
   const [teamUsers, setTeamUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [f, setF] = useState<any>({ ...EMPTY })
-  const [open, setOpen] = useState<any>({ search:true, basic:true, professional:false, compensation:false, location:false, preferences:false, identity:false, activity:false })
+  const [open, setOpen] = useState<any>({ search:true, basic:true, professional:false, education:false, compensation:false, location:false, preferences:false, identity:false, activity:false })
 
   useEffect(() => {
     applyTheme(getSavedTheme())
@@ -208,6 +210,7 @@ export default function FiltersPage() {
       setIfPresent('status', 'arr'); setIfPresent('city', 'arr')
       setIfPresent('city_other'); setIfPresent('include_relocate', 'bool')
       setIfPresent('industry', 'arr'); setIfPresent('qualification', 'arr')
+      if (q.edu !== undefined) { try { out.edu_criteria = JSON.parse(decodeURIComponent(String(q.edu))) } catch {} }
       setIfPresent('exp_min'); setIfPresent('exp_max')
       setIfPresent('cctc_min'); setIfPresent('cctc_max')
       setIfPresent('ectc_min'); setIfPresent('ectc_max')
@@ -234,6 +237,7 @@ export default function FiltersPage() {
     if (f.city?.length || f.city_other?.trim()) n++
     if (f.industry?.length) n++
     if (f.qualification?.length) n++
+    if ((f.edu_criteria||[]).filter((c:any)=>c.level||c.course).length) n++
     if (f.exp_min || f.exp_max) n++
     if (f.cctc_min || f.cctc_max) n++
     if (f.ectc_min || f.ectc_max) n++
@@ -263,6 +267,8 @@ export default function FiltersPage() {
     add('status', f.status); add('city', f.city); add('city_other', f.city_other?.trim() || '')
     add('include_relocate', f.include_relocate)
     add('industry', f.industry); add('qualification', f.qualification)
+    const eduClean = (f.edu_criteria||[]).filter((c:any)=>c.level||c.course)
+    if (eduClean.length) params['edu'] = encodeURIComponent(JSON.stringify(eduClean))
     add('exp_min', f.exp_min); add('exp_max', f.exp_max)
     add('cctc_min', f.cctc_min); add('cctc_max', f.cctc_max)
     add('ectc_min', f.ectc_min); add('ectc_max', f.ectc_max)
@@ -391,6 +397,66 @@ export default function FiltersPage() {
               <label style={LS}>Skills (comma separated — basic match)</label>
               <input style={IS} value={f.skills || ''} onChange={e => set('skills', e.target.value)} placeholder="e.g. React, Node.js, SAP"/>
               <div style={{ fontSize:11, color:'var(--mu)', marginTop:4 }}>For complex logic use the Smart Search box.</div>
+            </div>
+          )}
+        </div>
+
+        {/* ── EDUCATION CRITERIA (multi-criterion precise builder) ── */}
+        <div style={SECTION}>
+          <Group id="education" title="Education Criteria" icon="🎓" count={(f.edu_criteria||[]).filter((c:any)=>c.level||c.course).length} />
+          {open.education && (
+            <div style={SECBODY}>
+              <div style={{ fontSize:11, color:'var(--mu)', marginBottom:6, lineHeight:1.6 }}>
+                Add one or more education requirements. A candidate must match <b>ALL</b> of them.<br/>
+                Example: Bachelor→MBBS, then Master→MD→Dermatology, then Super-Speciality→MCh→Plastic Surgery.
+              </div>
+              {(f.edu_criteria||[]).map((c:any, idx:number) => {
+                const courses = coursesForLevel(c.level||'')
+                const branches = branchesForCourse(c.course||'')
+                return (
+                  <div key={idx} style={{ background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:10, padding:'12px 14px', marginBottom:10, position:'relative' }}>
+                    <button onClick={()=>set('edu_criteria', (f.edu_criteria||[]).filter((_:any,i:number)=>i!==idx))} style={{ position:'absolute', top:8, right:8, background:'var(--rdbg)', color:'var(--rd)', border:'none', borderRadius:6, width:24, height:24, cursor:'pointer', fontSize:11, fontWeight:700 }}>✕</button>
+                    <div style={{ fontSize:11, fontWeight:600, color:'var(--mu)', marginBottom:8 }}>CRITERION #{idx+1}</div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <div>
+                        <label style={LS}>Level</label>
+                        <select style={IS} value={c.level||''} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], level:e.target.value, course:'', branch:''}; set('edu_criteria', arr) }}>
+                          <option value="">Any level</option>{EDUCATION_LEVELS.map(l=><option key={l}>{l}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label style={LS}>Course</label>
+                        {courses.length>0 ? (
+                          <select style={IS} value={c.course||''} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], course:e.target.value, branch:''}; set('edu_criteria', arr) }}>
+                            <option value="">Any course</option>{courses.map(x=><option key={x}>{x}</option>)}
+                          </select>
+                        ) : (
+                          <input style={IS} value={c.course||''} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], course:e.target.value}; set('edu_criteria', arr) }} placeholder="Select level first"/>
+                        )}
+                      </div>
+                      <div>
+                        <label style={LS}>Branch (optional)</label>
+                        {branches.length>0 ? (
+                          <select style={IS} value={c.branch||''} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], branch:e.target.value}; set('edu_criteria', arr) }}>
+                            <option value="">Any branch</option>{branches.map(x=><option key={x}>{x}</option>)}
+                          </select>
+                        ) : (
+                          <input style={IS} value={c.branch||''} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], branch:e.target.value}; set('edu_criteria', arr) }} placeholder="Any branch"/>
+                        )}
+                      </div>
+                      <div>
+                        <label style={LS}>Status</label>
+                        <select style={IS} value={c.status||'any'} onChange={e=>{ const arr=[...f.edu_criteria]; arr[idx]={...arr[idx], status:e.target.value}; set('edu_criteria', arr) }}>
+                          <option value="any">Any</option>
+                          <option value="completed">Completed</option>
+                          <option value="pursuing">Pursuing</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+              <button onClick={()=>set('edu_criteria', [...(f.edu_criteria||[]), {level:'',course:'',branch:'',status:'any'}])} style={{ background:'var(--acbg)', color:'var(--ac)', border:'1px dashed var(--bd2)', borderRadius:10, padding:'9px 14px', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', width:'100%' }}>+ Add Education Criterion</button>
             </div>
           )}
         </div>
