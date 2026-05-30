@@ -277,11 +277,7 @@ export default function Dashboard() {
   // Auto-open add form when redirected from /dashboard/add-profile
   useEffect(() => {
     if (router.query.action === 'add' && !loading) {
-      setForm({...EMPTY_PROFILE, segment: activeSegment === 'all' ? 'experienced' : activeSegment});
-      setShowAdd(true);
-      setShowProfile(null);
-      setWizardStep(1);
-      router.replace('/dashboard/master', undefined, { shallow: true });
+      router.replace('/dashboard/add-profile');
     }
   }, [router.query.action, loading])
 
