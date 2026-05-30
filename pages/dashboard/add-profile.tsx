@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
+import LocationPicker from '../../src/components/LocationPicker'
 
 // ── CONSTANTS (copied so this page is fully independent) ──────────
 const INDUSTRIES = ['IT / Software','BFSI / Banking','Healthcare / Medical','FMCG / Consumer Goods','Real Estate / Property','Manufacturing / Engineering','E-commerce / Retail','Education / EdTech','Consulting / Advisory','Media / Advertising','Pharma / Biotech','Logistics / Supply Chain','Legal / Law','Hospitality / Travel','Telecom','Automobile','Infrastructure / Construction','Government / PSU','NGO / Social Sector','Other']
@@ -75,7 +76,7 @@ const EMPTY_PROFILE = {
   reason_for_change:'', work_mode:'', willing_to_relocate:false, languages:'',
   graduation_year:'', cgpa:'', college:'', stipend_expected:'', has_internship:false,
   internship_details:'', available_immediately:true,
-  linkedin:'', youtube_url:'', address:'', google_maps_url:'',
+  linkedin:'', youtube_url:'', address:'', google_maps_url:'', latitude:null, longitude:null, state:'', pincode:'',
   status:'New', assigned_to:'', source:'Direct', source_detail:'',
   ai_summary:'', resume_url:'', resume_name:'', star_rating:0,
   channels:[] as string[], photos:[] as string[], photo_url:'',
@@ -253,6 +254,9 @@ export default function AddProfilePage() {
       industry: s(form.industry), qualification: s(form.qualification), qualification_branch: s(form.qualification_branch),
       skills: s(form.skills), city: s(form.city)||s(form.other_city), other_city: s(form.other_city),
       address: s(form.address), google_maps_url: s(form.google_maps_url), languages: s(form.languages),
+      latitude: (form.latitude===''||form.latitude===undefined)?null:form.latitude,
+      longitude: (form.longitude===''||form.longitude===undefined)?null:form.longitude,
+      state: s(form.state), pincode: s(form.pincode),
       linkedin: s(form.linkedin), youtube_url: s(form.youtube_url), current_company: s(form.current_company),
       notice_period: s(form.notice_period), reason_for_change: s(form.reason_for_change), work_mode: s(form.work_mode),
       college: s(form.college), internship_details: s(form.internship_details), ai_summary: s(form.ai_summary),
@@ -682,17 +686,19 @@ export default function AddProfilePage() {
               <input style={IS} value={form.other_city||''} onChange={e=>{sf('other_city',e.target.value);if(e.target.value)sf('city',e.target.value)}} placeholder="Type city name"/>
             </div>
             <div style={{gridColumn:'1/-1'}}>
-              <label style={LS}>Full Address</label>
-              <textarea rows={2} style={{...IS,resize:'none'}} value={form.address||''} onChange={e=>sf('address',e.target.value)} placeholder="House/Flat, Street, Area, City, Pincode"/>
+              <label style={LS}>Precise Location (GPS / Map pin)</label>
+              <LocationPicker
+                value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
+                onChange={(loc:any)=>setForm((f:any)=>{ const n={...f,...loc}; if(loc.city && !CITIES.includes(loc.city)){ n.other_city=loc.city } return n })}
+              />
             </div>
-            <div style={{gridColumn:'1/-1'}}>
-              <label style={LS}>Google Maps Link</label>
-              <div style={{display:'flex',gap:8}}>
-                <input style={{...IS,flex:1}} value={form.google_maps_url||''} onChange={e=>sf('google_maps_url',e.target.value)} placeholder="Paste Google Maps link"/>
-                {form.address && !form.google_maps_url && (
-                  <button onClick={()=>sf('google_maps_url',`https://maps.google.com/?q=${encodeURIComponent(form.address)}`)} style={{padding:'0 14px',borderRadius:8,background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd)',cursor:'pointer',fontSize:12,fontFamily:'inherit',whiteSpace:'nowrap'}}>Auto Generate ↗</button>
-                )}
-              </div>
+            <div>
+              <label style={LS}>State (auto-filled)</label>
+              <input style={IS} value={form.state||''} onChange={e=>sf('state',e.target.value)} placeholder="Auto from location"/>
+            </div>
+            <div>
+              <label style={LS}>Pincode (auto-filled)</label>
+              <input style={IS} value={form.pincode||''} onChange={e=>sf('pincode',e.target.value)} placeholder="Auto from location"/>
             </div>
             <div>
               <label style={LS}>Languages Known</label>
