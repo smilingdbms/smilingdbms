@@ -281,6 +281,46 @@ export default function Dashboard() {
     }
   }, [router.query.action, loading])
 
+  // Read filters coming from the dedicated /dashboard/filters page (URL params).
+  // The filters page builds a query string; we map it onto the existing filter
+  // states so the current client-side filtering machinery applies them.
+  useEffect(() => {
+    if (!router.isReady || loading) return
+    const q = router.query
+    const arr = (v:any) => (v===undefined||v===null||v==='') ? [] : String(v).split(',').filter(Boolean)
+    const str = (v:any) => (v===undefined||v===null) ? '' : String(v)
+    let touched = false
+    if (q.q !== undefined)        { setSearch(str(q.q)); touched = true }
+    if (q.status !== undefined)   { setFilterStatus(arr(q.status)); touched = true }
+    if (q.city !== undefined || q.city_other !== undefined) {
+      const cities = [...arr(q.city), ...arr(q.city_other)]
+      setFilterCity(cities); touched = true
+    }
+    if (q.industry !== undefined)      { setFilterIndustry(arr(q.industry)); touched = true }
+    if (q.qualification !== undefined) { setFilterQual(arr(q.qualification)); touched = true }
+    if (q.skills !== undefined)        { setFilterSkills(arr(q.skills).length?arr(q.skills):String(q.skills||'').split(',').map(s=>s.trim()).filter(Boolean)); touched = true }
+    if (q.notice !== undefined)        { setFilterNoticePeriod(arr(q.notice)); touched = true }
+    if (q.work_mode !== undefined)     { setFilterWorkMode(arr(q.work_mode)); touched = true }
+    if (q.languages !== undefined)     { setFilterLanguage(arr(q.languages)); touched = true }
+    if (q.source !== undefined)        { setFilterSource(arr(q.source)); touched = true }
+    if (q.exp_min !== undefined)       { setFilterExpMin(str(q.exp_min)); touched = true }
+    if (q.exp_max !== undefined)       { setFilterExpMax(str(q.exp_max)); touched = true }
+    if (q.cctc_min !== undefined)      { setFilterCTCMin(str(q.cctc_min)); touched = true }
+    if (q.cctc_max !== undefined)      { setFilterCTCMax(str(q.cctc_max)); touched = true }
+    if (q.gender !== undefined)        { setFilterGender(str(q.gender)); touched = true }
+    if (q.age_min !== undefined)       { setFilterAgeMin(str(q.age_min)); touched = true }
+    if (q.age_max !== undefined)       { setFilterAgeMax(str(q.age_max)); touched = true }
+    if (q.assigned_to !== undefined)   { setFilterAssigned(str(q.assigned_to)); touched = true }
+    if (q.added_by !== undefined)      { setFilterAddedBy(str(q.added_by)); touched = true }
+    if (q.only_willing_relocate !== undefined) { setFilterWillingToRelocate(q.only_willing_relocate==='1'?'yes':''); touched = true }
+    if (q.segment !== undefined && ['all','fresher','experienced','recruiter','bd'].includes(str(q.segment))) {
+      setActiveSegment(str(q.segment) as any); touched = true
+    }
+    // Strip params from the URL so a refresh/back doesn't re-apply, keeping state clean
+    if (touched) router.replace('/dashboard/master', undefined, { shallow: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router.isReady, loading])
+
   async function loadAll(u: any) {
     // Load user
     let { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
