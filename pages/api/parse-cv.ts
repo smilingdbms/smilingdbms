@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { snapToCourse, snapToLevel } from '../../src/lib/courseBranches'
 
 // ══════════════════════════════════════════════════════════
 // CV PARSER v5.0 — Gemini AI (TWO PARALLEL CALLS) + Regex Fallback
@@ -388,16 +389,20 @@ Rules:
       bullets:    Array.isArray(w?.bullets) ? w.bullets.map((b: any) => String(b || '').replace(/^[\s\d\.\-•*]+/, '').trim()).filter(Boolean) : []
     })).filter((w: any) => w.company || w.role)
 
-    parsed.education = parsed.education.map((e: any) => ({
-      level:              String(e?.level || '').trim(),
-      course:             String(e?.course || e?.degree || '').trim(),
-      branch:             String(e?.branch || e?.specialization || '').trim(),
-      study_status:       (e?.study_status === 'pursuing') ? 'pursuing' : 'completed',
-      current_period:     String(e?.current_period || '').trim(),
-      institution:        String(e?.institution || '').trim(),
-      year:               String(e?.year || '').trim(),
-      percentage_or_cgpa: String(e?.percentage_or_cgpa || '').trim()
-    })).filter((e: any) => e.course || e.institution || e.level)
+    parsed.education = parsed.education.map((e: any) => {
+      const rawLevel  = String(e?.level || '').trim()
+      const rawCourse = String(e?.course || e?.degree || '').trim()
+      return {
+        level:              snapToLevel(rawLevel || rawCourse),
+        course:             snapToCourse(rawCourse),
+        branch:             String(e?.branch || e?.specialization || '').trim(),
+        study_status:       (e?.study_status === 'pursuing') ? 'pursuing' : 'completed',
+        current_period:     String(e?.current_period || '').trim(),
+        institution:        String(e?.institution || '').trim(),
+        year:               String(e?.year || '').trim(),
+        percentage_or_cgpa: String(e?.percentage_or_cgpa || '').trim()
+      }
+    }).filter((e: any) => e.course || e.institution || e.level)
 
     parsed.certifications = parsed.certifications.map((c: any) => ({
       name:   String(c?.name   || '').trim(),

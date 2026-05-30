@@ -182,3 +182,67 @@ export function coursesForLevel(level: string): string[] {
 export function branchesForCourse(course: string): string[] {
   return BRANCHES_BY_COURSE[course] || []
 }
+
+// ── Flat list of every valid course (for snap-matching) ──
+export const ALL_COURSES: string[] = Array.from(
+  new Set(Object.values(COURSES_BY_LEVEL).flat())
+).filter(c => c && c !== '10th / SSC')
+
+// Common full-name → short-form aliases (extend freely)
+const COURSE_ALIASES: Record<string,string> = {
+  'bachelor of computer application':'BCA','bachelor of computer applications':'BCA',
+  'master of computer application':'MCA','master of computer applications':'MCA',
+  'bachelor of technology':'B.Tech','master of technology':'M.Tech',
+  'bachelor of engineering':'B.E.','master of engineering':'M.E.',
+  'bachelor of commerce':'B.Com','master of commerce':'M.Com',
+  'bachelor of arts':'BA','master of arts':'MA',
+  'bachelor of science':'B.Sc','master of science':'M.Sc',
+  'bachelor of business administration':'BBA','master of business administration':'MBA',
+  'bachelor of medicine':'MBBS','bachelor of medicine and bachelor of surgery':'MBBS',
+  'bachelor of dental surgery':'BDS','master of dental surgery':'MDS',
+  'doctor of medicine':'MD (Doctor of Medicine)','master of surgery':'MS (Master of Surgery)',
+  'bachelor of pharmacy':'B.Pharma','master of pharmacy':'M.Pharma',
+  'bachelor of laws':'LLB (3 yr)','master of laws':'LLM','bachelor of law':'LLB (3 yr)',
+  'bachelor of architecture':'B.Arch','master of architecture':'M.Arch',
+  'bachelor of education':'B.Ed','master of education':'M.Ed',
+  'intermediate':'12th - Science (PCM)','higher secondary':'12th - Science (PCM)','hsc':'12th - Science (PCM)',
+  'matriculation':'10th / SSC','ssc':'10th / SSC','matric':'10th / SSC','high school':'10th / SSC',
+}
+
+// Snap an AI-extracted / free-text course to the closest valid course name.
+// Returns the matched canonical course, or the original string if no good match.
+export function snapToCourse(raw: string): string {
+  if (!raw) return ''
+  const s = raw.trim()
+  const low = s.toLowerCase()
+  // 1. exact (case-insensitive) match against valid list
+  const exact = ALL_COURSES.find(c => c.toLowerCase() === low)
+  if (exact) return exact
+  // 2. alias match (full name → short form)
+  if (COURSE_ALIASES[low]) return COURSE_ALIASES[low]
+  // 3. alias partial (raw contains an alias key)
+  for (const k of Object.keys(COURSE_ALIASES)) {
+    if (low.includes(k)) return COURSE_ALIASES[k]
+  }
+  // 4. valid course appears inside the raw string (e.g. "B.Tech in CSE" → B.Tech)
+  const contained = ALL_COURSES.find(c => low.includes(c.toLowerCase()))
+  if (contained) return contained
+  // 5. no confident match → keep original (treated as custom)
+  return s
+}
+
+// Snap an AI-extracted level to a valid EDUCATION_LEVELS value.
+export function snapToLevel(raw: string): string {
+  if (!raw) return ''
+  const low = raw.trim().toLowerCase()
+  const exact = EDUCATION_LEVELS.find(l => l.toLowerCase() === low)
+  if (exact) return exact
+  if (/(^|\b)(10th|matric|ssc|high school)/.test(low)) return '10th / SSC'
+  if (/(^|\b)(12th|inter|hsc|higher secondary|senior secondary)/.test(low)) return '12th / HSC'
+  if (/(diploma|iti|polytechnic)/.test(low)) return 'Diploma / ITI'
+  if (/(super.?special|fellowship|mch|\bdm\b)/.test(low)) return 'Super-Speciality / Fellowship'
+  if (/(phd|doctorate|doctoral)/.test(low)) return 'Doctorate (PhD)'
+  if (/(master|pg|post.?grad|m\.|mba|msc|mtech|ma\b|mca|md\b|ms\b)/.test(low)) return 'Master (PG)'
+  if (/(bachelor|ug|under.?grad|b\.|bsc|btech|ba\b|bca|bcom|bba|mbbs)/.test(low)) return 'Bachelor (UG)'
+  return raw.trim()
+}
