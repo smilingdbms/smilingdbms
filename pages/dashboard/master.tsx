@@ -1073,8 +1073,8 @@ export default function Dashboard() {
 
         {/* ACTION + FILTER BAR */}
         <div style={{display:'flex',gap:8,marginBottom:14,alignItems:'center',flexWrap:'wrap' as const}}>
-          <button onClick={()=>setShowFilters(v=>!v)} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,border:'1px solid var(--bd)',background:showFilters||activeFilterCount>0?'var(--acbg)':'var(--bg2)',color:showFilters||activeFilterCount>0?'var(--ac)':'var(--mu)',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
-            ⚙️ Filters
+          <button onClick={()=>router.push('/dashboard/filters')} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 14px',borderRadius:8,border:'1px solid var(--bd)',background:activeFilterCount>0?'var(--acbg)':'var(--bg2)',color:activeFilterCount>0?'var(--ac)':'var(--mu)',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
+            🔧 Filters
             {activeFilterCount>0 && <span style={{background:'var(--ac)',color:'#fff',borderRadius:'50%',width:17,height:17,fontSize:10,fontWeight:700,display:'flex',alignItems:'center',justifyContent:'center'}}>{activeFilterCount}</span>}
           </button>
           {activeFilterCount>0 && <button onClick={clearAllFilters} style={{padding:'7px 12px',borderRadius:8,background:'transparent',color:'#ff6b6b',border:'1px solid rgba(255,107,107,0.3)',cursor:'pointer',fontSize:12,fontFamily:'inherit'}}>✕ Clear All</button>}
