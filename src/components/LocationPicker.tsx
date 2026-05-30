@@ -128,14 +128,25 @@ export default function LocationPicker({ value, onChange }: any) {
     )
   }
 
-  // Free reverse geocoding (OSM Nominatim) → fills the address text
+  // Free reverse geocoding (OSM Nominatim) → fills address + city/state/pincode
   async function reverseGeocode(lat: number, lng: number) {
     try {
       setGeocoding(true)
       const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`, { headers: { Accept: 'application/json' } })
       const d = await r.json()
       setGeocoding(false)
-      if (d && d.display_name) onChange({ address: d.display_name })
+      if (!d) return
+      const a = d.address || {}
+      // City can appear under several keys depending on the place
+      const city = a.city || a.town || a.municipality || a.city_district || a.village || a.suburb || a.county || ''
+      const state = a.state || ''
+      const pincode = a.postcode || ''
+      const patch: any = {}
+      if (d.display_name) patch.address = d.display_name
+      if (city)    patch.city = city
+      if (state)   patch.state = state
+      if (pincode) patch.pincode = pincode
+      if (Object.keys(patch).length) onChange(patch)
     } catch { setGeocoding(false) }
   }
 

@@ -76,7 +76,7 @@ const EMPTY_PROFILE = {
   reason_for_change:'', work_mode:'', willing_to_relocate:false, languages:'',
   graduation_year:'', cgpa:'', college:'', stipend_expected:'', has_internship:false,
   internship_details:'', available_immediately:true,
-  linkedin:'', youtube_url:'', address:'', google_maps_url:'', latitude:null, longitude:null,
+  linkedin:'', youtube_url:'', address:'', google_maps_url:'', latitude:null, longitude:null, state:'', pincode:'',
   status:'New', assigned_to:'', source:'Direct', source_detail:'',
   ai_summary:'', resume_url:'', resume_name:'', star_rating:0,
   channels:[] as string[], photos:[] as string[], photo_url:'',
@@ -256,6 +256,7 @@ export default function EditProfilePage() {
       address: s(form.address), google_maps_url: s(form.google_maps_url), languages: s(form.languages),
       latitude: (form.latitude===''||form.latitude===undefined)?null:form.latitude,
       longitude: (form.longitude===''||form.longitude===undefined)?null:form.longitude,
+      state: s(form.state), pincode: s(form.pincode),
       linkedin: s(form.linkedin), youtube_url: s(form.youtube_url), current_company: s(form.current_company),
       notice_period: s(form.notice_period), reason_for_change: s(form.reason_for_change), work_mode: s(form.work_mode),
       college: s(form.college), internship_details: s(form.internship_details), ai_summary: s(form.ai_summary),
@@ -682,8 +683,16 @@ export default function EditProfilePage() {
               <label style={LS}>Precise Location (GPS / Map pin)</label>
               <LocationPicker
                 value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
-                onChange={(loc:any)=>setForm((f:any)=>({...f, ...loc}))}
+                onChange={(loc:any)=>setForm((f:any)=>{ const n={...f,...loc}; if(loc.city && !CITIES.includes(loc.city)){ n.other_city=loc.city } return n })}
               />
+            </div>
+            <div>
+              <label style={LS}>State (auto-filled)</label>
+              <input style={IS} value={form.state||''} onChange={e=>sf('state',e.target.value)} placeholder="Auto from location"/>
+            </div>
+            <div>
+              <label style={LS}>Pincode (auto-filled)</label>
+              <input style={IS} value={form.pincode||''} onChange={e=>sf('pincode',e.target.value)} placeholder="Auto from location"/>
             </div>
             <div>
               <label style={LS}>Languages Known</label>
