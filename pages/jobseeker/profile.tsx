@@ -27,8 +27,16 @@ const NOTICE_PERIODS = ['Immediate','7 days','15 days','1 month','2 months','3 m
 const WORK_MODES = ['WFH','WFO','Hybrid']
 const JOB_TYPES = ['Full Time','Part Time']
 const EMP_TYPES = ['Permanent','Temporary','Contractual']
-const LOOKING_FOR = ['Internship','Training','Apprenticeship','Live Project','Part-time Job','Just Exploring']
+const LOOKING_FOR = ['Internship / Training','Live Project','Part-time Job','Full-time Job','Just Exploring']
+const NEEDS_DURATION = ['Internship / Training','Live Project']
 const DURATIONS = ['1 month','2 months','3 months','4 months','5 months','6 months','7 months','8 months','9 months','10 months','11 months','12 months','Flexible']
+const STIPEND_RANGES = ['Unpaid OK','Below ₹5,000','₹5,000–10,000','₹10,000–20,000','₹20,000+']
+const AVAILABILITY = ['Immediately','Within 15 days','Within 1 month','After graduation']
+const CATEGORIES = [
+  { key: 'student',      icon: '🎓', title: 'Student',               sub: 'Currently studying' },
+  { key: 'fresher',      icon: '🌱', title: 'Fresher',               sub: 'Graduated · no job yet' },
+  { key: 'professional', icon: '💼', title: 'Working Professional',  sub: 'Have work experience' },
+]
 const VIBE_MODES = [
   { value: 'fun', label: '🎮 Fun & Social' },
   { value: 'professional', label: '💼 Professional' },
@@ -76,6 +84,13 @@ function multiToggle(current, val) {
   return arr.join(', ')
 }
 function hasVal(current, val) { return (current || '').split(',').map(s => s.trim()).includes(val) }
+function multiToggleMax(current, val, max) {
+  const arr = current ? current.split(',').map(s => s.trim()).filter(Boolean) : []
+  const idx = arr.indexOf(val)
+  if (idx !== -1) { arr.splice(idx, 1) }
+  else { if (arr.length >= max) return current; arr.push(val) }
+  return arr.join(', ')
+}
 
 function generateCV(user, form, stage) {
   const line = (label, val) => val ? `${label}: ${val}\n` : ''
@@ -88,7 +103,7 @@ function generateCV(user, form, stage) {
 
 ${(user?.full_name || '').toUpperCase()}
 ${line('Email', user?.email)}${line('Mobile', form.mobile)}${line('City', form.city)}${line('LinkedIn', form.linkedin)}${line('GitHub/Portfolio', form.github)}
-${stage === 'pursuing' ? `
+${stage === 'student' ? `
 -- STATUS --------------------------------
 Currently: Student (Under College)
 ${line('Looking for', form.looking_for)}${line('Preferred Duration', form.internship_duration)}${line('Work Preference', form.work_mode)}${line('Expected Stipend', form.stipend_expected ? '₹' + form.stipend_expected + '/month' : '')}` : `
@@ -108,7 +123,9 @@ export default function JobSeekerProfile() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [form, setForm] = useState({})
-  const [stage, setStage] = useState('professional') // 'pursuing' | 'professional'
+  const [stage, setStage] = useState('fresher') // 'student' | 'fresher' | 'professional'
+  const [workExp, setWorkExp] = useState([])     // [{title, org, from, to, current, desc}]
+  const [achievements, setAchievements] = useState([]) // [string]
   const [profileId, setProfileId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -144,7 +161,7 @@ export default function JobSeekerProfile() {
         setUser(au)
         setVibeMode(au.vibe_mode || 'fun')
         setUserSettings({ vibe: au.vibe_mode || 'fun' })
-        setStage(au.experience_segment === 'intern' ? 'pursuing' : 'professional')
+        setStage(au.experience_segment === 'intern' ? 'student' : (au.experience_segment === 'experienced' || au.experience_segment === 'junior' ? 'professional' : 'fresher'))
         setLocSaved(!!au.latitude)
 
         const { data: profile } = await supabase
@@ -160,10 +177,15 @@ export default function JobSeekerProfile() {
             edu_level: ed.level || snapToLevel(profile.qualification || '') || '',
             edu_course: ed.course || profile.qualification || '',
             branch: ed.branch || profile.branch || profile.qualification_branch || '',
+            current_period: ed.current_period || profile.current_period || '',
+            current_period_type: profile.current_period_type || (ed.current_period?.startsWith('Sem') ? 'sem' : (ed.current_period ? 'year' : '')),
           })
           setProfileStrength(calculateProfileStrength({ ...profile, name: au.full_name, email: au.email }))
-          if (profile.segment === 'pursuing') setStage('pursuing')
-          else if (profile.segment === 'fresher' || profile.segment === 'experienced') setStage('professional')
+          if (profile.segment === 'pursuing') setStage('student')
+          else if (profile.segment === 'experienced') setStage('professional')
+          else if (profile.segment === 'fresher') setStage('fresher')
+          setWorkExp(Array.isArray(profile.work_experiences) ? profile.work_experiences : (() => { try { return JSON.parse(profile.work_experiences || '[]') } catch { return [] } })())
+          setAchievements(Array.isArray(profile.achievements) ? profile.achievements : (() => { try { return JSON.parse(profile.achievements || '[]') } catch { return [] } })())
         } else {
           const initF = { name: au.full_name || '', email: au.email || '', mobile: au.mobile || '' }
           setForm(initF)
@@ -183,14 +205,14 @@ export default function JobSeekerProfile() {
     if (!user) return
     setSaving(true)
 
-    const segment = stage === 'pursuing' ? 'pursuing' : deriveSegment(form.experience)
-    const expSeg = stage === 'pursuing' ? 'intern' : deriveSegment(form.experience)
+    const segment = stage === 'student' ? 'pursuing' : (stage === 'professional' ? 'experienced' : 'fresher')
+    const expSeg = stage === 'student' ? 'intern' : (stage === 'professional' ? 'experienced' : 'fresher')
 
     const payload = {
       name: user.full_name || '',
       email: user.email || '',
       mobile: (form.mobile || '').replace(/\D/g, '').slice(0, 15),
-      role: stage === 'pursuing' ? '' : (form.role || ''),
+      role: stage === 'student' ? '' : (form.role || ''),
       qualification: (form.edu_course === 'Other' ? (form.edu_course_custom || '') : (form.edu_course || form.qualification || '')),
       branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
       qualification_branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
@@ -198,24 +220,32 @@ export default function JobSeekerProfile() {
         level: form.edu_level || '',
         course: (form.edu_course === 'Other' ? (form.edu_course_custom || '') : (form.edu_course || '')),
         branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
-        study_status: stage === 'pursuing' ? 'pursuing' : 'completed',
+        study_status: stage === 'student' ? 'pursuing' : 'completed',
         institution: form.college || '',
         year: form.graduation_year || '',
+        cgpa: form.cgpa || '',
+        current_period: stage === 'student' ? (form.current_period || '') : '',
       }],
+      current_period: stage === 'student' ? (form.current_period || '') : '',
+      current_period_type: stage === 'student' ? (form.current_period_type || '') : '',
       college: form.college || '',
       graduation_year: form.graduation_year || null,
+      cgpa: form.cgpa || '',
       certifications_text: form.certifications_text || '',
       skills: form.skills || '',
-      experience: stage === 'pursuing' ? 0 : (form.experience ? parseFloat(String(form.experience)) : null),
-      current_ctc: stage === 'pursuing' ? null : (form.current_ctc ? parseFloat(String(form.current_ctc)) : null),
-      expected_ctc: form.expected_ctc ? parseFloat(String(form.expected_ctc)) : null,
-      notice_period: stage === 'pursuing' ? '' : (form.notice_period || ''),
+      work_experiences: workExp,
+      achievements: achievements,
+      experience: stage === 'professional' ? (form.experience ? parseFloat(String(form.experience)) : 0) : 0,
+      current_ctc: stage === 'professional' ? (form.current_ctc ? parseFloat(String(form.current_ctc)) : null) : null,
+      expected_ctc: stage === 'professional' ? (form.expected_ctc ? parseFloat(String(form.expected_ctc)) : null) : null,
+      notice_period: stage === 'professional' ? (form.notice_period || '') : '',
+      availability: stage !== 'professional' ? (form.availability || '') : '',
       work_mode: form.work_mode || '',
       job_type: form.job_type || '',
       employment_type: form.employment_type || '',
-      looking_for: stage === 'pursuing' ? (form.looking_for || '') : '',
-      internship_duration: stage === 'pursuing' ? (form.internship_duration || '') : '',
-      stipend_expected: stage === 'pursuing' ? (form.stipend_expected ? parseFloat(String(form.stipend_expected)) : null) : null,
+      looking_for: stage === 'student' ? (form.looking_for || '') : (stage === 'fresher' ? (form.looking_for || 'Full-time Job') : ''),
+      internship_duration: stage === 'student' ? (form.internship_duration || '') : '',
+      stipend_expected_range: stage === 'student' ? (form.stipend_expected_range || '') : '',
       city: form.city || '',
       state: form.state || '',
       pincode: form.pincode || '',
@@ -341,9 +371,10 @@ export default function JobSeekerProfile() {
 
   const photoSrc = form.photo_url || user?.photo_url || null
   const { y: expY, m: expM } = decToYM(form.experience)
-  const levelLabel = stage === 'pursuing' ? '🎓 Under College' : (deriveSegment(form.experience) === 'experienced' ? '💼 Experienced' : '🌱 Fresher')
-  const levelColor = stage === 'pursuing' ? T.gd : (deriveSegment(form.experience) === 'experienced' ? T.ac : T.gn)
-  const isInternship = hasVal(form.looking_for || '', 'Internship') || hasVal(form.looking_for || '', 'Training') || hasVal(form.looking_for || '', 'Apprenticeship')
+  const CAT = CATEGORIES.find(c => c.key === stage) || CATEGORIES[1]
+  const levelLabel = `${CAT.icon} ${CAT.title}`
+  const levelColor = stage === 'student' ? T.gd : (stage === 'professional' ? T.ac : T.gn)
+  const needsDuration = NEEDS_DURATION.some(v => hasVal(form.looking_for || '', v))
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}>
@@ -456,17 +487,14 @@ export default function JobSeekerProfile() {
 
         {/* CANDIDATE STATUS SELECTOR */}
         <div style={card}>
-          {secTitle('🧭', 'Your Status')}
-          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 12 }}>This decides which details recruiters see and how they find you.</div>
+          {secTitle('🧭', 'I am a...')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 12 }}>This decides what we ask next and how recruiters find you.</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {[
-              { key: 'pursuing', icon: '🎓', title: 'Under College', sub: 'Studying now · internship / training / exploring' },
-              { key: 'professional', icon: '💼', title: 'Passed Out', sub: 'In the job market · fresher or experienced' },
-            ].map(opt => {
+            {CATEGORIES.map(opt => {
               const active = stage === opt.key
-              const c = opt.key === 'pursuing' ? T.gd : T.ac
+              const c = opt.key === 'student' ? T.gd : (opt.key === 'professional' ? T.ac : T.gn)
               return (
-                <button key={opt.key} onClick={() => setStage(opt.key)} style={{ flex: 1, minWidth: 200, textAlign: 'left', padding: '13px 15px', borderRadius: 13, border: `1.5px solid ${active ? c : T.bd2}`, background: active ? T.acbg : T.bg3, color: active ? c : T.mu, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                <button key={opt.key} onClick={() => setStage(opt.key)} style={{ flex: 1, minWidth: 150, textAlign: 'left', padding: '13px 15px', borderRadius: 13, border: `1.5px solid ${active ? c : T.bd2}`, background: active ? T.acbg : T.bg3, color: active ? c : T.mu, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
                   <div style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 19 }}>{opt.icon}</span>{opt.title}</div>
                   <div style={{ fontSize: 11.5, marginTop: 4, opacity: 0.9 }}>{opt.sub}</div>
                 </button>
@@ -519,6 +547,11 @@ export default function JobSeekerProfile() {
               <input style={inp} value={form.mobile || ''} onChange={e => sf('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" />
             </div>
           </div>
+          <label style={lbl}>📍 Location <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(use GPS or drop a pin — auto-fills city, state &amp; pincode below)</span></label>
+          <LocationPicker
+            value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
+            onChange={(loc) => { const u = { ...form, ...loc }; setForm(u); setProfileStrength(calculateProfileStrength(u)) }}
+          />
           <div className="jsp-2col">
             <div>
               <label style={lbl}>City</label>
@@ -541,12 +574,6 @@ export default function JobSeekerProfile() {
           </div>
           <label style={lbl}>Portfolio / GitHub / Other Link</label>
           <input style={inp} value={form.github || ''} onChange={e => sf('github', e.target.value)} placeholder="Any link — portfolio, GitHub, Behance, LinkedIn, etc." />
-
-          <label style={lbl}>📍 Location <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(use GPS or drop a pin — auto-fills city, state &amp; pincode)</span></label>
-          <LocationPicker
-            value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
-            onChange={(loc) => { const u = { ...form, ...loc }; setForm(u); setProfileStrength(calculateProfileStrength(u)) }}
-          />
         </div>
 
         {/* EDUCATION — right after basics */}
@@ -555,7 +582,7 @@ export default function JobSeekerProfile() {
           <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 4 }}>Pick your level, then course, then specialization.</div>
           <div className="jsp-2col">
             <div>
-              <label style={lbl}>{stage === 'pursuing' ? 'Currently Pursuing (Level)' : 'Highest Level'}</label>
+              <label style={lbl}>{stage === 'student' ? 'Currently Pursuing (Level)' : 'Highest Level'}</label>
               <select style={inp} value={form.edu_level || ''} onChange={e => setForm(f => { const u = { ...f, edu_level: e.target.value, edu_course: '', edu_course_custom: '', branch: '', branch_custom: '' }; setProfileStrength(calculateProfileStrength(u)); return u })}>
                 <option value="">Select Level</option>{EDUCATION_LEVELS.map(l => <option key={l}>{l}</option>)}
               </select>
@@ -587,29 +614,52 @@ export default function JobSeekerProfile() {
               ) })()}
             </div>
             <div>
-              <label style={lbl}>{stage === 'pursuing' ? 'Expected Graduation Year' : 'Graduation Year'}</label>
+              <label style={lbl}>{stage === 'student' ? 'Expected Graduation Year' : 'Graduation Year'}</label>
               <select style={inp} value={form.graduation_year || ''} onChange={e => sf('graduation_year', e.target.value)}><option value="">Select Year</option>{Array.from({ length: 33 }, (_, i) => 2030 - i).map(y => <option key={y}>{y}</option>)}</select>
             </div>
           </div>
+          {stage === 'student' && (
+            <div className="jsp-2col">
+              <div>
+                <label style={lbl}>Currently In — Type</label>
+                <select style={inp} value={form.current_period_type || ''} onChange={e => setForm(f => { const u = { ...f, current_period_type: e.target.value, current_period: '' }; setProfileStrength(calculateProfileStrength(u)); return u })}>
+                  <option value="">Select</option>
+                  <option value="year">Year-based</option>
+                  <option value="sem">Semester-based</option>
+                </select>
+              </div>
+              <div>
+                <label style={lbl}>{form.current_period_type === 'sem' ? 'Current Semester' : 'Current Year'}</label>
+                <select style={inp} value={form.current_period || ''} disabled={!form.current_period_type} onChange={e => sf('current_period', e.target.value)}>
+                  <option value="">{form.current_period_type ? 'Select' : 'Pick type first'}</option>
+                  {form.current_period_type === 'sem'
+                    ? Array.from({ length: 10 }, (_, i) => i + 1).map(n => <option key={n} value={`Semester ${n}`}>{`Semester ${n}`}</option>)
+                    : Array.from({ length: 5 }, (_, i) => i + 1).map(n => <option key={n} value={`Year ${n}`}>{`Year ${n}`}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
           {form.branch === 'Other' && (
             <><label style={lbl}>Branch Name (custom)</label>
             <input style={inp} value={form.branch_custom || ''} onChange={e => sf('branch_custom', e.target.value)} placeholder="Type your branch / specialization" /></>
           )}
           <label style={lbl}>College / University</label>
           <input style={inp} value={form.college || ''} onChange={e => sf('college', e.target.value)} placeholder="College / school / university name" />
+          <label style={lbl}>{stage === 'student' ? 'Current CGPA / %' : 'CGPA / Percentage'}</label>
+          <input style={inp} value={form.cgpa || ''} onChange={e => sf('cgpa', e.target.value)} placeholder="e.g. 8.5 or 85%" />
           <label style={lbl}>Certifications <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(comma-separated, optional)</span></label>
           <input style={inp} value={form.certifications_text || ''} onChange={e => sf('certifications_text', e.target.value)} placeholder="e.g. AWS Certified, Google Data Analytics, NPTEL..." />
         </div>
 
-        {/* ADAPTIVE: PURSUING */}
-        {stage === 'pursuing' && (
+        {/* ADAPTIVE: STUDENT */}
+        {stage === 'student' && (
           <div style={card}>
             {secTitle('🔎', 'What You Are Looking For')}
-            <label style={lbl}>I am looking for</label>
-            <select style={inp} value={form.looking_for || ''} onChange={e => sf('looking_for', e.target.value)}>
-              <option value="">Select</option>{LOOKING_FOR.map(l => <option key={l}>{l}</option>)}
-            </select>
-            {isInternship && (
+            <label style={lbl}>I am looking for <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(pick up to 2)</span></label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {LOOKING_FOR.map(l => chipBtn(l, form.looking_for || '', (v) => sf('looking_for', multiToggleMax(form.looking_for || '', v, 2))))}
+            </div>
+            {needsDuration && (
               <>
                 <label style={lbl}>Preferred Duration</label>
                 <select style={inp} value={form.internship_duration || ''} onChange={e => sf('internship_duration', e.target.value)}>
@@ -621,8 +671,50 @@ export default function JobSeekerProfile() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v))))}
             </div>
-            <label style={lbl}>Expected Stipend (₹/month) <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-            <input style={inp} type="number" min="0" value={form.stipend_expected || ''} onChange={e => sf('stipend_expected', e.target.value)} placeholder="e.g. 15000 (leave blank if unpaid is OK)" />
+            <label style={lbl}>Expected Stipend</label>
+            <select style={inp} value={form.stipend_expected_range || ''} onChange={e => sf('stipend_expected_range', e.target.value)}>
+              <option value="">Select</option>{STIPEND_RANGES.map(s => <option key={s}>{s}</option>)}
+            </select>
+            <label style={lbl}>Available From</label>
+            <select style={inp} value={form.availability || ''} onChange={e => sf('availability', e.target.value)}>
+              <option value="">Select</option>{AVAILABILITY.map(a => <option key={a}>{a}</option>)}
+            </select>
+          </div>
+        )}
+
+        {/* ADAPTIVE: FRESHER */}
+        {stage === 'fresher' && (
+          <div style={card}>
+            {secTitle('🌱', 'Job Preferences')}
+            <label style={lbl}>Role You Want</label>
+            <input style={inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Developer, Sales Executive, Analyst" />
+            <label style={lbl}>Looking for <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(pick up to 2)</span></label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {LOOKING_FOR.map(l => chipBtn(l, form.looking_for || '', (v) => sf('looking_for', multiToggleMax(form.looking_for || '', v, 2))))}
+            </div>
+            {needsDuration && (
+              <>
+                <label style={lbl}>Preferred Duration</label>
+                <select style={inp} value={form.internship_duration || ''} onChange={e => sf('internship_duration', e.target.value)}>
+                  <option value="">Select</option>{DURATIONS.map(d => <option key={d}>{d}</option>)}
+                </select>
+              </>
+            )}
+            <label style={lbl}>Work Mode</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v))))}</div>
+            <label style={lbl}>Job Type</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{JOB_TYPES.map(j => chipBtn(j, form.job_type || '', (v) => sf('job_type', multiToggle(form.job_type || '', v))))}</div>
+            <label style={lbl}>Expected CTC (₹)</label>
+            {(() => { const { l, t } = decToLT(form.expected_ctc); return (
+              <div className="jsp-row2">
+                <select style={{ ...inp, flex: 1 }} value={l} onChange={e => sf('expected_ctc', ltToDec(+e.target.value, t))}>{CTC_LAKHS.map(n => <option key={n} value={n}>{n} Lakh</option>)}</select>
+                <select style={{ ...inp, flex: 1 }} value={t} onChange={e => sf('expected_ctc', ltToDec(l, +e.target.value))}>{CTC_THOUSANDS.map(n => <option key={n} value={n}>{n} Th</option>)}</select>
+              </div>
+            ) })()}
+            <label style={lbl}>Available From</label>
+            <select style={inp} value={form.availability || ''} onChange={e => sf('availability', e.target.value)}>
+              <option value="">Select</option>{AVAILABILITY.map(a => <option key={a}>{a}</option>)}
+            </select>
           </div>
         )}
 
@@ -632,22 +724,20 @@ export default function JobSeekerProfile() {
             {secTitle('💼', 'Professional Details')}
             <label style={lbl}>Current Role / Designation</label>
             <input style={inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Engineer, HR Manager, Sales Executive" />
+            <label style={lbl}>Current Company</label>
+            <input style={inp} value={form.current_company || ''} onChange={e => sf('current_company', e.target.value)} placeholder="Current employer name" />
             <label style={lbl}>Total Experience</label>
             <div className="jsp-row2">
               <select style={{ ...inp, flex: 1 }} value={expY} onChange={e => sf('experience', ymToDec(+e.target.value, expM))}>{EXP_YEARS.map(n => <option key={n} value={n}>{n} yr</option>)}</select>
               <select style={{ ...inp, flex: 1 }} value={expM} onChange={e => sf('experience', ymToDec(expY, +e.target.value))}>{EXP_MONTHS.map(n => <option key={n} value={n}>{n} mo</option>)}</select>
             </div>
-            {deriveSegment(form.experience) === 'experienced' && (
-              <>
-                <label style={lbl}>Current CTC (₹)</label>
-                {(() => { const { l, t } = decToLT(form.current_ctc); return (
-                  <div className="jsp-row2">
-                    <select style={{ ...inp, flex: 1 }} value={l} onChange={e => sf('current_ctc', ltToDec(+e.target.value, t))}>{CTC_LAKHS.map(n => <option key={n} value={n}>{n} Lakh</option>)}</select>
-                    <select style={{ ...inp, flex: 1 }} value={t} onChange={e => sf('current_ctc', ltToDec(l, +e.target.value))}>{CTC_THOUSANDS.map(n => <option key={n} value={n}>{n} Th</option>)}</select>
-                  </div>
-                ) })()}
-              </>
-            )}
+            <label style={lbl}>Current CTC (₹)</label>
+            {(() => { const { l, t } = decToLT(form.current_ctc); return (
+              <div className="jsp-row2">
+                <select style={{ ...inp, flex: 1 }} value={l} onChange={e => sf('current_ctc', ltToDec(+e.target.value, t))}>{CTC_LAKHS.map(n => <option key={n} value={n}>{n} Lakh</option>)}</select>
+                <select style={{ ...inp, flex: 1 }} value={t} onChange={e => sf('current_ctc', ltToDec(l, +e.target.value))}>{CTC_THOUSANDS.map(n => <option key={n} value={n}>{n} Th</option>)}</select>
+              </div>
+            ) })()}
             <label style={lbl}>Expected CTC (₹)</label>
             {(() => { const { l, t } = decToLT(form.expected_ctc); return (
               <div className="jsp-row2">
@@ -665,6 +755,43 @@ export default function JobSeekerProfile() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{EMP_TYPES.map(em => chipBtn(em, form.employment_type || '', (v) => sf('employment_type', multiToggle(form.employment_type || '', v))))}</div>
           </div>
         )}
+
+        {/* WORK / INTERNSHIP EXPERIENCE — for everyone (resume) */}
+        <div style={card}>
+          {secTitle('🧳', stage === 'student' ? 'Internships / Projects' : 'Work Experience')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 10 }}>Add jobs, internships or projects — these build your resume.</div>
+          {workExp.map((w, i) => (
+            <div key={i} style={{ border: `1px solid ${T.bd2}`, borderRadius: 12, padding: 12, marginBottom: 10, background: T.bg3 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: T.mu }}>#{i + 1}</span>
+                <button onClick={() => setWorkExp(workExp.filter((_, j) => j !== i))} style={{ background: T.rdbg, color: T.rd, border: `1px solid ${T.rd}`, borderRadius: 8, padding: '3px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit' }}>Remove</button>
+              </div>
+              <div className="jsp-2col">
+                <input style={inp} value={w.title || ''} onChange={e => setWorkExp(workExp.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} placeholder="Role / Title" />
+                <input style={inp} value={w.org || ''} onChange={e => setWorkExp(workExp.map((x, j) => j === i ? { ...x, org: e.target.value } : x))} placeholder="Company / Organization" />
+              </div>
+              <div className="jsp-2col" style={{ marginTop: 10 }}>
+                <input style={inp} value={w.from || ''} onChange={e => setWorkExp(workExp.map((x, j) => j === i ? { ...x, from: e.target.value } : x))} placeholder="From (e.g. Jan 2024)" />
+                <input style={inp} value={w.to || ''} onChange={e => setWorkExp(workExp.map((x, j) => j === i ? { ...x, to: e.target.value } : x))} placeholder="To (e.g. Present)" />
+              </div>
+              <textarea rows={2} style={{ ...inp, resize: 'none', marginTop: 10 }} value={w.desc || ''} onChange={e => setWorkExp(workExp.map((x, j) => j === i ? { ...x, desc: e.target.value } : x))} placeholder="What you did / key achievements" />
+            </div>
+          ))}
+          <button onClick={() => setWorkExp([...workExp, { title: '', org: '', from: '', to: '', desc: '' }])} style={{ background: T.acbg, color: T.ac, border: `1px dashed ${T.ac}`, borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>+ Add {stage === 'student' ? 'Internship / Project' : 'Experience'}</button>
+        </div>
+
+        {/* ACHIEVEMENTS — for everyone */}
+        <div style={card}>
+          {secTitle('🏆', 'Achievements & Awards')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 10 }}>Hackathons, awards, publications, leadership roles — anything notable.</div>
+          {achievements.map((a, i) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input style={inp} value={a} onChange={e => setAchievements(achievements.map((x, j) => j === i ? e.target.value : x))} placeholder="e.g. Winner — Smart India Hackathon 2024" />
+              <button onClick={() => setAchievements(achievements.filter((_, j) => j !== i))} style={{ background: T.rdbg, color: T.rd, border: `1px solid ${T.rd}`, borderRadius: 8, padding: '0 12px', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0 }}>✕</button>
+            </div>
+          ))}
+          <button onClick={() => setAchievements([...achievements, ''])} style={{ background: T.acbg, color: T.ac, border: `1px dashed ${T.ac}`, borderRadius: 10, padding: '9px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', width: '100%' }}>+ Add Achievement</button>
+        </div>
 
         {/* SKILLS */}
         <div style={card}>

@@ -1427,9 +1427,9 @@ export default function Dashboard() {
             <div style={{padding:'11px 18px',borderBottom:'1px solid var(--bd)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div style={{fontWeight:700,fontSize:13}}>{SEGMENT_CONFIG[activeSegment].icon} {SEGMENT_CONFIG[activeSegment].label} <span style={{fontSize:11,color:'var(--mu)',fontWeight:400,marginLeft:6}}>{filtered.length} profiles</span></div>
             </div>
-            <div style={{overflowX:'auto' as const}}>
+            <div style={{overflow:'auto' as const, maxHeight:'calc(100vh - 230px)'}}>
               <table style={{width:'100%',borderCollapse:'collapse' as const,fontSize:13}}>
-                <thead>
+                <thead style={{position:'sticky' as const,top:0,zIndex:2}}>
                   <tr style={{background:'var(--bg3)'}}>
                     <th style={{width:36,padding:'9px 12px'}}><input type="checkbox" onChange={e=>{if(e.target.checked)setSelectedProfiles(filtered.map(p=>p.id));else setSelectedProfiles([])}} checked={selectedProfiles.length===filtered.length&&filtered.length>0}/></th>
                     {[...['Name / Contact','Segment','Role','Qualification','Exp','CTC','Status','City','Source','★','Team'],...(isAdmin?['Added By']:[]),'Actions'].map(h=>(

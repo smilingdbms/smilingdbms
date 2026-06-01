@@ -22,6 +22,8 @@ const QUALIFICATIONS = ['MBBS','MD','MS','BDS','MDS','B.Tech','M.Tech','BE','ME'
 const SOURCES = ['Direct','WhatsApp','LinkedIn','Facebook','Instagram','Naukri','Indeed','Monster','Referral','Walk-in','Campus','Job Fair','Agency','Other']
 const NOTICE_PERIODS = ['Immediate','7 days','15 days','1 month','2 months','3 months','Negotiable']
 const WORK_MODES = ['WFH','Office','Hybrid','Flexible']
+const JOB_TYPES = ['Full Time','Part Time']
+const EMP_TYPES = ['Permanent','Temporary','Contractual']
 const LANGUAGES = ['Hindi','English','Tamil','Telugu','Kannada','Malayalam','Bengali','Marathi','Gujarati','Punjabi','Odia','Urdu']
 const QUAL_BRANCHES: Record<string,string[]> = {
   'B.Tech':['Computer Science','Information Technology','Electronics','Electrical','Mechanical','Civil','Chemical','Biotechnology','Aerospace','Production'],
@@ -49,6 +51,15 @@ function ymToDec(y:number,m:number){return +(y + m/12).toFixed(4)}
 function decToLT(v:any){const d=parseFloat(v)||0;const l=Math.floor(d);let t=Math.round(Math.round((d-l)*100)/5)*5;return t>=100?{l:l+1,t:0}:{l,t}}
 function ltToDec(l:number,t:number){return +(l + t/100).toFixed(2)}
 function deriveSegment(expDec:any){return (parseFloat(expDec)||0)>0?'experienced':'fresher'}
+const LOOKING_FOR = ['Internship / Training','Live Project','Part-time Job','Full-time Job','Just Exploring']
+const NEEDS_DURATION = ['Internship / Training','Live Project']
+const DURATIONS = ['1 month','2 months','3 months','4 months','5 months','6 months','7 months','8 months','9 months','10 months','11 months','12 months','Flexible']
+const STIPEND_RANGES = ['Unpaid OK','Below ₹5,000','₹5,000–10,000','₹10,000–20,000','₹20,000+']
+const AVAILABILITY = ['Immediately','Within 15 days','Within 1 month','After graduation']
+// category helpers: student | fresher | professional  (segment stays pursuing|fresher|experienced)
+function catFromSegment(seg:string, exp:any){ if(seg==='pursuing') return 'student'; return deriveSegment(exp)==='experienced'?'professional':'fresher' }
+function hasCsv(cur:string, val:string){ return (cur||'').split(',').map((s:string)=>s.trim()).includes(val) }
+function toggleCsvMax(cur:string, val:string, max:number){ const a=(cur||'').split(',').map((s:string)=>s.trim()).filter(Boolean); const i=a.indexOf(val); if(i!==-1)a.splice(i,1); else {if(a.length>=max)return cur; a.push(val)} return a.join(', ') }
 const PIPELINE_STATUSES = ['New','Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later','Contacted - Number Busy','Contacted - Not Reachable','Resume Received','Resume Shortlisted','Interview Scheduled','Interview Done - Selected','Interview Done - Rejected','Interview Done - On Hold','Offer Discussed','Offer Accepted','Offer Declined','Did Not Join','Joined Successfully']
 const PIPELINE_EMOJI: Record<string,string> = {'New':'🆕','Contacted - Interested':'✅','Contacted - Not Interested':'❌','Contacted - Call Back Later':'📞','Contacted - Number Busy':'📵','Contacted - Not Reachable':'🔕','Resume Received':'📄','Resume Shortlisted':'⭐','Interview Scheduled':'📅','Interview Done - Selected':'🎯','Interview Done - Rejected':'❌','Interview Done - On Hold':'⏸️','Offer Discussed':'💬','Offer Accepted':'✅','Offer Declined':'🚫','Did Not Join':'😔','Joined Successfully':'🎉'}
 const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
@@ -83,7 +94,7 @@ function getSkillSugs(role: string, ind: string, qual: string): string[] {
   return SKILL_SETS['default']
 }
 const EMPTY_PROFILE = {
-  segment:'experienced', type:'Candidate', name:'', country_code:'+91 India',
+  segment:'fresher', type:'Candidate', name:'', country_code:'+91 India',
   mobile:'', email:'', age:'', gender:'Male', city:'', other_city:'',
   role:'', qualification:'', qualification_branch:'', skills:'', industry:'',
   experience:'', total_experience:'', relevant_experience:'',
@@ -91,7 +102,8 @@ const EMPTY_PROFILE = {
   reason_for_change:'', work_mode:'', willing_to_relocate:false, languages:'',
   graduation_year:'', cgpa:'', college:'', stipend_expected:'', has_internship:false,
   internship_details:'', available_immediately:true,
-  linkedin:'', youtube_url:'', address:'', google_maps_url:'', latitude:null, longitude:null, state:'', pincode:'',
+  linkedin:'', youtube_url:'', github:'', address:'', google_maps_url:'', latitude:null, longitude:null, state:'', pincode:'',
+  job_type:'', employment_type:'',
   status:'New', assigned_to:'', source:'Direct', source_detail:'',
   ai_summary:'', resume_url:'', resume_name:'', star_rating:0,
   channels:[] as string[], photos:[] as string[], photo_url:'',
@@ -224,6 +236,7 @@ export default function AddProfilePage() {
               college:p.college||'', graduation_year:p.graduation_year||'',
               current_company:p.current_company||'', current_ctc:p.current_ctc||'', expected_ctc:p.expected_ctc||'',
               notice_period:p.notice_period||'', work_mode:p.work_mode||'', willing_to_relocate:p.willing_to_relocate==='true'||p.willing_to_relocate===true,
+              github:p.github||'', job_type:p.job_type||'', employment_type:p.employment_type||'',
               city:p.city||'', address:p.address||'', ai_summary:p.ai_summary||p.summary||'',
               status:'New', source:'Direct', segment:p.segment||'experienced', country_code:p.country_code||'+91 India',
               work_experiences: safeArr(p.work_experiences),
@@ -272,13 +285,16 @@ export default function AddProfilePage() {
       latitude: (form.latitude===''||form.latitude===undefined)?null:form.latitude,
       longitude: (form.longitude===''||form.longitude===undefined)?null:form.longitude,
       state: s(form.state), pincode: s(form.pincode),
-      linkedin: s(form.linkedin), youtube_url: s(form.youtube_url), current_company: s(form.current_company),
+      linkedin: s(form.linkedin), youtube_url: s(form.youtube_url), github: s(form.github), current_company: s(form.current_company),
+      job_type: s(form.job_type), employment_type: s(form.employment_type),
       notice_period: s(form.notice_period), reason_for_change: s(form.reason_for_change), work_mode: s(form.work_mode),
       college: s(form.college), internship_details: s(form.internship_details), ai_summary: s(form.ai_summary),
       resume_url: s(form.resume_url), resume_name: s(form.resume_name), photo_url: s(form.photo_url),
       age: i(form.age), experience: n(form.experience), total_experience: n(form.total_experience),
       relevant_experience: n(form.relevant_experience), current_ctc: n(form.current_ctc), expected_ctc: n(form.expected_ctc),
       cgpa: n(form.cgpa), graduation_year: i(form.graduation_year), stipend_expected: n(form.stipend_expected),
+      looking_for: s(form.looking_for), internship_duration: s(form.internship_duration),
+      stipend_expected_range: s(form.stipend_expected_range), availability: s(form.availability),
       star_rating: i(form.star_rating)||0,
       willing_to_relocate: !!form.willing_to_relocate, has_internship: !!form.has_internship,
       available_immediately: form.available_immediately!==false,
@@ -377,28 +393,25 @@ export default function AddProfilePage() {
           <label style={LS}>Candidate Status *</label>
           <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
             {[
-              {key:'pursuing', icon:'🎓', title:'Student (Pursuing)', sub:'Currently studying · interns / trainees', color:'#f59e0b'},
-              {key:'professional', icon:'💼', title:'Professional', sub:'Passed out · in the job market', color:'#6c8cff'},
+              {key:'student', seg:'pursuing', icon:'🎓', title:'Student', sub:'Currently studying', color:'#f59e0b'},
+              {key:'fresher', seg:'fresher', icon:'🌱', title:'Fresher', sub:'Graduated · no job yet', color:'#3dd68c'},
+              {key:'professional', seg:'experienced', icon:'💼', title:'Professional', sub:'Has work experience', color:'#6c8cff'},
             ].map(opt=>{
-              const isStudent = form.segment==='pursuing'
-              const active = opt.key==='pursuing' ? isStudent : !isStudent
+              const cat = catFromSegment(form.segment, form.experience)
+              const active = cat===opt.key
               return (
-                <button key={opt.key} onClick={()=>{ if(opt.key==='pursuing') sf('segment','pursuing'); else sf('segment', deriveSegment(form.experience)) }}
-                  style={{flex:1,minWidth:200,textAlign:'left',padding:'11px 14px',borderRadius:12,border:`1.5px solid ${active?opt.color:'var(--bd)'}`,background:active?`${opt.color}1e`:'transparent',color:active?opt.color:'var(--mu)',cursor:'pointer',fontFamily:'inherit'}}>
+                <button key={opt.key} onClick={()=>{
+                  if(opt.key==='student') sf('segment','pursuing')
+                  else if(opt.key==='fresher'){ setForm((f:any)=>({...f, segment:'fresher', experience:0, total_experience:0})) }
+                  else { setForm((f:any)=>({...f, segment:'experienced', experience:(parseFloat(String(f.experience))>0?f.experience:1), total_experience:(parseFloat(String(f.experience))>0?f.experience:1)})) }
+                }}
+                  style={{flex:1,minWidth:150,textAlign:'left',padding:'11px 14px',borderRadius:12,border:`1.5px solid ${active?opt.color:'var(--bd)'}`,background:active?`${opt.color}1e`:'transparent',color:active?opt.color:'var(--mu)',cursor:'pointer',fontFamily:'inherit'}}>
                   <div style={{fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:7}}><span style={{fontSize:18}}>{opt.icon}</span>{opt.title}</div>
                   <div style={{fontSize:11,marginTop:3,opacity:0.85}}>{opt.sub}</div>
                 </button>
               )
             })}
           </div>
-          {form.segment!=='pursuing' && (()=>{const cfg=SEGMENT_CONFIG[deriveSegment(form.experience)];return(
-            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
-              <span style={{fontSize:11,color:'var(--mu)'}}>Experience level (auto):</span>
-              <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:20,border:`1px solid ${cfg.color}`,background:`${cfg.color}1e`,color:cfg.color,fontSize:12,fontWeight:700}}>
-                <span>{cfg.icon}</span>{cfg.label}
-              </span>
-            </div>
-          )})()}
 
           <label style={LS}>Profile Photo</label>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
@@ -451,14 +464,9 @@ export default function AddProfilePage() {
               <label style={LS}>LinkedIn Profile</label>
               <input style={IS} value={form.linkedin||''} onChange={e=>sf('linkedin',e.target.value)} placeholder="linkedin.com/in/..."/>
             </div>
-            <div style={{gridColumn:'1/-1'}}>
-              <label style={LS}>Star Rating</label>
-              <div style={{display:'flex',gap:4,marginTop:2}}>
-                {[1,2,3,4,5].map(r=>(
-                  <button key={r} onClick={()=>sf('star_rating',form.star_rating===r?0:r)} style={{width:36,height:36,borderRadius:8,border:`1.5px solid ${(form.star_rating||0)>=r?'#ffd60a':'var(--bd)'}`,background:(form.star_rating||0)>=r?'rgba(255,214,10,0.12)':'var(--bg3)',color:(form.star_rating||0)>=r?'#ffd60a':'var(--mu)',cursor:'pointer',fontSize:16}}>★</button>
-                ))}
-                {form.star_rating>0&&<span style={{fontSize:11,color:'#ffd60a',alignSelf:'center',marginLeft:4}}>{form.star_rating} star</span>}
-              </div>
+            <div>
+              <label style={LS}>Portfolio / GitHub / Other Link</label>
+              <input style={IS} value={form.github||''} onChange={e=>sf('github',e.target.value)} placeholder="Any link — portfolio, GitHub, Behance, etc."/>
             </div>
           </div>
         </div>
@@ -505,7 +513,7 @@ export default function AddProfilePage() {
                 : <input style={IS} value={form.qualification_branch||''} onChange={e=>sf('qualification_branch',e.target.value)} placeholder="e.g. Computer Science"/>}
             </div>
 
-            {form.segment==='experienced' && <>
+            {form.segment!=='pursuing' && deriveSegment(form.experience)==='experienced' && <>
               <div><label style={LS}>Current Company</label><input style={IS} value={form.current_company||''} onChange={e=>sf('current_company',e.target.value)} placeholder="Current employer name"/></div>
               <div><label style={LS}>Current CTC (₹)</label>
                 {(()=>{const {l,t}=decToLT(form.current_ctc);return(
@@ -528,17 +536,22 @@ export default function AddProfilePage() {
             </>}
 
             {form.segment==='pursuing' && <>
+              <div style={{gridColumn:'1/-1'}}><label style={LS}>Looking For (max 2)</label>
+                <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                  {LOOKING_FOR.map(l=>(
+                    <button key={l} onClick={()=>sf('looking_for',toggleCsvMax(form.looking_for||'',l,2))} style={{padding:'7px 13px',borderRadius:20,cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit',border:`1px solid ${hasCsv(form.looking_for||'',l)?'var(--ac)':'var(--bd2)'}`,background:hasCsv(form.looking_for||'',l)?'var(--acbg)':'var(--bg3)',color:hasCsv(form.looking_for||'',l)?'var(--ac)':'var(--mu)'}}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              {NEEDS_DURATION.some(v=>hasCsv(form.looking_for||'',v)) && <div><label style={LS}>Preferred Duration</label><select style={IS} value={form.internship_duration||''} onChange={e=>sf('internship_duration',e.target.value)}><option value="">Select</option>{DURATIONS.map(d=><option key={d}>{d}</option>)}</select></div>}
+              <div><label style={LS}>Expected Stipend</label><select style={IS} value={form.stipend_expected_range||''} onChange={e=>sf('stipend_expected_range',e.target.value)}><option value="">Select</option>{STIPEND_RANGES.map(s=><option key={s}>{s}</option>)}</select></div>
               <div><label style={LS}>Expected Graduation Year</label><select style={IS} value={form.graduation_year||''} onChange={e=>sf('graduation_year',e.target.value)}><option value="">Select Year</option>{[2026,2027,2028,2025,2029,2024,2030].map(y=><option key={y}>{y}</option>)}</select></div>
               <div><label style={LS}>Current CGPA / Percentage</label><input style={IS} type="number" step="0.1" min="0" max="10" value={form.cgpa||''} onChange={e=>sf('cgpa',e.target.value)} placeholder="e.g. 8.5"/></div>
               <div><label style={LS}>College / University</label><input style={IS} value={form.college||''} onChange={e=>sf('college',e.target.value)} placeholder="College or university name"/></div>
-              <div><label style={LS}>Stipend Expected (₹/month)</label><input style={IS} type="number" value={form.stipend_expected||''} onChange={e=>sf('stipend_expected',e.target.value)} placeholder="e.g. 15000"/></div>
-              <div style={{gridColumn:'1/-1',display:'flex',gap:24,flexWrap:'wrap'}}>
-                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.has_internship||false} onChange={e=>sf('has_internship',e.target.checked)}/> Open to / has done internship</label>
-                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.available_immediately!==false} onChange={e=>sf('available_immediately',e.target.checked)}/> Available immediately</label>
-              </div>
+              <div><label style={LS}>Available From</label><select style={IS} value={form.availability||''} onChange={e=>sf('availability',e.target.value)}><option value="">Select</option>{AVAILABILITY.map(a=><option key={a}>{a}</option>)}</select></div>
             </>}
 
-            {form.segment==='fresher' && <>
+            {form.segment!=='pursuing' && deriveSegment(form.experience)==='fresher' && <>
               <div><label style={LS}>Graduation Year</label><select style={IS} value={form.graduation_year||''} onChange={e=>sf('graduation_year',e.target.value)}><option value="">Select Year</option>{[2025,2026,2024,2023,2022,2021,2020].map(y=><option key={y}>{y}</option>)}</select></div>
               <div><label style={LS}>CGPA / Percentage</label><input style={IS} type="number" step="0.1" min="0" max="10" value={form.cgpa||''} onChange={e=>sf('cgpa',e.target.value)} placeholder="e.g. 8.5"/></div>
               <div><label style={LS}>College / University</label><input style={IS} value={form.college||''} onChange={e=>sf('college',e.target.value)} placeholder="College or university name"/></div>
@@ -575,6 +588,22 @@ export default function AddProfilePage() {
             </div>
             <div style={{display:'flex',alignItems:'center',paddingTop:22}}>
               <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.willing_to_relocate||false} onChange={e=>sf('willing_to_relocate',e.target.checked)}/> Willing to relocate</label>
+            </div>
+            <div>
+              <label style={LS}>Job Type</label>
+              <div style={{display:'flex',gap:6}}>
+                {JOB_TYPES.map(j=>(
+                  <button key={j} onClick={()=>sf('job_type',form.job_type===j?'':j)} style={{flex:1,padding:'8px',borderRadius:8,border:`1px solid ${form.job_type===j?'var(--ac)':'var(--bd)'}`,background:form.job_type===j?'var(--acbg)':'transparent',color:form.job_type===j?'var(--ac)':'var(--mu)',cursor:'pointer',fontSize:11,fontFamily:'inherit',fontWeight:500}}>{j}</button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label style={LS}>Employment Type</label>
+              <div style={{display:'flex',gap:6}}>
+                {EMP_TYPES.map(em=>(
+                  <button key={em} onClick={()=>sf('employment_type',form.employment_type===em?'':em)} style={{flex:1,padding:'8px',borderRadius:8,border:`1px solid ${form.employment_type===em?'var(--ac)':'var(--bd)'}`,background:form.employment_type===em?'var(--acbg)':'transparent',color:form.employment_type===em?'var(--ac)':'var(--mu)',cursor:'pointer',fontSize:11,fontFamily:'inherit',fontWeight:500}}>{em}</button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -810,6 +839,13 @@ export default function AddProfilePage() {
         <div style={SECTION}>
           <div style={SECTITLE}>📍 Location & Contact</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div style={{gridColumn:'1/-1'}}>
+              <label style={LS}>Precise Location (GPS / Map pin) — auto-fills city, state &amp; pincode below</label>
+              <LocationPicker
+                value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
+                onChange={(loc:any)=>setForm((f:any)=>{ const n={...f,...loc}; if(loc.city && !CITIES.includes(loc.city)){ n.other_city=loc.city } return n })}
+              />
+            </div>
             <div>
               <label style={LS}>City *</label>
               <select style={IS} value={form.city||''} onChange={e=>sf('city',e.target.value)}>
@@ -819,13 +855,6 @@ export default function AddProfilePage() {
             <div>
               <label style={LS}>Other City (if not in list)</label>
               <input style={IS} value={form.other_city||''} onChange={e=>{sf('other_city',e.target.value);if(e.target.value)sf('city',e.target.value)}} placeholder="Type city name"/>
-            </div>
-            <div style={{gridColumn:'1/-1'}}>
-              <label style={LS}>Precise Location (GPS / Map pin)</label>
-              <LocationPicker
-                value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
-                onChange={(loc:any)=>setForm((f:any)=>{ const n={...f,...loc}; if(loc.city && !CITIES.includes(loc.city)){ n.other_city=loc.city } return n })}
-              />
             </div>
             <div>
               <label style={LS}>State (auto-filled)</label>
