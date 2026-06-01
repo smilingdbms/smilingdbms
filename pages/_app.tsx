@@ -35,7 +35,6 @@ export default function App({ Component, pageProps }: AppProps) {
   }, [showPicker])
 
   const isDashboard = DASHBOARD_PATHS.some(p => router.pathname.startsWith(p))
-  const isJobSeeker = router.pathname.startsWith('/jobseeker')
   const isLogin = router.pathname === '/'
   const cur = THEME_LIST.find(t => t.id === theme) || THEME_LIST[0]
 
@@ -49,8 +48,8 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       )}
 
-      {/* Theme Picker — hidden on login AND jobseeker portal (has own theme) */}
-      {!isLogin && !isJobSeeker && (
+      {/* Theme Picker — visible everywhere except login */}
+      {!isLogin && (
         <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }} onClick={e => e.stopPropagation()}>
           {showPicker && (
             <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: 'var(--bg2)', border: '1px solid var(--bd2)', borderRadius: 14, padding: 6, boxShadow: 'var(--shl)', minWidth: 170 }}>

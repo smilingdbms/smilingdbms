@@ -251,14 +251,13 @@ export default function JobSeekerPortal() {
 
   // ── Theme ──────────────────────────────────────────────
   const theme = nightMode
-    ? { bg: 'var(--bg)', bg2: 'var(--bg)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.05)' }
-    : { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.06)' }
+    ? { bg: 'var(--bg)', bg2: 'var(--bg)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'var(--bd2)' }
+    : { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'var(--bd2)' }
 
   // ── SKELETON LOADING ───────────────────────────────────
   if (loading) return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+      <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .skel{background:linear-gradient(90deg,${theme.bg3} 25%,${theme.bg2} 50%,${theme.bg3} 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}`}</style>
       <div style={{ padding: '60px 20px', maxWidth: 760, margin: '0 auto' }}>
         <div className="skel" style={{ height: 32, width: 200, marginBottom: 24 }} />
@@ -276,7 +275,7 @@ export default function JobSeekerPortal() {
       <div style={{ textAlign: 'center', color: theme.tx }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
         <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{error}</div>
-        <button onClick={() => window.location.reload()} style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Refresh Page</button>
+        <button onClick={() => window.location.reload()} style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Refresh Page</button>
       </div>
     </div>
   )
@@ -284,9 +283,10 @@ export default function JobSeekerPortal() {
   // ── MAIN RENDER ────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, color: theme.tx, fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}select option{background:${theme.bg3}}
-.jcard{transition:transform 0.15s,border-color 0.2s}.jcard:hover{border-color:rgba(108,140,255,0.35)!important;transform:translateY(-1px)}
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}select option{background:${theme.bg3}}
+.jcard{transition:transform 0.15s,border-color 0.2s,box-shadow 0.2s;box-shadow:var(--sh)}.jcard:hover{border-color:var(--ac)!important;transform:translateY(-2px);box-shadow:var(--shl)}
+@media (max-width:760px){.js-main{padding:14px 14px 40px!important}}
+@media (max-width:640px){.js-main input,.js-main select,.js-main textarea{font-size:16px!important;min-height:44px}.js-main button{min-height:40px}.js-srch{flex-direction:column!important}.js-srch>*{width:100%!important;min-width:0!important}}
 @keyframes confetti-fall{0%{transform:translateY(-100vh) rotate(0deg);opacity:1}100%{transform:translateY(100vh) rotate(720deg);opacity:0}}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .fade-in{animation:fadeIn 0.25s ease}
@@ -306,7 +306,7 @@ export default function JobSeekerPortal() {
               position: 'absolute', left: `${Math.random() * 100}%`, top: '-5%',
               width: 8 + Math.random() * 6, height: 8 + Math.random() * 6,
               borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              background: ['#6c8cff', '#3dd68c', '#ffd60a', '#ff6b6b', '#48cae4', '#c77dff'][i % 6],
+              background: ['var(--ac)', '#3dd68c', '#ffd60a', '#ff6b6b', '#48cae4', '#c77dff'][i % 6],
               animation: `confetti-fall ${2 + Math.random() * 2}s linear ${Math.random() * 0.5}s forwards`,
             }} />
           ))}
@@ -332,13 +332,13 @@ export default function JobSeekerPortal() {
                 {(['intern', 'fresher', 'junior', 'experienced'] as Segment[]).map(s => (
                   <button key={s} onClick={() => setSegment(s)} style={{
                     padding: '14px 16px', borderRadius: 12, textAlign: 'left' as const, cursor: 'pointer', fontFamily: 'inherit', fontSize: 15, fontWeight: 600, transition: 'all 0.15s',
-                    border: `1.5px solid ${segment === s ? '#6c8cff' : theme.bd}`,
+                    border: `1.5px solid ${segment === s ? 'var(--ac)' : theme.bd}`,
                     background: segment === s ? 'rgba(108,140,255,0.12)' : 'rgba(255,255,255,0.03)',
-                    color: segment === s ? '#6c8cff' : theme.tx,
+                    color: segment === s ? 'var(--ac)' : theme.tx,
                   }}>{SEG_LABELS[s]}</button>
                 ))}
               </div>
-              <button onClick={() => setOnboardStep(2)} style={{ width: '100%', marginTop: 20, padding: 14, borderRadius: 12, background: '#6c8cff', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Continue →</button>
+              <button onClick={() => setOnboardStep(2)} style={{ width: '100%', marginTop: 20, padding: 14, borderRadius: 12, background: 'var(--ac)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Continue →</button>
             </>)}
 
             {onboardStep === 2 && (<>
@@ -349,7 +349,7 @@ export default function JobSeekerPortal() {
                 {(['fun', 'professional', 'focus'] as VibeMode[]).map(v => (
                   <button key={v} onClick={() => setVibeMode(v)} style={{
                     padding: 16, borderRadius: 12, textAlign: 'left' as const, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-                    border: `1.5px solid ${vibeMode === v ? '#6c8cff' : theme.bd}`,
+                    border: `1.5px solid ${vibeMode === v ? 'var(--ac)' : theme.bd}`,
                     background: vibeMode === v ? 'rgba(108,140,255,0.12)' : 'rgba(255,255,255,0.03)',
                     color: vibeMode === v ? theme.tx : 'var(--mu)',
                   }}>
@@ -359,8 +359,8 @@ export default function JobSeekerPortal() {
                 ))}
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-                <button onClick={() => setOnboardStep(1)} style={{ flex: 1, padding: 14, borderRadius: 12, background: 'rgba(255,255,255,0.06)', color: 'var(--mu)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600 }}>← Back</button>
-                <button onClick={completeOnboarding} style={{ flex: 2, padding: 14, borderRadius: 12, background: '#6c8cff', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Let's Go! 🚀</button>
+                <button onClick={() => setOnboardStep(1)} style={{ flex: 1, padding: 14, borderRadius: 12, background: 'var(--bg3)', color: 'var(--mu)', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 600 }}>← Back</button>
+                <button onClick={completeOnboarding} style={{ flex: 2, padding: 14, borderRadius: 12, background: 'var(--ac)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Let's Go! 🚀</button>
               </div>
             </>)}
           </div>
@@ -377,8 +377,8 @@ export default function JobSeekerPortal() {
             <textarea rows={4} value={coverNote} onChange={e => setCoverNote(e.target.value)} placeholder="Tell the recruiter why you're a great fit..."
               style={{ width: '100%', background: theme.bg3, border: `1px solid ${theme.bd}`, borderRadius: 10, padding: '10px 14px', color: theme.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'none' as const, boxSizing: 'border-box' as const, marginBottom: 20 }} />
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => { setShowApply(null); setCoverNote('') }} style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: 'var(--mu)', border: 'none', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>Cancel</button>
-              <button onClick={applyJob} style={{ flex: 2, background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700 }}>Submit Application</button>
+              <button onClick={() => { setShowApply(null); setCoverNote('') }} style={{ flex: 1, background: 'var(--bg3)', color: 'var(--mu)', border: 'none', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14 }}>Cancel</button>
+              <button onClick={applyJob} style={{ flex: 2, background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: 12, cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, fontWeight: 700 }}>Submit Application</button>
             </div>
           </div>
         </div>
@@ -396,13 +396,13 @@ export default function JobSeekerPortal() {
       />
 
       {/* MAIN CONTENT */}
-      <div style={{ padding: '16px 20px', maxWidth: 760, margin: '0 auto' }}>
+      <div className="js-main" style={{ padding: '16px 20px', maxWidth: 760, margin: '0 auto' }}>
 
         {/* Streak + XP (fun mode) */}
         {vibeMode === 'fun' && streak > 0 && (
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' as const }}>
             <div style={{ background: 'rgba(255,159,67,0.1)', border: '1px solid rgba(255,159,67,0.2)', borderRadius: 10, padding: '6px 12px', fontSize: 13, color: '#ff9f43', fontWeight: 600 }}>🔥 {streak} day streak</div>
-            <div style={{ background: 'rgba(108,140,255,0.1)', border: '1px solid rgba(108,140,255,0.2)', borderRadius: 10, padding: '6px 12px', fontSize: 13, color: '#6c8cff', fontWeight: 600 }}>⭐ {user?.xp_points || 0} XP</div>
+            <div style={{ background: 'rgba(108,140,255,0.1)', border: '1px solid rgba(108,140,255,0.2)', borderRadius: 10, padding: '6px 12px', fontSize: 13, color: 'var(--ac)', fontWeight: 600 }}>⭐ {user?.xp_points || 0} XP</div>
           </div>
         )}
 
@@ -411,7 +411,7 @@ export default function JobSeekerPortal() {
           <div className="fade-in" style={{ background: 'rgba(108,140,255,0.06)', border: '1px solid rgba(108,140,255,0.12)', borderRadius: 14, padding: '12px 16px', marginBottom: 14, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
             <span style={{ fontSize: 16, flexShrink: 0 }}>💡</span>
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#6c8cff', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 3 }}>Daily Career Tip</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ac)', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 3 }}>Daily Career Tip</div>
               <div style={{ fontSize: 13, color: 'var(--tx)', lineHeight: 1.5 }}>{dailyTip}</div>
             </div>
           </div>
@@ -436,14 +436,14 @@ export default function JobSeekerPortal() {
         {/* Header */}
         <div style={{ marginBottom: 16, textAlign: vibeMode === 'fun' ? 'center' as const : 'left' as const }}>
           <div style={{ fontSize: vibeMode === 'fun' ? 24 : 20, fontWeight: 800, marginBottom: 4 }}>
-            {vibeMode === 'fun' ? <>Find Your Next <span style={{ color: '#6c8cff' }}>Opportunity</span></> : 'Open Positions'}
+            {vibeMode === 'fun' ? <>Find Your Next <span style={{ color: 'var(--ac)' }}>Opportunity</span></> : 'Open Positions'}
           </div>
           <div style={{ color: 'var(--mu)', fontSize: 13 }}>{filtered.length} {showSaved ? 'saved' : 'open'} positions</div>
         </div>
 
         {/* Search + Filters */}
-        <div style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: 12, marginBottom: 14 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
+        <div style={{ background: 'var(--bg2)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: 12, marginBottom: 14 }}>
+          <div className="js-srch" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const, alignItems: 'center' }}>
             <input
               style={{ flex: 1, minWidth: 160, background: theme.bg3, border: `1px solid ${theme.bd}`, borderRadius: 10, padding: '10px 14px', color: theme.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' as const }}
               placeholder="Search role, company, skill, city..."
@@ -499,45 +499,45 @@ export default function JobSeekerPortal() {
 
                   {/* FOCUS MODE */}
                   {vibeMode === 'focus' ? (
-                    <div className="jcard" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'rgba(255,255,255,0.02)', border: `1px solid ${theme.bd}`, borderRadius: 10, marginBottom: 6 }}>
+                    <div className="jcard" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--bg2)', border: `1px solid ${theme.bd}`, borderRadius: 10, marginBottom: 6 }}>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer' }}>{j.title} <span style={{fontSize:10, color:'#6c8cff'}}>↗</span></div>
+                        <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer' }}>{j.title} <span style={{fontSize:10, color:'var(--ac)'}}>↗</span></div>
                         <div style={{ fontSize: 12, color: 'var(--mu)' }}>{j.companies?.name || j.company_name}{j.location || j.city ? ` · ${j.location || j.city}` : ''}</div>
                       </div>
-                      {matchPct > 0 && <span style={{ fontSize: 11, color: matchPct > 70 ? '#3dd68c' : '#6c8cff', fontWeight: 700 }}>{matchPct}%</span>}
+                      {matchPct > 0 && <span style={{ fontSize: 11, color: matchPct > 70 ? '#3dd68c' : 'var(--ac)', fontWeight: 700 }}>{matchPct}%</span>}
                       <button onClick={() => toggleSave(j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, padding: 2 }}>{isSaved ? '❤️' : '🤍'}</button>
                       {applied ? (
                         <span style={{ fontSize: 11, color: '#3dd68c', fontWeight: 700 }}>Applied ✓</span>
                       ) : (
                         <button onClick={() => profileStrength.score >= 50 ? quickApply(j) : setShowApply(j)}
-                          style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Apply</button>
+                          style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Apply</button>
                       )}
                     </div>
                   ) : (
                     /* FUN + PROFESSIONAL MODE */
                     <div className="jcard fade-in" style={{
-                      background: 'rgba(255,255,255,0.02)', borderRadius: vibeMode === 'fun' ? 16 : 12,
+                      background: 'var(--bg2)', borderRadius: vibeMode === 'fun' ? 16 : 12,
                       border: `1px solid ${applied ? 'rgba(61,214,140,0.25)' : theme.bd}`,
                       padding: vibeMode === 'fun' ? 18 : '14px 16px', marginBottom: 10,
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(108,140,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#6c8cff', fontSize: 15, flexShrink: 0 }}>
+                            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(108,140,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: 'var(--ac)', fontSize: 15, flexShrink: 0 }}>
                               {(j.companies?.name || j.company_name || 'C')[0]}
                             </div>
                             <div style={{ minWidth: 0 }}>
-                              <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer', color: 'inherit' }} title="View job details">{j.title} <span style={{fontSize:11, color:'#6c8cff'}}>↗</span></div>
+                              <div onClick={() => router.push(`/jobseeker/jobs/${j.id}`)} style={{ fontSize: 15, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const, cursor: 'pointer', color: 'inherit' }} title="View job details">{j.title} <span style={{fontSize:11, color:'var(--ac)'}}>↗</span></div>
                               <div style={{ fontSize: 12, color: 'var(--mu)' }}>{j.companies?.name || j.company_name || 'Company'}</div>
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 8 }}>
                             {(j.location || j.city) && (
-                              <a href={mapLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.bd}`, borderRadius: 6, padding: '3px 8px', color: 'var(--mu)', textDecoration: 'none' }}>📍 {j.location || j.city}</a>
+                              <a href={mapLink} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, background: 'var(--bg3)', border: `1px solid ${theme.bd}`, borderRadius: 6, padding: '3px 8px', color: 'var(--mu)', textDecoration: 'none' }}>📍 {j.location || j.city}</a>
                             )}
-                            {j.experience_min != null && <span style={{ fontSize: 11, background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.bd}`, borderRadius: 6, padding: '3px 8px', color: 'var(--mu)' }}>💼 {j.experience_min}{j.experience_max ? `–${j.experience_max}` : '+'} yrs</span>}
+                            {j.experience_min != null && <span style={{ fontSize: 11, background: 'var(--bg3)', border: `1px solid ${theme.bd}`, borderRadius: 6, padding: '3px 8px', color: 'var(--mu)' }}>💼 {j.experience_min}{j.experience_max ? `–${j.experience_max}` : '+'} yrs</span>}
                             {j.salary_min && <span style={{ fontSize: 11, background: 'rgba(61,214,140,0.08)', border: '1px solid rgba(61,214,140,0.15)', borderRadius: 6, padding: '3px 8px', color: '#3dd68c' }}>₹{j.salary_min}{j.salary_max ? `–${j.salary_max}` : '+'} LPA</span>}
-                            {j.job_type && <span style={{ fontSize: 11, background: 'rgba(108,140,255,0.08)', border: '1px solid rgba(108,140,255,0.15)', borderRadius: 6, padding: '3px 8px', color: '#6c8cff' }}>{j.job_type}</span>}
+                            {j.job_type && <span style={{ fontSize: 11, background: 'rgba(108,140,255,0.08)', border: '1px solid rgba(108,140,255,0.15)', borderRadius: 6, padding: '3px 8px', color: 'var(--ac)' }}>{j.job_type}</span>}
                           </div>
                           {vibeMode === 'fun' && j.description && (
                             <div style={{ fontSize: 12, color: 'var(--mu)', lineHeight: 1.6, marginBottom: 8 }}>{j.description.slice(0, 120)}{j.description.length > 120 ? '...' : ''}</div>
@@ -545,27 +545,27 @@ export default function JobSeekerPortal() {
                           {j.skills && (
                             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' as const }}>
                               {j.skills.split(',').slice(0, 4).map((sk: string) => (
-                                <span key={sk.trim()} style={{ fontSize: 10, background: 'rgba(255,255,255,0.04)', color: 'var(--mu2)', padding: '2px 7px', borderRadius: 20, border: `1px solid ${theme.bd}` }}>{sk.trim()}</span>
+                                <span key={sk.trim()} style={{ fontSize: 10, background: 'var(--bg3)', color: 'var(--mu2)', padding: '2px 7px', borderRadius: 20, border: `1px solid ${theme.bd}` }}>{sk.trim()}</span>
                               ))}
                             </div>
                           )}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
                           {matchPct > 0 && (
-                            <div style={{ fontSize: 12, fontWeight: 700, color: matchPct > 70 ? '#3dd68c' : matchPct > 40 ? '#6c8cff' : 'var(--mu)', background: matchPct > 70 ? 'rgba(61,214,140,0.1)' : 'rgba(108,140,255,0.1)', padding: '3px 10px', borderRadius: 8 }}>{matchPct}% match</div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: matchPct > 70 ? '#3dd68c' : matchPct > 40 ? 'var(--ac)' : 'var(--mu)', background: matchPct > 70 ? 'rgba(61,214,140,0.1)' : 'rgba(108,140,255,0.1)', padding: '3px 10px', borderRadius: 8 }}>{matchPct}% match</div>
                           )}
                           <div style={{ fontSize: 10, color: 'var(--mu2)' }}>{new Date(j.created_at).toLocaleDateString('en-IN')}</div>
                           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                             <button onClick={() => toggleSave(j.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: 2, transition: 'transform 0.2s' }} title={isSaved ? 'Remove from saved' : 'Save job'}>{isSaved ? '❤️' : '🤍'}</button>
                             <div style={{ position: 'relative' }}>
                               <button onClick={(e) => { e.stopPropagation(); setShowShareMenu(showShareMenu === j.id ? null : j.id) }}
-                                style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${theme.bd}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, padding: '4px 10px', color: 'var(--mu)', fontFamily: 'inherit' }}>Share</button>
+                                style={{ background: 'var(--bg3)', border: `1px solid ${theme.bd}`, borderRadius: 8, cursor: 'pointer', fontSize: 12, padding: '4px 10px', color: 'var(--mu)', fontFamily: 'inherit' }}>Share</button>
                               {showShareMenu === j.id && (
                                 <div className="share-menu" onClick={(e) => e.stopPropagation()}>
                                   <button onClick={() => { shareJob(j, 'whatsapp'); setShowShareMenu(null) }} style={{ color: '#25d366' }}>WhatsApp</button>
                                   <button onClick={() => { const ok = shareJob(j, 'copy'); setShowShareMenu(null); if (ok) showToast('Link copied!') }} style={{ color: 'var(--mu)' }}>Copy Link</button>
                                   {typeof navigator !== 'undefined' && navigator.share && (
-                                    <button onClick={() => { shareJob(j, 'native'); setShowShareMenu(null) }} style={{ color: '#6c8cff' }}>Share...</button>
+                                    <button onClick={() => { shareJob(j, 'native'); setShowShareMenu(null) }} style={{ color: 'var(--ac)' }}>Share...</button>
                                   )}
                                 </div>
                               )}
@@ -574,9 +574,9 @@ export default function JobSeekerPortal() {
                           {applied ? (
                             <span style={{ fontSize: 12, fontWeight: 700, color: '#3dd68c', background: 'rgba(61,214,140,0.1)', border: '1px solid rgba(61,214,140,0.2)', borderRadius: 10, padding: '8px 14px' }}>Applied ✓</span>
                           ) : profileStrength.score >= 50 ? (
-                            <button onClick={() => quickApply(j)} style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>⚡ 1-Tap Apply</button>
+                            <button onClick={() => quickApply(j)} style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>⚡ 1-Tap Apply</button>
                           ) : (
-                            <button onClick={() => setShowApply(j)} style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Apply Now</button>
+                            <button onClick={() => setShowApply(j)} style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Apply Now</button>
                           )}
                         </div>
                       </div>

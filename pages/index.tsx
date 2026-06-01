@@ -415,15 +415,17 @@ export default function AuthPage() {
           setLoading(false); return
         }
 
-        // Auto-create profile
-        await supabase.from('profiles').insert({
-          name: fullName.trim(),
-          email: email.trim().toLowerCase(),
-          mobile: mobile || null,
-          designation: jobTitle || null,
-          source: 'Self Registered',
-          status: 'New',
-        }).catch(() => {})
+        // Auto-create profile (errors ignored — account is already created)
+        try {
+          await supabase.from('profiles').insert({
+            name: fullName.trim(),
+            email: email.trim().toLowerCase(),
+            mobile: mobile || null,
+            role: jobTitle || null,
+            source: 'Self Registered',
+            status: 'New',
+          })
+        } catch (_) {}
 
         await supabase.auth.signOut()
         setSuccess('Your job seeker account is ready!\n\nSign in to browse jobs and apply.')
@@ -433,7 +435,7 @@ export default function AuthPage() {
       console.error('Signup error:', e)
       try { await supabase.rpc('delete_ghost_auth_user', { p_email: email.trim().toLowerCase() }) } catch(ex) {}
       await supabase.auth.signOut()
-      setError('Something went wrong. Please try again.')
+      setError('Something went wrong: ' + (e?.message || 'Please try again.'))
     }
 
     setLoading(false)

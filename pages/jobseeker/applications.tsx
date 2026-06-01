@@ -11,7 +11,7 @@ import JobSeekerSidebar from '../../src/components/JobSeekerSidebar'
 // ══════════════════════════════════════════════════════════
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  Applied: { bg: 'rgba(108,140,255,0.12)', color: '#6c8cff' },
+  Applied: { bg: 'rgba(108,140,255,0.12)', color: 'var(--ac)' },
   Reviewing: { bg: 'rgba(255,159,67,0.12)', color: '#ff9f43' },
   Shortlisted: { bg: 'rgba(61,214,140,0.12)', color: '#3dd68c' },
   Interview: { bg: 'rgba(72,202,228,0.12)', color: '#48cae4' },
@@ -78,14 +78,13 @@ export default function MyApplications() {
   Object.keys(STATUS_COLORS).forEach(s => { statusCounts[s] = apps.filter(a => a.status === s).length })
 
   const theme = nightMode
-    ? { bg: 'var(--bg)', bg2: 'var(--bg)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.05)' }
-    : { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'rgba(255,255,255,0.06)' }
+    ? { bg: 'var(--bg)', bg2: 'var(--bg)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'var(--bd2)' }
+    : { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', bd: 'var(--bd2)' }
 
   // SKELETON
   if (loading) return (
     <div style={{ minHeight: '100vh', background: theme.bg, fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
+      <style>{`@keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 .skel{background:linear-gradient(90deg,${theme.bg3} 25%,${theme.bg2} 50%,${theme.bg3} 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:8px}`}</style>
       <div style={{ padding: '60px 20px', maxWidth: 760, margin: '0 auto' }}>
         <div className="skel" style={{ height: 28, width: 180, marginBottom: 20 }} />
@@ -105,17 +104,19 @@ export default function MyApplications() {
       <div style={{ textAlign: 'center', color: theme.tx }}>
         <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
         <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{error}</div>
-        <button onClick={() => window.location.reload()} style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Refresh Page</button>
+        <button onClick={() => window.location.reload()} style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Refresh Page</button>
       </div>
     </div>
   )
 
   return (
     <div style={{ minHeight: '100vh', background: theme.bg, color: theme.tx, fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-*{box-sizing:border-box;margin:0;padding:0}
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-.fade-in{animation:fadeIn 0.25s ease}`}</style>
+.fade-in{animation:fadeIn 0.25s ease}
+.acard{transition:transform 0.15s,border-color 0.2s,box-shadow 0.2s;box-shadow:var(--sh)}.acard:hover{border-color:var(--ac)!important;transform:translateY(-2px);box-shadow:var(--shl)}
+@media (max-width:760px){.app-main{padding:14px 14px 40px!important}}
+@media (max-width:640px){.app-main button{min-height:40px}}`}</style>
 
       {/* SIDEBAR */}
       <JobSeekerSidebar
@@ -128,7 +129,7 @@ export default function MyApplications() {
         onNightModeChange={toggleNightMode}
       />
 
-      <div style={{ padding: '16px 20px', maxWidth: 760, margin: '0 auto' }}>
+      <div className="app-main" style={{ padding: '16px 20px', maxWidth: 760, margin: '0 auto' }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 22, fontWeight: 800 }}>My Applications</div>
@@ -138,14 +139,14 @@ export default function MyApplications() {
         {/* Status Filter */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginBottom: 20 }}>
           <button onClick={() => setFilter('all')} style={{
-            background: filter === 'all' ? 'rgba(108,140,255,0.15)' : 'rgba(255,255,255,0.03)',
+            background: filter === 'all' ? 'rgba(108,140,255,0.15)' : 'var(--bg3)',
             border: `1px solid ${filter === 'all' ? 'rgba(108,140,255,0.3)' : theme.bd}`,
             borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-            color: filter === 'all' ? '#6c8cff' : 'var(--mu)',
+            color: filter === 'all' ? 'var(--ac)' : 'var(--mu)',
           }}>All ({apps.length})</button>
           {Object.entries(STATUS_COLORS).map(([status, sc]) => (
             <button key={status} onClick={() => setFilter(filter === status ? 'all' : status)} style={{
-              background: filter === status ? sc.bg : 'rgba(255,255,255,0.03)',
+              background: filter === status ? sc.bg : 'var(--bg3)',
               border: `1px solid ${filter === status ? sc.color + '44' : theme.bd}`,
               borderRadius: 10, padding: '8px 14px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
               color: filter === status ? sc.color : 'var(--mu2)',
@@ -159,7 +160,7 @@ export default function MyApplications() {
             <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
             <div style={{ fontSize: 16, fontWeight: 600 }}>{filter === 'all' ? 'No applications yet' : `No ${filter} applications`}</div>
             <div style={{ fontSize: 13, marginTop: 6, marginBottom: 16 }}>Start applying to jobs!</div>
-            <button onClick={() => router.push('/jobseeker')} style={{ background: '#6c8cff', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Browse Jobs →</button>
+            <button onClick={() => router.push('/jobseeker')} style={{ background: 'var(--ac)', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Browse Jobs →</button>
           </div>
         ) : (
           filteredApps.map(a => {
@@ -170,7 +171,7 @@ export default function MyApplications() {
             const isRejected = a.status === 'Rejected'
 
             return (
-              <div key={a.id} className="fade-in" style={{ background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: '16px 18px', marginBottom: 10 }}>
+              <div key={a.id} className="fade-in acard" style={{ background: 'var(--bg2)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: '16px 18px', marginBottom: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' as const }}>
                   <div style={{ flex: 1, minWidth: 200 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{j?.title || 'Job Title'}</div>
@@ -181,7 +182,7 @@ export default function MyApplications() {
                       {j?.job_type && <span>{j?.job_type}</span>}
                     </div>
                     {(a.cover_note || a.cover_letter) && (
-                      <div style={{ fontSize: 12, color: 'var(--mu2)', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '8px 12px', borderLeft: '2px solid rgba(108,140,255,0.3)', marginTop: 8 }}>
+                      <div style={{ fontSize: 12, color: 'var(--mu2)', background: 'var(--bg3)', borderRadius: 8, padding: '8px 12px', borderLeft: '2px solid rgba(108,140,255,0.3)', marginTop: 8 }}>
                         "{a.cover_note || a.cover_letter}"
                       </div>
                     )}
@@ -203,13 +204,13 @@ export default function MyApplications() {
                           <div style={{ display: 'flex', flexDirection: 'column' as const, alignItems: 'center', flex: 0 }}>
                             <div style={{
                               width: 18, height: 18, borderRadius: '50%',
-                              background: isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'rgba(255,255,255,0.06)',
-                              border: `2px solid ${isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'rgba(255,255,255,0.1)'}`,
+                              background: isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'var(--bd2)',
+                              border: `2px solid ${isRejected && isCurrent ? '#ff6b6b' : isDone ? '#3dd68c' : 'var(--bd2)'}`,
                               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, color: '#fff',
                             }}>{isDone ? '✓' : ''}</div>
                             <div style={{ fontSize: 9, color: isCurrent ? (isRejected ? '#ff6b6b' : '#3dd68c') : 'var(--mu2)', marginTop: 3, whiteSpace: 'nowrap' as const }}>{s}</div>
                           </div>
-                          {i < 4 && <div style={{ height: 2, flex: 1, background: isDone && i < currentIdx ? '#3dd68c' : 'rgba(255,255,255,0.06)', margin: '0 4px', marginBottom: 16 }} />}
+                          {i < 4 && <div style={{ height: 2, flex: 1, background: isDone && i < currentIdx ? '#3dd68c' : 'var(--bd2)', margin: '0 4px', marginBottom: 16 }} />}
                         </div>
                       )
                     })}

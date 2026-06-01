@@ -33,11 +33,22 @@ const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
   'New':{bg:'rgba(100,100,120,0.3)',color:'#aaa'},
 }
 const SEGMENT_CONFIG: any = {
-  fresher:    { label:'Freshers',          icon:'🎓', color:'#3dd68c' },
-  experienced:{ label:'Experienced',       icon:'💼', color:'#6c8cff' },
+  pursuing:   { label:'Student (Pursuing)', icon:'🎓', color:'#f59e0b' },
+  fresher:    { label:'Fresher',            icon:'🌱', color:'#3dd68c' },
+  experienced:{ label:'Experienced',        icon:'💼', color:'#6c8cff' },
   recruiter:  { label:'Recruitment Team',  icon:'🔍', color:'#c77dff' },
   bd:         { label:'Client Management', icon:'🤝', color:'#ff9f43' },
 }
+// ── Experience & CTC dropdown helpers (storage stays decimal: exp=years, ctc=LPA) ──
+const EXP_YEARS = Array.from({length:51},(_,i)=>i)        // 0..50
+const EXP_MONTHS = Array.from({length:12},(_,i)=>i)       // 0..11
+const CTC_LAKHS = Array.from({length:101},(_,i)=>i)       // 0..100
+const CTC_THOUSANDS = Array.from({length:20},(_,i)=>i*5)  // 0,5,...,95
+function decToYM(v:any){const d=parseFloat(v)||0;const y=Math.floor(d);let m=Math.round((d-y)*12);return m===12?{y:y+1,m:0}:{y,m}}
+function ymToDec(y:number,m:number){return +(y + m/12).toFixed(4)}
+function decToLT(v:any){const d=parseFloat(v)||0;const l=Math.floor(d);let t=Math.round(Math.round((d-l)*100)/5)*5;return t>=100?{l:l+1,t:0}:{l,t}}
+function ltToDec(l:number,t:number){return +(l + t/100).toFixed(2)}
+function deriveSegment(expDec:any){return (parseFloat(expDec)||0)>0?'experienced':'fresher'}
 const PIPELINE_STATUSES = ['New','Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later','Contacted - Number Busy','Contacted - Not Reachable','Resume Received','Resume Shortlisted','Interview Scheduled','Interview Done - Selected','Interview Done - Rejected','Interview Done - On Hold','Offer Discussed','Offer Accepted','Offer Declined','Did Not Join','Joined Successfully']
 const PIPELINE_EMOJI: Record<string,string> = {'New':'🆕','Contacted - Interested':'✅','Contacted - Not Interested':'❌','Contacted - Call Back Later':'📞','Contacted - Number Busy':'📵','Contacted - Not Reachable':'🔕','Resume Received':'📄','Resume Shortlisted':'⭐','Interview Scheduled':'📅','Interview Done - Selected':'🎯','Interview Done - Rejected':'❌','Interview Done - On Hold':'⏸️','Offer Discussed':'💬','Offer Accepted':'✅','Offer Declined':'🚫','Did Not Join':'😔','Joined Successfully':'🎉'}
 const PIPELINE_COLORS: Record<string,{bg:string,color:string}> = {
@@ -252,7 +263,7 @@ export default function AddProfilePage() {
       name: s(form.name),
       mobile: (form.mobile||'').replace(/\D/g,'').slice(0,15),
       email: s(form.email), gender: s(form.gender)||'Male',
-      segment: s(form.segment)||'experienced', type: 'Candidate',
+      segment: form.segment==='pursuing'?'pursuing':deriveSegment(form.experience), type: 'Candidate',
       status: s(form.status)||'New', source: s(form.source)||'Direct', source_detail: s(form.source_detail),
       country_code: s(form.country_code)||'+91 India', role: s(form.role),
       industry: s(form.industry), qualification: s(form.qualification), qualification_branch: s(form.qualification_branch),
@@ -363,14 +374,31 @@ export default function AddProfilePage() {
         {/* ── SECTION 1: BASIC INFO ── */}
         <div style={SECTION}>
           <div style={SECTITLE}>📋 Basic Info</div>
-          <label style={LS}>Profile Segment *</label>
-          <div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
-            {Object.entries(SEGMENT_CONFIG).map(([key,cfg]:any)=>(
-              <button key={key} onClick={()=>sf('segment',key)} style={{flex:1,minWidth:110,padding:'10px 8px',borderRadius:10,border:`1.5px solid ${form.segment===key?cfg.color:'var(--bd)'}`,background:form.segment===key?`${cfg.color}22`:'transparent',color:form.segment===key?cfg.color:'var(--mu)',cursor:'pointer',fontSize:11,fontWeight:600,fontFamily:'inherit'}}>
-                <div style={{fontSize:18,marginBottom:3}}>{cfg.icon}</div><div>{cfg.label}</div>
-              </button>
-            ))}
+          <label style={LS}>Candidate Status *</label>
+          <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:8}}>
+            {[
+              {key:'pursuing', icon:'🎓', title:'Student (Pursuing)', sub:'Currently studying · interns / trainees', color:'#f59e0b'},
+              {key:'professional', icon:'💼', title:'Professional', sub:'Passed out · in the job market', color:'#6c8cff'},
+            ].map(opt=>{
+              const isStudent = form.segment==='pursuing'
+              const active = opt.key==='pursuing' ? isStudent : !isStudent
+              return (
+                <button key={opt.key} onClick={()=>{ if(opt.key==='pursuing') sf('segment','pursuing'); else sf('segment', deriveSegment(form.experience)) }}
+                  style={{flex:1,minWidth:200,textAlign:'left',padding:'11px 14px',borderRadius:12,border:`1.5px solid ${active?opt.color:'var(--bd)'}`,background:active?`${opt.color}1e`:'transparent',color:active?opt.color:'var(--mu)',cursor:'pointer',fontFamily:'inherit'}}>
+                  <div style={{fontSize:14,fontWeight:700,display:'flex',alignItems:'center',gap:7}}><span style={{fontSize:18}}>{opt.icon}</span>{opt.title}</div>
+                  <div style={{fontSize:11,marginTop:3,opacity:0.85}}>{opt.sub}</div>
+                </button>
+              )
+            })}
           </div>
+          {form.segment!=='pursuing' && (()=>{const cfg=SEGMENT_CONFIG[deriveSegment(form.experience)];return(
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:4}}>
+              <span style={{fontSize:11,color:'var(--mu)'}}>Experience level (auto):</span>
+              <span style={{display:'inline-flex',alignItems:'center',gap:6,padding:'4px 12px',borderRadius:20,border:`1px solid ${cfg.color}`,background:`${cfg.color}1e`,color:cfg.color,fontSize:12,fontWeight:700}}>
+                <span>{cfg.icon}</span>{cfg.label}
+              </span>
+            </div>
+          )})()}
 
           <label style={LS}>Profile Photo</label>
           <div style={{display:'flex',alignItems:'center',gap:14}}>
@@ -443,10 +471,19 @@ export default function AddProfilePage() {
               <label style={LS}>Role / Designation *</label>
               <input style={IS} value={form.role||''} onChange={e=>sf('role',e.target.value)} placeholder="e.g. Software Engineer, HR Manager, Sales Executive"/>
             </div>
-            <div>
-              <label style={LS}>Total Experience (years)</label>
-              <input style={IS} type="number" step="0.5" value={form.experience||''} onChange={e=>sf('experience',e.target.value)} placeholder="e.g. 5.5"/>
-            </div>
+            {form.segment!=='pursuing' && <div>
+              <label style={LS}>Total Experience</label>
+              {(()=>{const {y,m}=decToYM(form.experience);return(
+                <div style={{display:'flex',gap:8}}>
+                  <select style={{...IS,flex:1}} value={y} onChange={e=>{const nd=ymToDec(+e.target.value,m);sf('experience',nd);sf('total_experience',nd);sf('segment',deriveSegment(nd))}}>
+                    {EXP_YEARS.map(n=><option key={n} value={n}>{n} yr</option>)}
+                  </select>
+                  <select style={{...IS,flex:1}} value={m} onChange={e=>{const nd=ymToDec(y,+e.target.value);sf('experience',nd);sf('total_experience',nd);sf('segment',deriveSegment(nd))}}>
+                    {EXP_MONTHS.map(n=><option key={n} value={n}>{n} mo</option>)}
+                  </select>
+                </div>
+              )})()}
+            </div>}
             <div>
               <label style={LS}>Industry</label>
               <select style={IS} value={form.industry||''} onChange={e=>sf('industry',e.target.value)}>
@@ -468,20 +505,52 @@ export default function AddProfilePage() {
                 : <input style={IS} value={form.qualification_branch||''} onChange={e=>sf('qualification_branch',e.target.value)} placeholder="e.g. Computer Science"/>}
             </div>
 
-            {form.segment!=='fresher' && <>
+            {form.segment==='experienced' && <>
               <div><label style={LS}>Current Company</label><input style={IS} value={form.current_company||''} onChange={e=>sf('current_company',e.target.value)} placeholder="Current employer name"/></div>
-              <div><label style={LS}>Current CTC (₹ LPA)</label><input style={IS} type="number" step="0.5" value={form.current_ctc||''} onChange={e=>sf('current_ctc',e.target.value)} placeholder="e.g. 8.5"/></div>
-              <div><label style={LS}>Expected CTC (₹ LPA)</label><input style={IS} type="number" step="0.5" value={form.expected_ctc||''} onChange={e=>sf('expected_ctc',e.target.value)} placeholder="e.g. 12"/></div>
+              <div><label style={LS}>Current CTC (₹)</label>
+                {(()=>{const {l,t}=decToLT(form.current_ctc);return(
+                  <div style={{display:'flex',gap:8}}>
+                    <select style={{...IS,flex:1}} value={l} onChange={e=>sf('current_ctc',ltToDec(+e.target.value,t))}>{CTC_LAKHS.map(n=><option key={n} value={n}>{n} Lakh</option>)}</select>
+                    <select style={{...IS,flex:1}} value={t} onChange={e=>sf('current_ctc',ltToDec(l,+e.target.value))}>{CTC_THOUSANDS.map(n=><option key={n} value={n}>{n} Th</option>)}</select>
+                  </div>
+                )})()}
+              </div>
+              <div><label style={LS}>Expected CTC (₹)</label>
+                {(()=>{const {l,t}=decToLT(form.expected_ctc);return(
+                  <div style={{display:'flex',gap:8}}>
+                    <select style={{...IS,flex:1}} value={l} onChange={e=>sf('expected_ctc',ltToDec(+e.target.value,t))}>{CTC_LAKHS.map(n=><option key={n} value={n}>{n} Lakh</option>)}</select>
+                    <select style={{...IS,flex:1}} value={t} onChange={e=>sf('expected_ctc',ltToDec(l,+e.target.value))}>{CTC_THOUSANDS.map(n=><option key={n} value={n}>{n} Th</option>)}</select>
+                  </div>
+                )})()}
+              </div>
               <div><label style={LS}>Notice Period</label><select style={IS} value={form.notice_period||''} onChange={e=>sf('notice_period',e.target.value)}><option value="">Select</option>{NOTICE_PERIODS.map(x=><option key={x}>{x}</option>)}</select></div>
               <div style={{gridColumn:'1/-1'}}><label style={LS}>Reason for Change</label><input style={IS} value={form.reason_for_change||''} onChange={e=>sf('reason_for_change',e.target.value)} placeholder="Why are they looking for a change?"/></div>
             </>}
 
-            {form.segment==='fresher' && <>
-              <div><label style={LS}>Graduation Year</label><select style={IS} value={form.graduation_year||''} onChange={e=>sf('graduation_year',e.target.value)}><option value="">Select Year</option>{[2024,2025,2026,2027,2023,2022,2021,2020].map(y=><option key={y}>{y}</option>)}</select></div>
-              <div><label style={LS}>CGPA / Percentage</label><input style={IS} type="number" step="0.1" min="0" max="10" value={form.cgpa||''} onChange={e=>sf('cgpa',e.target.value)} placeholder="e.g. 8.5"/></div>
+            {form.segment==='pursuing' && <>
+              <div><label style={LS}>Expected Graduation Year</label><select style={IS} value={form.graduation_year||''} onChange={e=>sf('graduation_year',e.target.value)}><option value="">Select Year</option>{[2026,2027,2028,2025,2029,2024,2030].map(y=><option key={y}>{y}</option>)}</select></div>
+              <div><label style={LS}>Current CGPA / Percentage</label><input style={IS} type="number" step="0.1" min="0" max="10" value={form.cgpa||''} onChange={e=>sf('cgpa',e.target.value)} placeholder="e.g. 8.5"/></div>
               <div><label style={LS}>College / University</label><input style={IS} value={form.college||''} onChange={e=>sf('college',e.target.value)} placeholder="College or university name"/></div>
               <div><label style={LS}>Stipend Expected (₹/month)</label><input style={IS} type="number" value={form.stipend_expected||''} onChange={e=>sf('stipend_expected',e.target.value)} placeholder="e.g. 15000"/></div>
-              <div style={{gridColumn:'1/-1',display:'flex',gap:24}}>
+              <div style={{gridColumn:'1/-1',display:'flex',gap:24,flexWrap:'wrap'}}>
+                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.has_internship||false} onChange={e=>sf('has_internship',e.target.checked)}/> Open to / has done internship</label>
+                <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.available_immediately!==false} onChange={e=>sf('available_immediately',e.target.checked)}/> Available immediately</label>
+              </div>
+            </>}
+
+            {form.segment==='fresher' && <>
+              <div><label style={LS}>Graduation Year</label><select style={IS} value={form.graduation_year||''} onChange={e=>sf('graduation_year',e.target.value)}><option value="">Select Year</option>{[2025,2026,2024,2023,2022,2021,2020].map(y=><option key={y}>{y}</option>)}</select></div>
+              <div><label style={LS}>CGPA / Percentage</label><input style={IS} type="number" step="0.1" min="0" max="10" value={form.cgpa||''} onChange={e=>sf('cgpa',e.target.value)} placeholder="e.g. 8.5"/></div>
+              <div><label style={LS}>College / University</label><input style={IS} value={form.college||''} onChange={e=>sf('college',e.target.value)} placeholder="College or university name"/></div>
+              <div><label style={LS}>Expected CTC (₹)</label>
+                {(()=>{const {l,t}=decToLT(form.expected_ctc);return(
+                  <div style={{display:'flex',gap:8}}>
+                    <select style={{...IS,flex:1}} value={l} onChange={e=>sf('expected_ctc',ltToDec(+e.target.value,t))}>{CTC_LAKHS.map(n=><option key={n} value={n}>{n} Lakh</option>)}</select>
+                    <select style={{...IS,flex:1}} value={t} onChange={e=>sf('expected_ctc',ltToDec(l,+e.target.value))}>{CTC_THOUSANDS.map(n=><option key={n} value={n}>{n} Th</option>)}</select>
+                  </div>
+                )})()}
+              </div>
+              <div style={{gridColumn:'1/-1',display:'flex',gap:24,flexWrap:'wrap'}}>
                 <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.has_internship||false} onChange={e=>sf('has_internship',e.target.checked)}/> Has done internship</label>
                 <label style={{display:'flex',alignItems:'center',gap:8,cursor:'pointer',fontSize:13,color:'var(--tx)'}}><input type="checkbox" checked={form.available_immediately!==false} onChange={e=>sf('available_immediately',e.target.checked)}/> Available immediately</label>
               </div>

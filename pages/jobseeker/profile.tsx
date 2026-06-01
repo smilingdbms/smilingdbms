@@ -8,12 +8,17 @@ import {
   getNightModePreference, setNightModePreference,
 } from '../../src/lib/jobseeker-utils'
 import JobSeekerSidebar from '../../src/components/JobSeekerSidebar'
+import LocationPicker from '../../src/components/LocationPicker'
+import { EDUCATION_LEVELS, coursesForLevel, branchesForCourse, snapToLevel } from '../../src/lib/courseBranches'
 
 // ══════════════════════════════════════════════════════════
-// JOB SEEKER PROFILE v3.1
-// Fixes: no size limit (compress all), centered error modal,
-// motivational messages, share/refer, photo everywhere,
-// auto CV text + PDF download
+// JOB SEEKER PROFILE v4.0
+// - Fully theme-aware (CSS vars only — works in all themes)
+// - Adaptive: Under College (Pursuing) vs Passed Out (Professional)
+// - Experience as Years + Months dropdowns -> auto Fresher/Experienced
+// - CTC as Lakhs + Thousands dropdowns
+// - Education (College/Course/Branch) right after basic details
+// - Aligned with recruiter side (segment + qualification_branch)
 // ══════════════════════════════════════════════════════════
 
 const CITIES = ['Delhi','Mumbai','Bangalore','Hyderabad','Pune','Chennai','Noida','Gurgaon','Kolkata','Ahmedabad','Jaipur','Lucknow','Chandigarh','Kochi','Nagpur','Indore','Bhopal','Surat','Vadodara','Patna','Ranchi','Coimbatore','Visakhapatnam','Bhubaneswar','Other']
@@ -22,13 +27,25 @@ const NOTICE_PERIODS = ['Immediate','7 days','15 days','1 month','2 months','3 m
 const WORK_MODES = ['WFH','WFO','Hybrid']
 const JOB_TYPES = ['Full Time','Part Time']
 const EMP_TYPES = ['Permanent','Temporary','Contractual']
+const LOOKING_FOR = ['Internship','Training','Apprenticeship','Live Project','Part-time Job','Just Exploring']
+const DURATIONS = ['1 month','2 months','3 months','4 months','5 months','6 months','7 months','8 months','9 months','10 months','11 months','12 months','Flexible']
 const VIBE_MODES = [
   { value: 'fun', label: '🎮 Fun & Social' },
   { value: 'professional', label: '💼 Professional' },
   { value: 'focus', label: '🎯 Quick Apply' },
 ]
 
-// 20 motivational profile completion messages
+// ── Experience & CTC dropdown helpers (storage stays decimal) ──
+const EXP_YEARS = Array.from({ length: 51 }, (_, i) => i)
+const EXP_MONTHS = Array.from({ length: 12 }, (_, i) => i)
+const CTC_LAKHS = Array.from({ length: 101 }, (_, i) => i)
+const CTC_THOUSANDS = Array.from({ length: 20 }, (_, i) => i * 5)
+function decToYM(v) { const d = parseFloat(v) || 0; const y = Math.floor(d); let m = Math.round((d - y) * 12); return m === 12 ? { y: y + 1, m: 0 } : { y, m } }
+function ymToDec(y, m) { return +(y + m / 12).toFixed(4) }
+function decToLT(v) { const d = parseFloat(v) || 0; const l = Math.floor(d); let t = Math.round(Math.round((d - l) * 100) / 5) * 5; return t >= 100 ? { l: l + 1, t: 0 } : { l, t } }
+function ltToDec(l, t) { return +(l + t / 100).toFixed(2) }
+function deriveSegment(expDec) { return (parseFloat(expDec) || 0) > 0 ? 'experienced' : 'fresher' }
+
 const MOTIVATION = [
   "🚀 Profiles with photos get 3x more recruiter views!",
   "💡 Add your skills — recruiters search by skills first.",
@@ -36,7 +53,7 @@ const MOTIVATION = [
   "🎯 Add your expected CTC to get relevant offers only.",
   "⚡ Recruiters spend avg 6 seconds on a profile — make it count!",
   "🔥 Candidates with LinkedIn get 2x more direct messages.",
-  "🌟 Your notice period matters — keep it updated always.",
+  "🌟 Keep your notice period updated always.",
   "📱 Add your mobile number so recruiters can reach you instantly.",
   "🎓 Add your qualification — it filters into top searches.",
   "💼 Your current role tells recruiters what you can do now.",
@@ -48,40 +65,41 @@ const MOTIVATION = [
   "💰 Profiles with CTC details skip the salary negotiation stage.",
   "🌐 Add your GitHub/Portfolio — it sets you apart instantly.",
   "🎯 Employment type preference helps match contract/permanent jobs.",
-  "⭐ Keep your profile fresh — update every 30 days for better reach.",
+  "⭐ Update your profile every 30 days for better reach.",
   "📧 Verified email = priority placement in recruiter inboxes.",
 ]
 
 function multiToggle(current, val) {
   const arr = current ? current.split(',').map(s => s.trim()).filter(Boolean) : []
   const idx = arr.indexOf(val)
-  if (idx === -1) arr.push(val)
-  else arr.splice(idx, 1)
+  if (idx === -1) arr.push(val); else arr.splice(idx, 1)
   return arr.join(', ')
 }
-function hasVal(current, val) {
-  return (current || '').split(',').map(s => s.trim()).includes(val)
-}
+function hasVal(current, val) { return (current || '').split(',').map(s => s.trim()).includes(val) }
 
-// Generate plain-text CV for download
-function generateCV(user, form) {
+function generateCV(user, form, stage) {
   const line = (label, val) => val ? `${label}: ${val}\n` : ''
+  const { y, m } = decToYM(form.experience)
+  const expStr = (y || m) ? `${y}y ${m}m` : ''
   return `
-╔══════════════════════════════════════════╗
+========================================
    CURRICULUM VITAE
-╚══════════════════════════════════════════╝
+========================================
 
 ${(user?.full_name || '').toUpperCase()}
 ${line('Email', user?.email)}${line('Mobile', form.mobile)}${line('City', form.city)}${line('LinkedIn', form.linkedin)}${line('GitHub/Portfolio', form.github)}
-
-── PROFESSIONAL SUMMARY ──────────────────
-${line('Current Role', form.role)}${line('Total Experience', form.experience ? form.experience + ' years' : '')}${line('Notice Period', form.notice_period)}${line('Current CTC', form.current_ctc ? '₹' + form.current_ctc + ' LPA' : '')}${line('Expected CTC', form.expected_ctc ? '₹' + form.expected_ctc + ' LPA' : '')}${line('Work Mode', form.work_mode)}${line('Job Type', form.job_type)}${line('Employment Type', form.employment_type)}
-── EDUCATION ─────────────────────────────
-${line('Qualification', form.qualification)}${line('Branch / Specialization', form.branch)}${line('College / University', form.college)}${line('Graduation Year', form.graduation_year)}
-── SKILLS ────────────────────────────────
+${stage === 'pursuing' ? `
+-- STATUS --------------------------------
+Currently: Student (Under College)
+${line('Looking for', form.looking_for)}${line('Preferred Duration', form.internship_duration)}${line('Work Preference', form.work_mode)}${line('Expected Stipend', form.stipend_expected ? '₹' + form.stipend_expected + '/month' : '')}` : `
+-- PROFESSIONAL SUMMARY ------------------
+${line('Current Role', form.role)}${line('Total Experience', expStr)}${line('Notice Period', form.notice_period)}${line('Current CTC', form.current_ctc ? '₹' + form.current_ctc + ' LPA' : '')}${line('Expected CTC', form.expected_ctc ? '₹' + form.expected_ctc + ' LPA' : '')}${line('Work Mode', form.work_mode)}${line('Job Type', form.job_type)}`}
+-- EDUCATION -----------------------------
+${line('Qualification', form.qualification)}${line('Branch / Specialization', form.branch)}${line('College / University', form.college)}${line('Graduation Year', form.graduation_year)}${line('Certifications', form.certifications_text)}
+-- SKILLS --------------------------------
 ${form.skills || 'Not added'}
 
-──────────────────────────────────────────
+----------------------------------------
 Generated by RecruitBase Pro | ${new Date().toLocaleDateString('en-IN')}
 `.trim()
 }
@@ -90,6 +108,7 @@ export default function JobSeekerProfile() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [form, setForm] = useState({})
+  const [stage, setStage] = useState('professional') // 'pursuing' | 'professional'
   const [profileId, setProfileId] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -98,29 +117,19 @@ export default function JobSeekerProfile() {
   const [profileStrength, setProfileStrength] = useState({ score: 0, missing: [] })
   const [uploading, setUploading] = useState(false)
   const [toast, setToast] = useState(null)
-  const [modal, setModal] = useState(null) // { title, msg, type }
+  const [modal, setModal] = useState(null)
   const [nightMode, setNightMode] = useState(false)
   const [vibeMode, setVibeMode] = useState('fun')
   const [locSaved, setLocSaved] = useState(false)
   const [locLoading, setLocLoading] = useState(false)
-  const [userSettings, setUserSettings] = useState({ segment: 'fresher', vibe: 'fun' })
+  const [userSettings, setUserSettings] = useState({ vibe: 'fun' })
   const [motiveTip] = useState(() => MOTIVATION[Math.floor(Math.random() * MOTIVATION.length)])
   const [showShare, setShowShare] = useState(false)
   const photoRef = useRef(null)
 
-  function showToast(msg, type = 'success') {
-    setToast({ msg, type })
-    setTimeout(() => setToast(null), 3500)
-  }
-  function showModal(title, msg, type = 'error') {
-    setModal({ title, msg, type })
-  }
-
-  function sf(k, v) {
-    const updated = { ...form, [k]: v }
-    setForm(updated)
-    setProfileStrength(calculateProfileStrength(updated))
-  }
+  function showToast(msg, type = 'success') { setToast({ msg, type }); setTimeout(() => setToast(null), 3500) }
+  function showModal(title, msg, type = 'error') { setModal({ title, msg, type }) }
+  function sf(k, v) { const updated = { ...form, [k]: v }; setForm(updated); setProfileStrength(calculateProfileStrength(updated)) }
 
   useEffect(() => { setNightMode(getNightModePreference()) }, [])
 
@@ -134,7 +143,8 @@ export default function JobSeekerProfile() {
         if (!au) return
         setUser(au)
         setVibeMode(au.vibe_mode || 'fun')
-        setUserSettings({ segment: au.experience_segment || 'fresher', vibe: au.vibe_mode || 'fun' })
+        setUserSettings({ vibe: au.vibe_mode || 'fun' })
+        setStage(au.experience_segment === 'intern' ? 'pursuing' : 'professional')
         setLocSaved(!!au.latitude)
 
         const { data: profile } = await supabase
@@ -144,12 +154,20 @@ export default function JobSeekerProfile() {
         if (cancelled) return
         if (profile) {
           setProfileId(profile.id)
-          setForm({ ...profile, name: au.full_name || '', email: au.email || '', mobile: au.mobile || profile.mobile || '' })
+          const ed = (Array.isArray(profile.education) && profile.education[0]) || {}
+          setForm({
+            ...profile, name: au.full_name || '', email: au.email || '', mobile: au.mobile || profile.mobile || '',
+            edu_level: ed.level || snapToLevel(profile.qualification || '') || '',
+            edu_course: ed.course || profile.qualification || '',
+            branch: ed.branch || profile.branch || profile.qualification_branch || '',
+          })
           setProfileStrength(calculateProfileStrength({ ...profile, name: au.full_name, email: au.email }))
+          if (profile.segment === 'pursuing') setStage('pursuing')
+          else if (profile.segment === 'fresher' || profile.segment === 'experienced') setStage('professional')
         } else {
-          const init = { name: au.full_name || '', email: au.email || '', mobile: au.mobile || '' }
-          setForm(init)
-          setProfileStrength(calculateProfileStrength(init))
+          const initF = { name: au.full_name || '', email: au.email || '', mobile: au.mobile || '' }
+          setForm(initF)
+          setProfileStrength(calculateProfileStrength(initF))
         }
         setLoading(false)
       } catch (e) {
@@ -165,33 +183,58 @@ export default function JobSeekerProfile() {
     if (!user) return
     setSaving(true)
 
+    const segment = stage === 'pursuing' ? 'pursuing' : deriveSegment(form.experience)
+    const expSeg = stage === 'pursuing' ? 'intern' : deriveSegment(form.experience)
+
     const payload = {
       name: user.full_name || '',
       email: user.email || '',
       mobile: (form.mobile || '').replace(/\D/g, '').slice(0, 15),
-      role: form.role || '',
-      qualification: form.qualification || '',
-      branch: form.branch || '',
+      role: stage === 'pursuing' ? '' : (form.role || ''),
+      qualification: (form.edu_course === 'Other' ? (form.edu_course_custom || '') : (form.edu_course || form.qualification || '')),
+      branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
+      qualification_branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
+      education: [{
+        level: form.edu_level || '',
+        course: (form.edu_course === 'Other' ? (form.edu_course_custom || '') : (form.edu_course || '')),
+        branch: (form.branch === 'Other' ? (form.branch_custom || '') : (form.branch || '')),
+        study_status: stage === 'pursuing' ? 'pursuing' : 'completed',
+        institution: form.college || '',
+        year: form.graduation_year || '',
+      }],
       college: form.college || '',
       graduation_year: form.graduation_year || null,
+      certifications_text: form.certifications_text || '',
       skills: form.skills || '',
-      experience: form.experience ? parseFloat(String(form.experience)) : null,
-      current_ctc: form.current_ctc ? parseFloat(String(form.current_ctc)) : null,
+      experience: stage === 'pursuing' ? 0 : (form.experience ? parseFloat(String(form.experience)) : null),
+      current_ctc: stage === 'pursuing' ? null : (form.current_ctc ? parseFloat(String(form.current_ctc)) : null),
       expected_ctc: form.expected_ctc ? parseFloat(String(form.expected_ctc)) : null,
-      notice_period: form.notice_period || '',
+      notice_period: stage === 'pursuing' ? '' : (form.notice_period || ''),
       work_mode: form.work_mode || '',
       job_type: form.job_type || '',
       employment_type: form.employment_type || '',
+      looking_for: stage === 'pursuing' ? (form.looking_for || '') : '',
+      internship_duration: stage === 'pursuing' ? (form.internship_duration || '') : '',
+      stipend_expected: stage === 'pursuing' ? (form.stipend_expected ? parseFloat(String(form.stipend_expected)) : null) : null,
       city: form.city || '',
+      state: form.state || '',
+      pincode: form.pincode || '',
+      address: form.address || '',
+      google_maps_url: form.google_maps_url || '',
+      latitude: (form.latitude === '' || form.latitude === undefined) ? null : form.latitude,
+      longitude: (form.longitude === '' || form.longitude === undefined) ? null : form.longitude,
       linkedin: form.linkedin || '',
       github: form.github || '',
       photo_url: form.photo_url || user.photo_url || '',
-      segment: (form.experience || 0) > 1 ? 'experienced' : 'fresher',
+      segment,
       status: 'New',
       source: 'Job Portal',
       created_by: user.id,
       type: 'Candidate',
     }
+
+    // keep app_users segment in sync (for tips + onboarding)
+    try { await supabase.from('app_users').update({ experience_segment: expSeg }).eq('id', user.id) } catch (_) {}
 
     let saveError
     if (profileId) {
@@ -210,23 +253,16 @@ export default function JobSeekerProfile() {
       }
     }
 
-    if (saveError) {
-      showModal('Save Failed', 'Could not save your profile. Please check your internet connection and try again.')
-    } else {
-      setSaved(true)
-      showToast('✅ Profile saved! Recruiters can now find you.')
-      setTimeout(() => setSaved(false), 3000)
-    }
+    if (saveError) showModal('Save Failed', 'Could not save your profile: ' + (saveError.message || 'Please try again.'))
+    else { setSaved(true); showToast('✅ Profile saved! Recruiters can now find you.'); setTimeout(() => setSaved(false), 3000) }
     setSaving(false)
   }
 
   async function handlePhotoUpload(e) {
     const file = e.target.files?.[0]
     if (!file || !user) return
-    // No size limit — we compress everything
     setUploading(true)
     try {
-      // Compress all images regardless of size
       const blob = file.type.startsWith('image/') ? await compressImage(file, 250, 600) : file
       const ext = file.name.split('.').pop() || 'jpg'
       const path = `profiles/${user.id}/photo.${ext}`
@@ -236,7 +272,6 @@ export default function JobSeekerProfile() {
       if (urlData?.publicUrl) {
         const photoUrl = urlData.publicUrl
         sf('photo_url', photoUrl)
-        // ✅ Save to BOTH app_users AND profiles so it reflects everywhere
         await supabase.from('app_users').update({ photo_url: photoUrl }).eq('id', user.id)
         if (profileId) await supabase.from('profiles').update({ photo_url: photoUrl }).eq('id', profileId)
         setUser(u => ({ ...u, photo_url: photoUrl }))
@@ -257,111 +292,130 @@ export default function JobSeekerProfile() {
 
   async function saveSettings() {
     if (!user) return
-    await supabase.from('app_users').update({ experience_segment: userSettings.segment, vibe_mode: userSettings.vibe }).eq('id', user.id)
+    await supabase.from('app_users').update({ vibe_mode: userSettings.vibe }).eq('id', user.id)
     setVibeMode(userSettings.vibe)
     showToast('Preferences saved!')
   }
 
   function downloadCV() {
-    const text = generateCV(user, form)
+    const text = generateCV(user, form, stage)
     const blob = new Blob([text], { type: 'text/plain' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
-    a.href = url
-    a.download = `${(user?.full_name || 'CV').replace(/\s+/g, '_')}_Resume.txt`
-    a.click()
-    URL.revokeObjectURL(url)
-    showToast('📄 CV downloaded!')
+    a.href = url; a.download = `${(user?.full_name || 'CV').replace(/\s+/g, '_')}_Resume.txt`; a.click()
+    URL.revokeObjectURL(url); showToast('📄 CV downloaded!')
   }
 
   function shareProfile() {
     const text = `Hey! I found this awesome job portal. Check out RecruitBase Pro — it connects candidates directly with top recruiters!\n\nhttps://smilingdbms.vercel.app/jobseeker`
-    if (navigator.share) {
-      navigator.share({ title: 'Join RecruitBase Pro', text, url: 'https://smilingdbms.vercel.app/jobseeker' }).catch(() => {})
-    } else {
-      navigator.clipboard?.writeText(text)
-      showToast('🔗 Referral link copied!')
-    }
+    if (navigator.share) navigator.share({ title: 'Join RecruitBase Pro', text, url: 'https://smilingdbms.vercel.app/jobseeker' }).catch(() => {})
+    else { navigator.clipboard?.writeText(text); showToast('🔗 Referral link copied!') }
     setShowShare(false)
   }
   function shareWhatsApp() {
     const text = encodeURIComponent(`Hey! Check out RecruitBase Pro — best platform to find jobs and connect with recruiters directly.\n👉 https://smilingdbms.vercel.app/jobseeker`)
-    window.open(`https://wa.me/?text=${text}`, '_blank')
-    setShowShare(false)
+    window.open(`https://wa.me/?text=${text}`, '_blank'); setShowShare(false)
   }
 
-  const theme = { bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg2)', tx: 'var(--tx)', muted: 'var(--mu)', bd: 'rgba(255,255,255,0.06)', accent: '#6c8cff' }
-  const inp = { width: '100%', background: theme.bg3, border: `1px solid ${theme.bd}`, borderRadius: 10, padding: '10px 14px', color: theme.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
-  const inpRO = { ...inp, opacity: 0.55, cursor: 'not-allowed', background: theme.bg2 }
-  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: theme.muted, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5, marginTop: 14 }
-  const card = { background: 'rgba(255,255,255,0.02)', borderRadius: 14, border: `1px solid ${theme.bd}`, padding: 22, marginBottom: 16 }
-
-  const chipBtn = (val, current, onToggle, color) => (
-    <button key={val} onClick={() => onToggle(val)} style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', border: `1px solid ${hasVal(current, val) ? color : theme.bd}`, background: hasVal(current, val) ? `${color}18` : 'rgba(255,255,255,0.03)', color: hasVal(current, val) ? color : theme.muted, transition: 'all 0.15s', marginBottom: 6 }}>{val}</button>
+  // ── Theme tokens — ALL via CSS vars (works in every theme) ──
+  const T = {
+    bg: 'var(--bg)', bg2: 'var(--bg2)', bg3: 'var(--bg3)', tx: 'var(--tx)',
+    mu: 'var(--mu)', mu2: 'var(--mu2)', bd: 'var(--bd)', bd2: 'var(--bd2)',
+    ac: 'var(--ac)', acbg: 'var(--acbg)', gn: 'var(--gn)', gnbg: 'var(--gnbg)',
+    gd: 'var(--gd)', gdbg: 'var(--gdbg)', rd: 'var(--rd)', rdbg: 'var(--rdbg)',
+    or: 'var(--or)', orbg: 'var(--orbg)', sh: 'var(--sh)', shl: 'var(--shl)',
+  }
+  const inp = { width: '100%', background: T.bg3, border: `1px solid ${T.bd2}`, borderRadius: 10, padding: '10px 13px', color: T.tx, fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
+  const inpRO = { ...inp, opacity: 0.6, cursor: 'not-allowed', background: T.bg2 }
+  const lbl = { display: 'block', fontSize: 11, fontWeight: 600, color: T.mu, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5, marginTop: 14 }
+  const card = { background: T.bg2, borderRadius: 16, border: `1px solid ${T.bd}`, padding: 20, marginBottom: 16, boxShadow: T.sh }
+  const secTitle = (icon, txt) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+      <span style={{ width: 4, height: 18, borderRadius: 4, background: T.ac, display: 'inline-block' }} />
+      <span style={{ fontSize: 15, fontWeight: 700, color: T.tx }}>{icon} {txt}</span>
+    </div>
+  )
+  const chipBtn = (val, current, onToggle) => (
+    <button key={val} onClick={() => onToggle(val)} style={{ padding: '7px 14px', borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'inherit', border: `1px solid ${hasVal(current, val) ? T.ac : T.bd2}`, background: hasVal(current, val) ? T.acbg : T.bg3, color: hasVal(current, val) ? T.ac : T.mu, transition: 'all 0.15s', marginBottom: 6 }}>{val}</button>
   )
 
   const photoSrc = form.photo_url || user?.photo_url || null
+  const { y: expY, m: expM } = decToYM(form.experience)
+  const levelLabel = stage === 'pursuing' ? '🎓 Under College' : (deriveSegment(form.experience) === 'experienced' ? '💼 Experienced' : '🌱 Fresher')
+  const levelColor = stage === 'pursuing' ? T.gd : (deriveSegment(form.experience) === 'experienced' ? T.ac : T.gn)
+  const isInternship = hasVal(form.looking_for || '', 'Internship') || hasVal(form.looking_for || '', 'Training') || hasVal(form.looking_for || '', 'Apprenticeship')
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap')`}</style>
-      <div style={{ textAlign: 'center', color: theme.muted }}>
-        <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-        <div>Loading your profile...</div>
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}>
+      <div style={{ textAlign: 'center', color: T.mu }}>
+        <div style={{ fontSize: 32, marginBottom: 10 }}>⏳</div>Loading your profile...
       </div>
     </div>
   )
-
   if (error) return (
-    <div style={{ minHeight: '100vh', background: theme.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}>
-      <div style={{ textAlign: 'center', color: theme.tx, padding: 24 }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-        <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{error}</div>
-        <button onClick={() => window.location.reload()} style={{ background: theme.accent, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Refresh Page</button>
+    <div style={{ minHeight: '100vh', background: T.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Outfit',sans-serif" }}>
+      <div style={{ textAlign: 'center', color: T.tx, padding: 24 }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+        <div style={{ marginBottom: 16 }}>{error}</div>
+        <button onClick={() => window.location.reload()} style={{ background: T.ac, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>Refresh Page</button>
       </div>
     </div>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: theme.bg, color: theme.tx, fontFamily: "'Outfit',sans-serif" }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');*{box-sizing:border-box;margin:0;padding:0}input:focus,select:focus,textarea:focus{border-color:${theme.accent}!important}select option{background:${theme.bg3}}`}</style>
+    <div style={{ minHeight: '100vh', background: T.bg, color: T.tx, fontFamily: "'Outfit',sans-serif" }}>
+      <style>{`*{box-sizing:border-box;margin:0;padding:0}input:focus,select:focus,textarea:focus{border-color:var(--ac)!important;box-shadow:0 0 0 2px var(--acbg)}select option{background:var(--bg2);color:var(--tx)}
+.jsp-2col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.jsp-wrap{padding:16px 20px;max-width:720px;margin:0 auto}
+.jsp-row2{display:flex;gap:10px}
+.jsp-chips{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:720px){
+  .jsp-wrap{padding:14px 14px 40px}
+  .jsp-2col{grid-template-columns:1fr;gap:10px}
+  .jsp-row2{flex-wrap:wrap}
+  .jsp-row2>select,.jsp-row2>input{flex:1 1 100%!important;min-width:0}
+}
+@media (max-width:640px){
+  .jsp-wrap input,.jsp-wrap select,.jsp-wrap textarea{font-size:16px!important;min-height:44px}
+  .jsp-wrap button{min-height:42px}
+  .jsp-hero{flex-direction:column;align-items:flex-start!important}
+  .jsp-hero-actions{width:100%}
+  .jsp-hero-actions button{flex:1}
+  .leaflet-container{height:240px!important}
+}
+@media (max-width:380px){
+  .jsp-hero-actions button{font-size:11px}
+}`}</style>
 
-      {/* ── Toast (corner) ── */}
+
+      {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, background: toast.type === 'success' ? '#0d2a1a' : '#2a0d0d', border: `1px solid ${toast.type === 'success' ? '#3dd68c55' : '#ff505055'}`, color: toast.type === 'success' ? '#3dd68c' : '#ff5050', padding: '12px 20px', borderRadius: 12, fontSize: 13, fontWeight: 600, maxWidth: 320, boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+        <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 9999, background: toast.type === 'success' ? T.gnbg : T.rdbg, border: `1px solid ${toast.type === 'success' ? T.gn : T.rd}`, color: toast.type === 'success' ? T.gn : T.rd, padding: '12px 20px', borderRadius: 12, fontSize: 13, fontWeight: 600, maxWidth: 320, boxShadow: T.shl }}>
           {toast.msg}
         </div>
       )}
 
-      {/* ── Centered Error Modal ── */}
+      {/* Modal */}
       {modal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: theme.bg2, border: `1px solid ${modal.type === 'error' ? '#ff505044' : '#3dd68c44'}`, borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: '0 8px 40px rgba(0,0,0,0.6)' }}>
+          <div style={{ background: T.bg2, border: `1px solid ${modal.type === 'error' ? T.rd : T.gn}`, borderRadius: 16, padding: 28, maxWidth: 400, width: '100%', boxShadow: T.shl }}>
             <div style={{ fontSize: 36, textAlign: 'center', marginBottom: 12 }}>{modal.type === 'error' ? '⚠️' : '✅'}</div>
-            <div style={{ fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 8 }}>{modal.title}</div>
-            <div style={{ fontSize: 13, color: theme.muted, textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>{modal.msg}</div>
-            <button onClick={() => setModal(null)} style={{ width: '100%', padding: '11px', borderRadius: 10, background: modal.type === 'error' ? 'rgba(255,80,80,0.15)' : 'rgba(61,214,140,0.15)', color: modal.type === 'error' ? '#ff5050' : '#3dd68c', border: `1px solid ${modal.type === 'error' ? '#ff505044' : '#3dd68c44'}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14 }}>
-              Close
-            </button>
+            <div style={{ fontSize: 16, fontWeight: 700, textAlign: 'center', marginBottom: 8, color: T.tx }}>{modal.title}</div>
+            <div style={{ fontSize: 13, color: T.mu, textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>{modal.msg}</div>
+            <button onClick={() => setModal(null)} style={{ width: '100%', padding: 11, borderRadius: 10, background: modal.type === 'error' ? T.rdbg : T.gnbg, color: modal.type === 'error' ? T.rd : T.gn, border: `1px solid ${modal.type === 'error' ? T.rd : T.gn}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14 }}>Close</button>
           </div>
         </div>
       )}
 
-      {/* ── Share Modal ── */}
+      {/* Share Modal */}
       {showShare && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: theme.bg2, border: `1px solid ${theme.bd}`, borderRadius: 16, padding: 28, maxWidth: 380, width: '100%' }}>
+          <div style={{ background: T.bg2, border: `1px solid ${T.bd}`, borderRadius: 16, padding: 28, maxWidth: 380, width: '100%', boxShadow: T.shl }}>
             <div style={{ fontSize: 24, textAlign: 'center', marginBottom: 8 }}>🎉 Refer a Friend</div>
-            <div style={{ fontSize: 13, color: theme.muted, textAlign: 'center', marginBottom: 20 }}>Share RecruitBase Pro with friends looking for jobs!</div>
-            <button onClick={shareWhatsApp} style={{ width: '100%', padding: 12, borderRadius: 10, background: 'rgba(37,211,102,0.12)', color: '#25D366', border: '1px solid rgba(37,211,102,0.3)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
-              📱 Share on WhatsApp
-            </button>
-            <button onClick={shareProfile} style={{ width: '100%', padding: 12, borderRadius: 10, background: `${theme.accent}18`, color: theme.accent, border: `1px solid ${theme.accent}33`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14, marginBottom: 10 }}>
-              🔗 Copy Referral Link
-            </button>
-            <button onClick={() => setShowShare(false)} style={{ width: '100%', padding: 10, borderRadius: 10, background: 'transparent', color: theme.muted, border: `1px solid ${theme.bd}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
-              Cancel
-            </button>
+            <div style={{ fontSize: 13, color: T.mu, textAlign: 'center', marginBottom: 20 }}>Share RecruitBase Pro with friends looking for jobs!</div>
+            <button onClick={shareWhatsApp} style={{ width: '100%', padding: 12, borderRadius: 10, background: T.gnbg, color: T.gn, border: `1px solid ${T.gn}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14, marginBottom: 10 }}>📱 Share on WhatsApp</button>
+            <button onClick={shareProfile} style={{ width: '100%', padding: 12, borderRadius: 10, background: T.acbg, color: T.ac, border: `1px solid ${T.ac}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 14, marginBottom: 10 }}>🔗 Copy Referral Link</button>
+            <button onClick={() => setShowShare(false)} style={{ width: '100%', padding: 10, borderRadius: 10, background: 'transparent', color: T.mu, border: `1px solid ${T.bd}`, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Cancel</button>
           </div>
         </div>
       )}
@@ -378,72 +432,86 @@ export default function JobSeekerProfile() {
         onNightModeChange={(v) => { setNightMode(v); setNightModePreference(v) }}
       />
 
-      <div style={{ padding: '16px 20px', maxWidth: 700, margin: '0 auto' }}>
+      <div className="jsp-wrap">
 
-        {/* Header */}
-        <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 22, fontWeight: 800 }}>My Profile</div>
-            <div style={{ color: theme.muted, fontSize: 13, marginTop: 4 }}>Keep it updated — recruiters find you through this data</div>
+        {/* HERO HEADER */}
+        <div className="jsp-hero" style={{ borderRadius: 18, padding: '20px 22px', marginBottom: 16, background: `linear-gradient(135deg, ${T.acbg}, transparent)`, border: `1px solid ${T.bd}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div style={{ width: 56, height: 56, borderRadius: 16, background: T.acbg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `2px solid ${T.ac}`, flexShrink: 0 }}>
+              {photoSrc ? <img src={photoSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 24, color: T.ac, fontWeight: 700 }}>{(user?.full_name || '?')[0].toUpperCase()}</span>}
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800 }}>{user?.full_name || 'My Profile'}</div>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 5, padding: '3px 11px', borderRadius: 20, background: T.bg2, border: `1px solid ${levelColor}`, color: levelColor, fontSize: 12, fontWeight: 700 }}>{levelLabel}</div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={downloadCV} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(16,185,129,0.12)', color: '#10B981', border: '1px solid rgba(16,185,129,0.3)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 12 }}>
-              📄 Download CV
-            </button>
-            <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 10, background: 'rgba(245,158,11,0.12)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.3)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 12 }}>
-              🎉 Refer Friend
-            </button>
+          <div className="jsp-hero-actions" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button onClick={downloadCV} style={{ padding: '8px 14px', borderRadius: 10, background: T.gnbg, color: T.gn, border: `1px solid ${T.gn}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 12 }}>📄 Download CV</button>
+            <button onClick={() => setShowShare(true)} style={{ padding: '8px 14px', borderRadius: 10, background: T.gdbg, color: T.gd, border: `1px solid ${T.gd}`, cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600, fontSize: 12 }}>🎉 Refer Friend</button>
           </div>
         </div>
 
         {/* Motivational tip */}
-        <div style={{ background: 'rgba(108,140,255,0.06)', border: `1px solid ${theme.accent}22`, borderRadius: 12, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: '#9aabff', lineHeight: 1.5 }}>
-          {motiveTip}
+        <div style={{ background: T.acbg, border: `1px solid ${T.bd2}`, borderRadius: 12, padding: '10px 16px', marginBottom: 16, fontSize: 12, color: T.ac, lineHeight: 1.5, fontWeight: 500 }}>{motiveTip}</div>
+
+        {/* CANDIDATE STATUS SELECTOR */}
+        <div style={card}>
+          {secTitle('🧭', 'Your Status')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 12 }}>This decides which details recruiters see and how they find you.</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              { key: 'pursuing', icon: '🎓', title: 'Under College', sub: 'Studying now · internship / training / exploring' },
+              { key: 'professional', icon: '💼', title: 'Passed Out', sub: 'In the job market · fresher or experienced' },
+            ].map(opt => {
+              const active = stage === opt.key
+              const c = opt.key === 'pursuing' ? T.gd : T.ac
+              return (
+                <button key={opt.key} onClick={() => setStage(opt.key)} style={{ flex: 1, minWidth: 200, textAlign: 'left', padding: '13px 15px', borderRadius: 13, border: `1.5px solid ${active ? c : T.bd2}`, background: active ? T.acbg : T.bg3, color: active ? c : T.mu, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ fontSize: 19 }}>{opt.icon}</span>{opt.title}</div>
+                  <div style={{ fontSize: 11.5, marginTop: 4, opacity: 0.9 }}>{opt.sub}</div>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
-        {/* Profile Strength */}
-        <div style={{ ...card, borderLeft: `3px solid ${profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b'}` }}>
+        {/* PROFILE STRENGTH */}
+        <div style={{ ...card, borderLeft: `3px solid ${profileStrength.score >= 80 ? T.gn : profileStrength.score >= 50 ? T.gd : T.rd}` }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 15, fontWeight: 700 }}>Profile Strength</span>
-            <span style={{ fontSize: 22, fontWeight: 800, color: profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b' }}>{profileStrength.score}%</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: profileStrength.score >= 80 ? T.gn : profileStrength.score >= 50 ? T.gd : T.rd }}>{profileStrength.score}%</span>
           </div>
-          <div style={{ height: 8, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
-            <div style={{ height: '100%', width: `${profileStrength.score}%`, background: profileStrength.score >= 80 ? '#3dd68c' : profileStrength.score >= 50 ? '#ffd60a' : '#ff6b6b', borderRadius: 4, transition: 'width 0.5s' }} />
+          <div style={{ height: 8, background: T.bg3, borderRadius: 4, overflow: 'hidden', marginBottom: 8 }}>
+            <div style={{ height: '100%', width: `${profileStrength.score}%`, background: profileStrength.score >= 80 ? T.gn : profileStrength.score >= 50 ? T.gd : T.rd, borderRadius: 4, transition: 'width 0.5s' }} />
           </div>
           {profileStrength.score >= 80
-            ? <div style={{ fontSize: 12, color: '#3dd68c' }}>🎉 Great profile! 1-tap apply is unlocked.</div>
-            : <div style={{ fontSize: 12, color: '#ffd60a' }}>Add: <b>{profileStrength.missing.slice(0, 3).join(', ')}</b> to improve visibility.</div>
-          }
+            ? <div style={{ fontSize: 12, color: T.gn }}>🎉 Great profile! 1-tap apply is unlocked.</div>
+            : <div style={{ fontSize: 12, color: T.gd }}>Add: <b>{profileStrength.missing.slice(0, 3).join(', ')}</b> to improve visibility.</div>}
         </div>
 
-        {/* Photo Upload */}
+        {/* PHOTO */}
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Profile Photo</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 72, height: 72, borderRadius: 18, background: `${theme.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `2px solid ${theme.accent}33`, flexShrink: 0 }}>
-              {photoSrc
-                ? <img src={photoSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <span style={{ fontSize: 28, color: theme.accent, fontWeight: 700 }}>{(user?.full_name || '?')[0].toUpperCase()}</span>
-              }
+          {secTitle('📸', 'Profile Photo')}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12 }}>
+            <div style={{ width: 72, height: 72, borderRadius: 18, background: T.acbg, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', border: `2px solid ${T.ac}`, flexShrink: 0 }}>
+              {photoSrc ? <img src={photoSrc} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: 28, color: T.ac, fontWeight: 700 }}>{(user?.full_name || '?')[0].toUpperCase()}</span>}
             </div>
             <div>
               <input ref={photoRef} type="file" accept="image/*" onChange={handlePhotoUpload} style={{ display: 'none' }} disabled={uploading} />
-              <button onClick={() => photoRef.current?.click()} disabled={uploading} style={{ background: `${theme.accent}18`, color: theme.accent, border: `1px solid ${theme.accent}33`, borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1 }}>
-                {uploading ? 'Uploading...' : '📸 Upload Photo'}
-              </button>
-              <div style={{ fontSize: 11, color: theme.muted, marginTop: 5 }}>Any size · Auto-compressed · JPG/PNG · Reflects everywhere</div>
+              <button onClick={() => photoRef.current?.click()} disabled={uploading} style={{ background: T.acbg, color: T.ac, border: `1px solid ${T.ac}`, borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1 }}>{uploading ? 'Uploading...' : '📸 Upload Photo'}</button>
+              <div style={{ fontSize: 11, color: T.mu, marginTop: 5 }}>Any size · Auto-compressed · JPG/PNG · Reflects everywhere</div>
             </div>
           </div>
         </div>
 
-        {/* Personal Info */}
+        {/* PERSONAL INFO */}
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Personal Information</div>
-          <label style={lbl}>Full Name <span style={{ color: '#ffd60a', fontSize: 10 }}>(from your account · contact support to change)</span></label>
+          {secTitle('👤', 'Personal Information')}
+          <label style={lbl}>Full Name <span style={{ color: T.gd, fontSize: 10 }}>(from your account · contact support to change)</span></label>
           <input style={inpRO} value={user?.full_name || ''} readOnly />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="jsp-2col">
             <div>
-              <label style={lbl}>Email <span style={{ color: '#ffd60a', fontSize: 10 }}>(locked)</span></label>
+              <label style={lbl}>Email <span style={{ color: T.gd, fontSize: 10 }}>(locked)</span></label>
               <input style={inpRO} value={user?.email || ''} readOnly />
             </div>
             <div>
@@ -451,129 +519,176 @@ export default function JobSeekerProfile() {
               <input style={inp} value={form.mobile || ''} onChange={e => sf('mobile', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" />
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="jsp-2col">
             <div>
               <label style={lbl}>City</label>
-              <select style={inp} value={form.city || ''} onChange={e => sf('city', e.target.value)}>
-                <option value="">Select City</option>
-                {CITIES.map(c => <option key={c}>{c}</option>)}
-              </select>
+              <input style={inp} value={form.city || ''} onChange={e => sf('city', e.target.value)} placeholder="City (auto-filled from map)" />
+            </div>
+            <div>
+              <label style={lbl}>State</label>
+              <input style={inp} value={form.state || ''} onChange={e => sf('state', e.target.value)} placeholder="State" />
+            </div>
+          </div>
+          <div className="jsp-2col">
+            <div>
+              <label style={lbl}>Pincode</label>
+              <input style={inp} value={form.pincode || ''} onChange={e => sf('pincode', e.target.value)} placeholder="Pincode" />
             </div>
             <div>
               <label style={lbl}>LinkedIn URL</label>
               <input style={inp} value={form.linkedin || ''} onChange={e => sf('linkedin', e.target.value)} placeholder="linkedin.com/in/..." />
             </div>
           </div>
-          <label style={lbl}>GitHub / Portfolio URL</label>
-          <input style={inp} value={form.github || ''} onChange={e => sf('github', e.target.value)} placeholder="github.com/username or portfolio link" />
-          <div style={{ marginTop: 14, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button onClick={detectLocation} disabled={locLoading} style={{ background: 'rgba(108,140,255,0.08)', color: theme.accent, border: `1px solid rgba(108,140,255,0.2)`, borderRadius: 10, padding: '8px 14px', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', opacity: locLoading ? 0.5 : 1 }}>
-              {locLoading ? 'Detecting...' : '📍 Detect My Location'}
-            </button>
-            {locSaved && <span style={{ fontSize: 11, color: '#3dd68c' }}>Location saved ✓</span>}
-          </div>
+          <label style={lbl}>Portfolio / GitHub / Other Link</label>
+          <input style={inp} value={form.github || ''} onChange={e => sf('github', e.target.value)} placeholder="Any link — portfolio, GitHub, Behance, LinkedIn, etc." />
+
+          <label style={lbl}>📍 Location <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(use GPS or drop a pin — auto-fills city, state &amp; pincode)</span></label>
+          <LocationPicker
+            value={{ latitude: form.latitude, longitude: form.longitude, address: form.address, google_maps_url: form.google_maps_url }}
+            onChange={(loc) => { const u = { ...form, ...loc }; setForm(u); setProfileStrength(calculateProfileStrength(u)) }}
+          />
         </div>
 
-        {/* Professional Details */}
+        {/* EDUCATION — right after basics */}
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Professional Details</div>
-          <label style={lbl}>Current Role / Designation</label>
-          <input style={inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Engineer, HR Manager, Student" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {secTitle('🎓', 'Education')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 4 }}>Pick your level, then course, then specialization.</div>
+          <div className="jsp-2col">
             <div>
-              <label style={lbl}>Total Experience (years)</label>
-              <input style={inp} type="number" step="0.5" min="0" max="50" value={form.experience || ''} onChange={e => sf('experience', e.target.value ? parseFloat(e.target.value) : null)} placeholder="0 = Fresher" />
+              <label style={lbl}>{stage === 'pursuing' ? 'Currently Pursuing (Level)' : 'Highest Level'}</label>
+              <select style={inp} value={form.edu_level || ''} onChange={e => setForm(f => { const u = { ...f, edu_level: e.target.value, edu_course: '', edu_course_custom: '', branch: '', branch_custom: '' }; setProfileStrength(calculateProfileStrength(u)); return u })}>
+                <option value="">Select Level</option>{EDUCATION_LEVELS.map(l => <option key={l}>{l}</option>)}
+              </select>
             </div>
             <div>
-              <label style={lbl}>Notice Period</label>
-              <select style={inp} value={form.notice_period || ''} onChange={e => sf('notice_period', e.target.value)}>
-                <option value="">Select</option>
-                {NOTICE_PERIODS.map(n => <option key={n}>{n}</option>)}
+              <label style={lbl}>Course / Degree</label>
+              <select style={inp} value={form.edu_course || ''} disabled={!form.edu_level} onChange={e => setForm(f => { const u = { ...f, edu_course: e.target.value, branch: '', branch_custom: '' }; setProfileStrength(calculateProfileStrength(u)); return u })}>
+                <option value="">{form.edu_level ? 'Select Course' : 'Select level first'}</option>
+                {coursesForLevel(form.edu_level || '').map(c => <option key={c}>{c}</option>)}
+                <option value="Other">Other (type below)</option>
               </select>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>Current CTC (₹ LPA)</label>
-              <input style={inp} type="number" step="0.5" min="0" value={form.current_ctc || ''} onChange={e => sf('current_ctc', e.target.value ? parseFloat(e.target.value) : null)} placeholder="e.g. 8.5" />
-            </div>
-            <div>
-              <label style={lbl}>Expected CTC (₹ LPA)</label>
-              <input style={inp} type="number" step="0.5" min="0" value={form.expected_ctc || ''} onChange={e => sf('expected_ctc', e.target.value ? parseFloat(e.target.value) : null)} placeholder="e.g. 12" />
-            </div>
-          </div>
-          <label style={lbl}>Work Mode (select all that apply)</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v)), '#6c8cff'))}
-          </div>
-          <label style={lbl}>Job Type</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {JOB_TYPES.map(j => chipBtn(j, form.job_type || '', (v) => sf('job_type', multiToggle(form.job_type || '', v)), '#10B981'))}
-          </div>
-          <label style={lbl}>Employment Type</label>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {EMP_TYPES.map(e => chipBtn(e, form.employment_type || '', (v) => sf('employment_type', multiToggle(form.employment_type || '', v)), '#F59E0B'))}
-          </div>
-        </div>
-
-        {/* Education */}
-        <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Education</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>Highest Qualification</label>
-              <select style={inp} value={form.qualification || ''} onChange={e => sf('qualification', e.target.value)}>
-                <option value="">Select</option>
-                {QUALIFICATIONS.map(q => <option key={q}>{q}</option>)}
-              </select>
-            </div>
+          {form.edu_course === 'Other' && (
+            <><label style={lbl}>Course Name (custom)</label>
+            <input style={inp} value={form.edu_course_custom || ''} onChange={e => sf('edu_course_custom', e.target.value)} placeholder="Type your course / degree" /></>
+          )}
+          <div className="jsp-2col">
             <div>
               <label style={lbl}>Branch / Specialization</label>
-              <input style={inp} value={form.branch || ''} onChange={e => sf('branch', e.target.value)} placeholder="e.g. CSE, Finance, Marketing" />
+              {(() => { const opts = branchesForCourse(form.edu_course || ''); return opts.length ? (
+                <select style={inp} value={form.branch || ''} disabled={!form.edu_course} onChange={e => sf('branch', e.target.value)}>
+                  <option value="">{form.edu_course ? 'Select Branch' : 'Select course first'}</option>
+                  {opts.map(b => <option key={b}>{b}</option>)}
+                  <option value="Other">Other (type below)</option>
+                </select>
+              ) : (
+                <input style={inp} value={form.branch || ''} onChange={e => sf('branch', e.target.value)} placeholder="e.g. CSE, Finance, Marketing" />
+              ) })()}
+            </div>
+            <div>
+              <label style={lbl}>{stage === 'pursuing' ? 'Expected Graduation Year' : 'Graduation Year'}</label>
+              <select style={inp} value={form.graduation_year || ''} onChange={e => sf('graduation_year', e.target.value)}><option value="">Select Year</option>{Array.from({ length: 33 }, (_, i) => 2030 - i).map(y => <option key={y}>{y}</option>)}</select>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <label style={lbl}>College / University</label>
-              <input style={inp} value={form.college || ''} onChange={e => sf('college', e.target.value)} placeholder="College name" />
-            </div>
-            <div>
-              <label style={lbl}>Graduation Year</label>
-              <select style={inp} value={form.graduation_year || ''} onChange={e => sf('graduation_year', e.target.value)}>
-                <option value="">Select Year</option>
-                {Array.from({ length: 30 }, (_, i) => 2026 - i).map(y => <option key={y}>{y}</option>)}
-              </select>
-            </div>
-          </div>
+          {form.branch === 'Other' && (
+            <><label style={lbl}>Branch Name (custom)</label>
+            <input style={inp} value={form.branch_custom || ''} onChange={e => sf('branch_custom', e.target.value)} placeholder="Type your branch / specialization" /></>
+          )}
+          <label style={lbl}>College / University</label>
+          <input style={inp} value={form.college || ''} onChange={e => sf('college', e.target.value)} placeholder="College / school / university name" />
+          <label style={lbl}>Certifications <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(comma-separated, optional)</span></label>
+          <input style={inp} value={form.certifications_text || ''} onChange={e => sf('certifications_text', e.target.value)} placeholder="e.g. AWS Certified, Google Data Analytics, NPTEL..." />
         </div>
 
-        {/* Skills */}
+        {/* ADAPTIVE: PURSUING */}
+        {stage === 'pursuing' && (
+          <div style={card}>
+            {secTitle('🔎', 'What You Are Looking For')}
+            <label style={lbl}>I am looking for</label>
+            <select style={inp} value={form.looking_for || ''} onChange={e => sf('looking_for', e.target.value)}>
+              <option value="">Select</option>{LOOKING_FOR.map(l => <option key={l}>{l}</option>)}
+            </select>
+            {isInternship && (
+              <>
+                <label style={lbl}>Preferred Duration</label>
+                <select style={inp} value={form.internship_duration || ''} onChange={e => sf('internship_duration', e.target.value)}>
+                  <option value="">Select</option>{DURATIONS.map(d => <option key={d}>{d}</option>)}
+                </select>
+              </>
+            )}
+            <label style={lbl}>Work Preference</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v))))}
+            </div>
+            <label style={lbl}>Expected Stipend (₹/month) <span style={{ color: T.mu2, fontSize: 10, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+            <input style={inp} type="number" min="0" value={form.stipend_expected || ''} onChange={e => sf('stipend_expected', e.target.value)} placeholder="e.g. 15000 (leave blank if unpaid is OK)" />
+          </div>
+        )}
+
+        {/* ADAPTIVE: PROFESSIONAL */}
+        {stage === 'professional' && (
+          <div style={card}>
+            {secTitle('💼', 'Professional Details')}
+            <label style={lbl}>Current Role / Designation</label>
+            <input style={inp} value={form.role || ''} onChange={e => sf('role', e.target.value)} placeholder="e.g. Software Engineer, HR Manager, Sales Executive" />
+            <label style={lbl}>Total Experience</label>
+            <div className="jsp-row2">
+              <select style={{ ...inp, flex: 1 }} value={expY} onChange={e => sf('experience', ymToDec(+e.target.value, expM))}>{EXP_YEARS.map(n => <option key={n} value={n}>{n} yr</option>)}</select>
+              <select style={{ ...inp, flex: 1 }} value={expM} onChange={e => sf('experience', ymToDec(expY, +e.target.value))}>{EXP_MONTHS.map(n => <option key={n} value={n}>{n} mo</option>)}</select>
+            </div>
+            {deriveSegment(form.experience) === 'experienced' && (
+              <>
+                <label style={lbl}>Current CTC (₹)</label>
+                {(() => { const { l, t } = decToLT(form.current_ctc); return (
+                  <div className="jsp-row2">
+                    <select style={{ ...inp, flex: 1 }} value={l} onChange={e => sf('current_ctc', ltToDec(+e.target.value, t))}>{CTC_LAKHS.map(n => <option key={n} value={n}>{n} Lakh</option>)}</select>
+                    <select style={{ ...inp, flex: 1 }} value={t} onChange={e => sf('current_ctc', ltToDec(l, +e.target.value))}>{CTC_THOUSANDS.map(n => <option key={n} value={n}>{n} Th</option>)}</select>
+                  </div>
+                ) })()}
+              </>
+            )}
+            <label style={lbl}>Expected CTC (₹)</label>
+            {(() => { const { l, t } = decToLT(form.expected_ctc); return (
+              <div className="jsp-row2">
+                <select style={{ ...inp, flex: 1 }} value={l} onChange={e => sf('expected_ctc', ltToDec(+e.target.value, t))}>{CTC_LAKHS.map(n => <option key={n} value={n}>{n} Lakh</option>)}</select>
+                <select style={{ ...inp, flex: 1 }} value={t} onChange={e => sf('expected_ctc', ltToDec(l, +e.target.value))}>{CTC_THOUSANDS.map(n => <option key={n} value={n}>{n} Th</option>)}</select>
+              </div>
+            ) })()}
+            <label style={lbl}>Notice Period</label>
+            <select style={inp} value={form.notice_period || ''} onChange={e => sf('notice_period', e.target.value)}><option value="">Select</option>{NOTICE_PERIODS.map(n => <option key={n}>{n}</option>)}</select>
+            <label style={lbl}>Work Mode (select all that apply)</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{WORK_MODES.map(w => chipBtn(w, form.work_mode || '', (v) => sf('work_mode', multiToggle(form.work_mode || '', v))))}</div>
+            <label style={lbl}>Job Type</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{JOB_TYPES.map(j => chipBtn(j, form.job_type || '', (v) => sf('job_type', multiToggle(form.job_type || '', v))))}</div>
+            <label style={lbl}>Employment Type</label>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{EMP_TYPES.map(em => chipBtn(em, form.employment_type || '', (v) => sf('employment_type', multiToggle(form.employment_type || '', v))))}</div>
+          </div>
+        )}
+
+        {/* SKILLS */}
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>Skills</div>
-          <div style={{ fontSize: 12, color: theme.muted, marginTop: 4, marginBottom: 8 }}>Comma-separated · Recruiters search by skills first</div>
+          {secTitle('⚡', 'Skills')}
+          <div style={{ fontSize: 12, color: T.mu, marginTop: 4, marginBottom: 8 }}>Comma-separated · Recruiters search by skills first</div>
           <textarea rows={3} style={{ ...inp, resize: 'none' }} value={form.skills || ''} onChange={e => sf('skills', e.target.value)} placeholder="e.g. React, Node.js, Python, Leadership, Sales, Excel, Tally..." />
         </div>
 
-        {/* Feed Preferences */}
+        {/* FEED PREFERENCES */}
         <div style={card}>
-          <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 12 }}>Feed Style Preference</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          {secTitle('🎛️', 'Feed Style Preference')}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 12 }}>
             <div>
-              <label style={lbl}>Feed Style</label>
-              <select style={inp} value={userSettings.vibe} onChange={e => setUserSettings(p => ({ ...p, vibe: e.target.value }))}>
-                {VIBE_MODES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
-              </select>
+              <label style={{ ...lbl, marginTop: 0 }}>Feed Style</label>
+              <select style={inp} value={userSettings.vibe} onChange={e => setUserSettings(p => ({ ...p, vibe: e.target.value }))}>{VIBE_MODES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}</select>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button onClick={saveSettings} style={{ width: '100%', padding: '10px', borderRadius: 10, fontSize: 13, fontWeight: 600, background: `${theme.accent}18`, color: theme.accent, border: `1px solid ${theme.accent}33`, cursor: 'pointer', fontFamily: 'inherit' }}>
-                Save Preferences
-              </button>
+              <button onClick={saveSettings} style={{ width: '100%', padding: 10, borderRadius: 10, fontSize: 13, fontWeight: 600, background: T.acbg, color: T.ac, border: `1px solid ${T.ac}`, cursor: 'pointer', fontFamily: 'inherit' }}>Save Preferences</button>
             </div>
           </div>
         </div>
 
-        {/* Save Button */}
-        <button onClick={saveProfile} disabled={saving} style={{ width: '100%', padding: 16, borderRadius: 14, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', background: saved ? '#3dd68c' : theme.accent, color: '#fff', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1, transition: 'all 0.2s', marginBottom: 32 }}>
+        {/* SAVE */}
+        <button onClick={saveProfile} disabled={saving} style={{ width: '100%', padding: 16, borderRadius: 14, fontSize: 16, fontWeight: 700, fontFamily: 'inherit', background: saved ? T.gn : T.ac, color: '#fff', border: 'none', cursor: 'pointer', opacity: saving ? 0.6 : 1, transition: 'all 0.2s', marginBottom: 32, boxShadow: T.sh }}>
           {saving ? 'Saving...' : saved ? '✅ Profile Saved!' : '💾 Save Profile'}
         </button>
 
