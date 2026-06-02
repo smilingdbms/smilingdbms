@@ -238,7 +238,7 @@ async function callGemini(apiKey: string, prompt: string, label: string): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.1, maxOutputTokens: 8192 }
+      generationConfig: { temperature: 0, maxOutputTokens: 16384, responseMimeType: 'application/json' }
     })
   })
   if (!r.ok) {
@@ -332,8 +332,9 @@ Return EXACTLY this shape:
       "course": "the EXACT course/degree. Map full names to standard short forms: 'Bachelor of Computer Application'=BCA, 'Master of Computer Application'=MCA, 'Bachelor of Technology'=B.Tech, 'Bachelor of Commerce'=B.Com, 'Bachelor of Arts'=BA, 'Bachelor of Science'=B.Sc, 'Intermediate'=12th / HSC, 'Matriculation'=10th / SSC. Read carefully — BCA and MCA are DIFFERENT.",
       "branch": "specialization/stream if any, else empty string",
       "institution": "college/university/school/board name or empty string",
-      "study_status": "completed",
-      "year": "4-digit passing year as string or empty string",
+      "study_status": "'pursuing' if currently studying / expected / ongoing / present / pursuing, else 'completed'",
+      "current_period": "if pursuing, the current year or semester e.g. 'Year 3' or 'Semester 5', else empty string",
+      "year": "4-digit passing year (or expected graduation year if pursuing) as string or empty string",
       "percentage_or_cgpa": "e.g. 8.5 or 78% or empty string"
     }
   ],
@@ -349,7 +350,7 @@ Rules:
 - work_experiences: include EVERY job in the CV. Most recent first. Mark "current": true ONLY if CV says present/current/now/till date.
 - bullets: short crisp lines, strip leading numbers/dashes/bullets characters.
 - If a CV has only 1 job — return 1. If it has 5 jobs — return 5. Do not skip any.
-- education: include ALL qualifications mentioned (Bachelor, Master, 12th/Intermediate, 10th/Matriculation, Diploma). Set the correct "level" for each and map the full degree name to its standard short form. Distinguish BCA (Bachelor) vs MCA (Master) carefully.
+- education: include ALL qualifications mentioned (Bachelor, Master, 12th/Intermediate, 10th/Matriculation, Diploma). Set the correct "level" for each and map the full degree name to its standard short form. Distinguish BCA (Bachelor) vs MCA (Master) carefully. If a qualification is ongoing/expected/present, set study_status="pursuing" and fill current_period (e.g. "Year 3" / "Semester 5").
 - certifications: only real named certifications/courses (not skills).
 - achievements: only real awards/recognitions (not work duties).`
 
@@ -416,9 +417,10 @@ Rules:
       year:        String(a?.year        || '').trim()
     })).filter((a: any) => a.title)
 
-    // Segment based on experience
+    // Segment: student if any education still pursuing, else by experience
     const exp = parseFloat(parsed.experience || '0')
-    parsed.segment = exp <= 1 ? 'fresher' : 'experienced'
+    const anyPursuing = parsed.education.some((e: any) => e.study_status === 'pursuing')
+    parsed.segment = anyPursuing ? 'pursuing' : (exp <= 1 ? 'fresher' : 'experienced')
 
     console.log(
       `[parse-cv] Parsed counts -> work:${parsed.work_experiences.length}  edu:${parsed.education.length}  cert:${parsed.certifications.length}  award:${parsed.achievements.length}`
