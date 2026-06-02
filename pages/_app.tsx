@@ -40,6 +40,28 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <>
+      <style jsx global>{`
+        /* ===== GLOBAL MOBILE-FRIENDLY LAYER (all pages) ===== */
+        @media (max-width: 640px) {
+          input, select, textarea {
+            font-size: 16px !important;   /* prevents iOS zoom */
+            min-height: 44px;
+            max-width: 100%;
+          }
+          textarea { min-height: 72px; }
+          button { min-height: 40px; touch-action: manipulation; }
+          /* tables never overflow the screen */
+          table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+          /* kill horizontal page scroll */
+          html, body { overflow-x: hidden; max-width: 100vw; }
+          /* leaflet maps shrink on phones */
+          .leaflet-container { height: 260px !important; }
+        }
+        @media (max-width: 420px) {
+          input, select, textarea { min-height: 42px; }
+        }
+      `}</style>
+
       {isDashboard ? (
         <Layout>
           <Component {...pageProps} />
