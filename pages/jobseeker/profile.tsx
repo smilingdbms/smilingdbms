@@ -295,10 +295,10 @@ export default function JobSeekerProfile() {
     try {
       const blob = file.type.startsWith('image/') ? await compressImage(file, 250, 600) : file
       const ext = file.name.split('.').pop() || 'jpg'
-      const path = `profiles/${user.id}/photo.${ext}`
-      const { error: upErr } = await supabase.storage.from('uploads').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
+      const path = `profiles/${user.id}/${Date.now()}.jpg`
+      const { error: upErr } = await supabase.storage.from('photos').upload(path, blob, { upsert: true, contentType: 'image/jpeg' })
       if (upErr) { showModal('Upload Failed', 'Could not upload photo. Please try a different image.'); setUploading(false); return }
-      const { data: urlData } = supabase.storage.from('uploads').getPublicUrl(path)
+      const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
       if (urlData?.publicUrl) {
         const photoUrl = urlData.publicUrl
         sf('photo_url', photoUrl)
