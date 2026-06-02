@@ -285,15 +285,21 @@ export default function Dashboard() {
     }
   }, [router.query.action, loading])
 
-  // Open a specific profile when arriving from a notification (?focus=<id>)
+  // Open a specific profile when arriving from a notification (?focus=<id> or ?find=<name>)
   useEffect(() => {
     if (!router.isReady || loading) return
     const fid = router.query.focus
+    const fname = router.query.find
     if (fid && profiles.length) {
       const p = profiles.find((x:any) => String(x.id) === String(fid))
       if (p) { setShowProfile(p); setForm({ ...p }) }
+    } else if (fname && profiles.length) {
+      const nm = String(fname).toLowerCase()
+      const p = profiles.find((x:any) => (x.name||'').toLowerCase() === nm) || profiles.find((x:any) => (x.name||'').toLowerCase().includes(nm))
+      if (p) { setShowProfile(p); setForm({ ...p }) }
+      else { setSearch(String(fname)) }
     }
-  }, [router.isReady, router.query.focus, loading, profiles])
+  }, [router.isReady, router.query.focus, router.query.find, loading, profiles])
 
   // Read filters coming from the dedicated /dashboard/filters page (URL params).
   // The filters page builds a query string; we map it onto the existing filter
@@ -1067,7 +1073,8 @@ export default function Dashboard() {
                   <div key={n.id} onClick={async()=>{
                     if(!n.is_read){ try{ await supabase.from('notifications').update({is_read:true}).eq('id',n.id) }catch(e){}
                       setNotifications(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x)); setUnreadCount(c=>Math.max(0,c-1)) }
-                    const dest = n.link || (n.related_id ? `/dashboard/master?focus=${n.related_id}` : null)
+                    let dest = n.link || (n.related_id ? `/dashboard/master?focus=${n.related_id}` : null)
+                    if(!dest){ const m=(n.message||'').match(/"([^"]+)"/); dest = (m&&m[1]) ? `/dashboard/master?find=${encodeURIComponent(m[1])}` : null }
                     setShowNotifications(false)
                     if(dest) router.push(dest)
                   }} style={{padding:'9px 10px',borderRadius:8,marginBottom:4,background:n.is_read?'transparent':'var(--acbg)',border:`1px solid ${n.is_read?'transparent':'var(--bd2)'}`,cursor:'pointer',transition:'background 0.12s'}}
@@ -1075,7 +1082,7 @@ export default function Dashboard() {
                     onMouseLeave={e=>(e.currentTarget.style.background=n.is_read?'transparent':'var(--acbg)')}>
                     <div style={{fontSize:12,fontWeight:600,display:'flex',alignItems:'center',gap:5}}>
                       <span>{n.type==='assignment'?'👤':n.type==='mention'?'💬':'🔔'}</span>{n.title}
-                      {(n.related_id||n.link) && <span style={{marginLeft:'auto',fontSize:10,color:'var(--ac)'}}>Open →</span>}
+                      <span style={{marginLeft:'auto',fontSize:10,color:'var(--ac)'}}>Open →</span>
                     </div>
                     <div style={{fontSize:11,color:'var(--mu)',marginTop:2}}>{n.message?.slice(0,70)}</div>
                     <div style={{fontSize:10,color:'var(--mu2)',marginTop:3}}>{new Date(n.created_at).toLocaleString('en-IN')}</div>

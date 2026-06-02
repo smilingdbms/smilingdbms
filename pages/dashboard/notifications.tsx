@@ -43,8 +43,14 @@ export default function NotificationsPage() {
       try { await supabase.from('notifications').update({ is_read: true }).eq('id', n.id); } catch {}
       setItems(prev => prev.map(x => x.id === n.id ? { ...x, is_read: true } : x));
     }
-    const dest = n.link || (n.related_id ? `/dashboard/master?focus=${n.related_id}` : null);
-    if (dest) router.push(dest);
+    let dest = n.link || (n.related_id ? `/dashboard/master?focus=${n.related_id}` : null);
+    // Old notifications without related_id: extract candidate name from message and search
+    if (!dest) {
+      const m = (n.message || '').match(/"([^"]+)"/);
+      if (m && m[1]) dest = `/dashboard/master?find=${encodeURIComponent(m[1])}`;
+      else dest = '/dashboard/master';
+    }
+    router.push(dest);
   }
 
   async function markAllRead() {
@@ -83,7 +89,7 @@ export default function NotificationsPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {shown.map(n => {
-              const clickable = !!(n.link || n.related_id);
+              const clickable = true;
               return (
                 <div key={n.id} onClick={() => open(n)} style={{ padding: '13px 15px', borderRadius: 12, background: n.is_read ? 'var(--bg2)' : 'var(--acbg)', border: `1px solid ${n.is_read ? 'var(--bd)' : 'var(--bd2)'}`, cursor: clickable ? 'pointer' : 'default', display: 'flex', gap: 12, alignItems: 'flex-start', transition: 'background 0.12s' }}
                   onMouseEnter={e => clickable && (e.currentTarget.style.background = 'var(--bg3)')}
