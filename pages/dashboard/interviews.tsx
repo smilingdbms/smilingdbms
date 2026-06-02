@@ -241,6 +241,7 @@ export default function Interviews() {
         input:focus,select:focus,textarea:focus{border-color:var(--ac)!important;outline:none;}
         ::-webkit-scrollbar{width:4px;height:4px}
         ::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:4px}
+        @media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;}}
       `}</style>
 
       {/* TOP BAR */}

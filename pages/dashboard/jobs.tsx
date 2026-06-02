@@ -69,7 +69,8 @@ export default function Jobs() {
     <>
     <div style={{minHeight:'100vh',background:'var(--bg)',color:'var(--tx)',fontFamily:'Outfit,Inter,sans-serif'}}>
       
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
+      <style>{`*{box-sizing:border-box}select option{background:var(--bg3)}
+        @media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}}`}</style>
       
       
 

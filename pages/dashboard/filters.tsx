@@ -326,15 +326,19 @@ export default function FiltersPage() {
   return (
     <div style={{ minHeight:'100vh', background:'var(--bg)', color:'var(--tx)', fontFamily:'Outfit,sans-serif', paddingBottom:90 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
         @keyframes spin{to{transform:rotate(360deg)}}
         input:focus,select:focus,textarea:focus{border-color:var(--ac)!important;outline:none;}
         select option{background:var(--bg3,#22262f);color:var(--tx,#fff);}
+        @media (max-width:640px){
+          [style*="grid-template-columns"]{grid-template-columns:1fr !important;}
+          input,select,textarea{font-size:16px !important;min-height:44px;}
+          button{min-height:42px;}
+        }
       `}</style>
 
       {/* Top bar */}
-      <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--bg)', borderBottom:'1px solid var(--bd)', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12 }}>
+      <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--bg)', borderBottom:'1px solid var(--bd)', padding:'14px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
         <div style={{ display:'flex', alignItems:'center', gap:14 }}>
           <button onClick={() => router.back()} style={{ background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:8, width:36, height:36, cursor:'pointer', color:'var(--tx)', fontSize:16, display:'flex', alignItems:'center', justifyContent:'center' }}>←</button>
           <div>

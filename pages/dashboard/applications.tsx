@@ -136,10 +136,15 @@ export default function ApplicationsPage() {
     <div style={S.page}>
       
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
         *{box-sizing:border-box}
         .app-row:hover{background:rgba(255,255,255,0.02)!important}
         select option{background:var(--bg3)}
+        @media (max-width:640px){
+          [style*="grid-template-columns"]{grid-template-columns:1fr !important;}
+          input,select,textarea{font-size:16px !important;min-height:44px;}
+          button{min-height:42px;}
+          table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}
+        }
       `}</style>
 
       {toast && (
