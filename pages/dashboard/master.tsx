@@ -878,7 +878,6 @@ export default function Dashboard() {
         select option{background:var(--bg3,#22262f);color:var(--tx,#fff);}
       `}</style>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
         *{box-sizing:border-box;}
         select option{background:var(--bg3,#22262f);}
         @keyframes spin{to{transform:rotate(360deg)}}
@@ -919,6 +918,23 @@ export default function Dashboard() {
         .light-theme .filter-chip{background:transparent!important;color:#555!important;border-color:#d0d5dd!important;}
         .light-theme .filter-chip.on{background:#eef2ff!important;color:#4a6cf7!important;border-color:#4a6cf7!important;}
         .light-theme .tag-pill{background:#eef2ff!important;color:#4a6cf7!important;}
+
+        /* ===== MOBILE (master page) ===== */
+        @media (max-width: 760px){
+          .ms-topbar{flex-wrap:wrap;height:auto!important;padding:8px 12px!important;gap:8px!important;}
+          .ms-search{max-width:100%!important;flex:1 1 100%!important;order:-1;}
+          .ms-toolbtns{margin-left:0!important;flex-wrap:wrap;width:100%;}
+          .ms-stats{grid-template-columns:repeat(3,1fr)!important;gap:8px!important;}
+          .ms-body{padding:12px!important;}
+          .ms-cardgrid{grid-template-columns:1fr!important;}
+          .ms-segs{overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch;padding-bottom:4px;}
+          .ms-tablewrap{max-height:none!important;}
+          .ms-tablewrap table{min-width:760px;}
+        }
+        @media (max-width: 480px){
+          .ms-stats{grid-template-columns:repeat(2,1fr)!important;}
+          .ms-topbar input{font-size:16px!important;}
+        }
       `}</style>
 
 
@@ -991,15 +1007,15 @@ export default function Dashboard() {
       )}
 
       {/* ── TOP BAR ─────────────────────────────────────────────── */}
-      <div style={{background:'var(--bg2)',borderBottom:'1px solid var(--bd)',padding:'0 20px',height:54,display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
-        <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:9,padding:'6px 14px',flex:1,maxWidth:420}}>
+      <div className="ms-topbar" style={{background:'var(--bg2)',borderBottom:'1px solid var(--bd)',padding:'0 20px',height:54,display:'flex',alignItems:'center',gap:10,flexShrink:0}}>
+        <div className="ms-search" style={{display:'flex',alignItems:'center',gap:8,background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:9,padding:'6px 14px',flex:1,maxWidth:420}}>
           <span style={{color:'var(--mu)',fontSize:14,flexShrink:0}}>🔍</span>
           <input value={search} onChange={e=>setSearch(e.target.value)}
             placeholder="Search name, skill, mobile, company, city..."
             style={{background:'none',border:'none',outline:'none',color:'var(--tx)',fontSize:13,fontFamily:'inherit',width:'100%'}}/>
           {search && <span onClick={()=>setSearch('')} style={{color:'var(--mu)',cursor:'pointer',fontSize:12}}>✕</span>}
         </div>
-        <div style={{display:'flex',gap:6,alignItems:'center',marginLeft:'auto'}}>
+        <div className="ms-toolbtns" style={{display:'flex',gap:6,alignItems:'center',marginLeft:'auto'}}>
           {/* Layout */}
           <div style={{display:'flex',background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden'}}>
             {([['table','☰'],['cards','⊞'],['kanban','▦']] as const).map(([v,icon])=>(
@@ -1051,7 +1067,7 @@ export default function Dashboard() {
       </div>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────── */}
-      <div style={{flex:1,overflowY:'auto',padding:'16px 20px'}}>
+      <div className="ms-body" style={{flex:1,overflowY:'auto',padding:'16px 20px'}}>
 
         {/* COMPANY BANNER */}
         {company && (
@@ -1069,7 +1085,7 @@ export default function Dashboard() {
         )}
 
         {/* SEGMENT TABS */}
-        <div style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap' as const}}>
+        <div className="ms-segs" style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap' as const}}>
           {(Object.entries(SEGMENT_CONFIG) as any[]).map(([key,cfg])=>(
             <button key={key} className={`seg-btn${activeSegment===key?' on':''}`} onClick={()=>setActiveSegment(key as any)}>
               <span style={{fontSize:14}}>{cfg.icon}</span>
@@ -1082,7 +1098,7 @@ export default function Dashboard() {
         </div>
 
         {/* STAT CARDS */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:10,marginBottom:14}}>
+        <div className="ms-stats" style={{display:'grid',gridTemplateColumns:'repeat(8,1fr)',gap:10,marginBottom:14}}>
           {[
             {l:'Total',v:stats.total,c:'var(--ac)',t:'All profiles'},
             {l:'Freshers',v:stats.fresher,c:'#3dd68c',t:'0-1yr exp'},
@@ -1427,7 +1443,7 @@ export default function Dashboard() {
             <div style={{padding:'11px 18px',borderBottom:'1px solid var(--bd)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <div style={{fontWeight:700,fontSize:13}}>{SEGMENT_CONFIG[activeSegment].icon} {SEGMENT_CONFIG[activeSegment].label} <span style={{fontSize:11,color:'var(--mu)',fontWeight:400,marginLeft:6}}>{filtered.length} profiles</span></div>
             </div>
-            <div style={{overflow:'auto' as const, maxHeight:'calc(100vh - 230px)'}}>
+            <div className="ms-tablewrap" style={{overflow:'auto' as const, maxHeight:'calc(100vh - 230px)'}}>
               <table style={{width:'100%',borderCollapse:'collapse' as const,fontSize:13}}>
                 <thead style={{position:'sticky' as const,top:0,zIndex:2}}>
                   <tr style={{background:'var(--bg3)'}}>
