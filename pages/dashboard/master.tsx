@@ -34,7 +34,8 @@ const STATUS_COLORS: Record<string,{bg:string,color:string}> = {
 const STATUS_EMOJI: Record<string,string> = {'New':'🆕','Contacted':'📞','Screening':'🔍','Shortlisted':'⭐','Interview Scheduled':'📅','Offer Made':'💼','Placed':'🎯','Rejected':'❌','On Hold':'⏸️'}
 const SEGMENT_CONFIG = {
   all:        { label:'All Profiles',   icon:'👥', color:'var(--ac)',  desc:'All segments combined' },
-  fresher:    { label:'Freshers',        icon:'🎓', color:'#3dd68c',  desc:'0-1 year, students, interns' },
+  pursuing:   { label:'Students',       icon:'🎓', color:'#f59e0b',  desc:'Currently studying · interns' },
+  fresher:    { label:'Freshers',        icon:'🌱', color:'#3dd68c',  desc:'Graduated · no job yet' },
   experienced:{ label:'Experienced',    icon:'💼', color:'#6c8cff',  desc:'2+ years professionals' },
   recruiter:  { label:'Recruitment Team',icon:'🔍', color:'#c77dff', desc:'Recruiters & leaders' },
   bd:         { label:'Client Management',icon:'🤝',color:'#ff9f43', desc:'BD & client acquisition' },
@@ -173,7 +174,7 @@ export default function Dashboard() {
   // View
   const [viewLayout, setViewLayout] = useState<'table'|'cards'|'kanban'>('table')
   const [viewDensity, setViewDensity] = useState<'comfortable'|'compact'>('comfortable')
-  const [activeSegment, setActiveSegment] = useState<'all'|'fresher'|'experienced'|'recruiter'|'bd'>('all')
+  const [activeSegment, setActiveSegment] = useState<'all'|'pursuing'|'fresher'|'experienced'|'recruiter'|'bd'>('all')
 
   // Quick search
   const [search, setSearch] = useState('')
@@ -199,6 +200,8 @@ export default function Dashboard() {
   const [filterCurrentCompany, setFilterCurrentCompany] = useState('')
   const [filterNoticePeriod, setFilterNoticePeriod] = useState<string[]>([])
   const [filterWorkMode, setFilterWorkMode] = useState<string[]>([])
+  const [filterLookingFor, setFilterLookingFor] = useState<string[]>([])
+  const [filterDuration, setFilterDuration] = useState<string[]>([])
   const [filterCTCMin, setFilterCTCMin] = useState('')
   const [filterCTCMax, setFilterCTCMax] = useState('')
   const [filterWillingToRelocate, setFilterWillingToRelocate] = useState('')
@@ -303,6 +306,8 @@ export default function Dashboard() {
     if (q.skills !== undefined)        { setFilterSkills(arr(q.skills).length?arr(q.skills):String(q.skills||'').split(',').map(s=>s.trim()).filter(Boolean)); touched = true }
     if (q.notice !== undefined)        { setFilterNoticePeriod(arr(q.notice)); touched = true }
     if (q.work_mode !== undefined)     { setFilterWorkMode(arr(q.work_mode)); touched = true }
+    if (q.looking_for !== undefined)   { setFilterLookingFor(arr(q.looking_for)); touched = true }
+    if (q.duration !== undefined)      { setFilterDuration(arr(q.duration)); touched = true }
     if (q.languages !== undefined)     { setFilterLanguage(arr(q.languages)); touched = true }
     if (q.source !== undefined)        { setFilterSource(arr(q.source)); touched = true }
     if (q.exp_min !== undefined)       { setFilterExpMin(str(q.exp_min)); touched = true }
@@ -315,7 +320,7 @@ export default function Dashboard() {
     if (q.assigned_to !== undefined)   { setFilterAssigned(str(q.assigned_to)); touched = true }
     if (q.added_by !== undefined)      { setFilterAddedBy(str(q.added_by)); touched = true }
     if (q.only_willing_relocate !== undefined) { setFilterWillingToRelocate(q.only_willing_relocate==='1'?'yes':''); touched = true }
-    if (q.segment !== undefined && ['all','fresher','experienced','recruiter','bd'].includes(str(q.segment))) {
+    if (q.segment !== undefined && ['all','pursuing','fresher','experienced','recruiter','bd'].includes(str(q.segment))) {
       setActiveSegment(str(q.segment) as any); touched = true
     }
     // Strip params from the URL so a refresh/back doesn't re-apply, keeping state clean
@@ -792,7 +797,9 @@ export default function Dashboard() {
     if (filterSkills.length && !filterSkills.every((s:string) => (p.skills||'').toLowerCase().includes(s.toLowerCase()))) return false
     if (filterSource.length && !filterSource.includes(p.source)) return false
     if (filterNoticePeriod.length && !filterNoticePeriod.includes(p.notice_period)) return false
-    if (filterWorkMode.length && !filterWorkMode.includes(p.work_mode)) return false
+    if (filterWorkMode.length && !filterWorkMode.some((w:string) => (p.work_mode||'').includes(w))) return false
+    if (filterLookingFor.length && !filterLookingFor.some((l:string) => (p.looking_for||'').includes(l))) return false
+    if (filterDuration.length && !filterDuration.includes(p.internship_duration)) return false
     if (filterLanguage.length && !filterLanguage.some((l:string) => (p.languages||'').includes(l))) return false
     if (filterRole && !(p.role||'').toLowerCase().includes(filterRole.toLowerCase())) return false
     if (filterCurrentCompany && !(p.current_company||'').toLowerCase().includes(filterCurrentCompany.toLowerCase())) return false

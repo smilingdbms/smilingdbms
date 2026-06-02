@@ -25,11 +25,14 @@ const LANGUAGES = ['Hindi','English','Tamil','Telugu','Kannada','Malayalam','Ben
 
 const SEGMENTS = [
   { value:'all',         label:'All segments' },
-  { value:'fresher',     label:'🎓 Freshers' },
+  { value:'pursuing',    label:'🎓 Student (Pursuing)' },
+  { value:'fresher',     label:'🌱 Fresher' },
   { value:'experienced', label:'💼 Experienced' },
   { value:'recruiter',   label:'🔍 Recruitment Team' },
   { value:'bd',          label:'🤝 Client Management' },
 ]
+const LOOKING_FOR_OPTS = ['Internship / Training','Live Project','Part-time Job','Full-time Job','Just Exploring']
+const DURATION_OPTS = ['1 month','2 months','3 months','4 months','5 months','6 months','7 months','8 months','9 months','10 months','11 months','12 months','Flexible']
 
 const PIPELINE_STATUSES = ['New','Contacted - Interested','Contacted - Not Interested','Contacted - Call Back Later','Contacted - Number Busy','Contacted - Not Reachable','Resume Received','Resume Shortlisted','Interview Scheduled','Interview Done - Selected','Interview Done - Rejected','Interview Done - On Hold','Offer Discussed','Offer Accepted','Offer Declined','Did Not Join','Joined Successfully']
 
@@ -87,6 +90,7 @@ const EMPTY: any = {
   edu_criteria: [] as any[],
   exp_min: '', exp_max: '', cctc_min: '', cctc_max: '', ectc_min: '', ectc_max: '',
   notice: [] as string[], work_mode: [] as string[], only_willing_relocate: false,
+  looking_for: [] as string[], duration: [] as string[],
   skills: '', languages: [] as string[], gender: '', age_min: '', age_max: '',
   source: [] as string[], assigned_to: '', added_by: '', date_from: '', date_to: '',
 }
@@ -215,6 +219,7 @@ export default function FiltersPage() {
       setIfPresent('cctc_min'); setIfPresent('cctc_max')
       setIfPresent('ectc_min'); setIfPresent('ectc_max')
       setIfPresent('notice', 'arr'); setIfPresent('work_mode', 'arr')
+      setIfPresent('looking_for', 'arr'); setIfPresent('duration', 'arr')
       setIfPresent('only_willing_relocate', 'bool')
       setIfPresent('skills'); setIfPresent('languages', 'arr')
       setIfPresent('gender')
@@ -243,6 +248,8 @@ export default function FiltersPage() {
     if (f.ectc_min || f.ectc_max) n++
     if (f.notice?.length) n++
     if (f.work_mode?.length) n++
+    if (f.looking_for?.length) n++
+    if (f.duration?.length) n++
     if (f.only_willing_relocate) n++
     if (f.skills?.trim()) n++
     if (f.languages?.length) n++
@@ -273,6 +280,7 @@ export default function FiltersPage() {
     add('cctc_min', f.cctc_min); add('cctc_max', f.cctc_max)
     add('ectc_min', f.ectc_min); add('ectc_max', f.ectc_max)
     add('notice', f.notice); add('work_mode', f.work_mode)
+    add('looking_for', f.looking_for); add('duration', f.duration)
     add('only_willing_relocate', f.only_willing_relocate)
     add('skills', f.skills?.trim() || '')
     add('languages', f.languages); add('gender', f.gender)
@@ -311,7 +319,7 @@ export default function FiltersPage() {
   const cntProf  = (f.industry?.length ? 1 : 0) + (f.qualification?.length ? 1 : 0) + ((f.exp_min || f.exp_max) ? 1 : 0) + (f.skills?.trim() ? 1 : 0)
   const cntComp  = ((f.cctc_min || f.cctc_max) ? 1 : 0) + ((f.ectc_min || f.ectc_max) ? 1 : 0) + (f.notice?.length ? 1 : 0)
   const cntLoc   = ((f.city?.length || f.city_other?.trim()) ? 1 : 0) + (f.only_willing_relocate ? 1 : 0)
-  const cntPref  = (f.work_mode?.length ? 1 : 0) + (f.languages?.length ? 1 : 0)
+  const cntPref  = (f.work_mode?.length ? 1 : 0) + (f.languages?.length ? 1 : 0) + (f.looking_for?.length ? 1 : 0) + (f.duration?.length ? 1 : 0)
   const cntId    = (f.gender ? 1 : 0) + ((f.age_min || f.age_max) ? 1 : 0)
   const cntAct   = (f.source?.length ? 1 : 0) + (f.assigned_to ? 1 : 0) + (f.added_by ? 1 : 0) + ((f.date_from || f.date_to) ? 1 : 0)
 
@@ -514,6 +522,12 @@ export default function FiltersPage() {
             <div style={SECBODY}>
               <label style={LS}>Work Mode (empty = Any)</label>
               <MultiSelect options={WORK_MODES} selected={f.work_mode} onChange={(v: any) => set('work_mode', v)} emptyLabel="Any mode" placeholder="Search..."/>
+
+              <label style={LS}>Looking For</label>
+              <MultiSelect options={LOOKING_FOR_OPTS} selected={f.looking_for} onChange={(v: any) => set('looking_for', v)} emptyLabel="Any" placeholder="Internship, Full-time..."/>
+
+              <label style={LS}>Internship / Project Duration</label>
+              <MultiSelect options={DURATION_OPTS} selected={f.duration} onChange={(v: any) => set('duration', v)} emptyLabel="Any duration" placeholder="1-12 months..."/>
 
               <label style={LS}>Languages Known</label>
               <MultiSelect options={LANGUAGES} selected={f.languages} onChange={(v: any) => set('languages', v)} emptyLabel="Any language" placeholder="Search languages..."/>
