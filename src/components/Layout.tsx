@@ -166,7 +166,6 @@ const menuData: Menu[] = [
     submenus: [
       { name: 'My Profile', path: '/dashboard/settings#profile' },
       { name: 'Company Profile', path: '/dashboard/settings#company', roles: ADMIN },
-      { name: 'Notifications', path: '/dashboard/notifications' },
       { name: 'Email Templates', path: '/dashboard/settings#email-templates', roles: ADMIN },
       { name: 'WhatsApp Templates', path: '/dashboard/settings#whatsapp-templates', roles: ADMIN },
       { name: 'Integrations', path: '/dashboard/settings#integrations', roles: ADMIN },

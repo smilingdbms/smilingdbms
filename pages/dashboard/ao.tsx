@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Layout from '../../src/components/Layout';
 
 // ══════════════════════════════════════════════════════════
 // ACCOUNT OWNER WORKSPACE — inside standard Layout (single sidebar)
@@ -98,7 +97,7 @@ export default function AccountOwnerWorkspace() {
   ];
 
   return (
-    <Layout>
+    <>
       <style dangerouslySetInnerHTML={{__html: `
         .aow-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
         .aow-tab{padding:9px 16px;border-radius:10px;border:1px solid var(--bd);background:var(--bg2);color:var(--mu);cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;}
@@ -230,6 +229,6 @@ export default function AccountOwnerWorkspace() {
 
         </>)}
       </div>
-    </Layout>
+    </>
   );
 }

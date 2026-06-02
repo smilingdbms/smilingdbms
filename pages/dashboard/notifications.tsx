@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { supabase } from '../../src/lib/supabase';
-import Layout from '../../src/components/Layout';
 
 // ══════════════════════════════════════════════════════════
 // NOTIFICATIONS — full history, clickable, mark read.
@@ -63,7 +62,7 @@ export default function NotificationsPage() {
   const unread = items.filter(n => !n.is_read).length;
 
   return (
-    <Layout>
+    <>
       <div style={{ padding: '4px 2px 40px', maxWidth: 760 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
           <div>
@@ -110,6 +109,6 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
-    </Layout>
+    </>
   );
 }
