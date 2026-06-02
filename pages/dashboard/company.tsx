@@ -99,7 +99,8 @@ export default function CompanyDashboard() {
   return (
     <>
     <div style={S.page}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap');*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
+      <style>{`
+        @media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}[style*="gridTemplateColumns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}}*{box-sizing:border-box}select option{background:var(--bg3)}`}</style>
 
       <nav style={{background:'var(--nb)',borderBottom:'1px solid rgba(255,255,255,0.06)',padding:'12px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky' as any,top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',gap:12,cursor:'pointer'}} onClick={()=>router.push('/dashboard')}>

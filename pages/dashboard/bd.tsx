@@ -284,6 +284,7 @@ export default function BDPipeline() {
       )}
 
       <style dangerouslySetInnerHTML={{__html: `
+@media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}[style*="gridTemplateColumns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}}
         .table-wrapper { background: var(--bg2); border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); overflow-x: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .pipeline-table { width: 100%; border-collapse: collapse; text-align: left; min-width: 800px; }
         .pipeline-table th { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--mu); font-size: 11px; text-transform: uppercase; }

@@ -25,6 +25,7 @@ export default function AccountOwnerDashboard() {
     <>
       <Head><title>Workspace | RecruitOS</title></Head>
       <style dangerouslySetInnerHTML={{__html: `
+@media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}[style*="gridTemplateColumns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}}
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: #fff; }
         .ao-layout { display: flex; height: 100vh; overflow: hidden; width: 100%; }
         

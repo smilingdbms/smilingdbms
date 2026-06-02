@@ -162,7 +162,7 @@ export default function CompanyPermissionsPage() {
     <div style={S.page}>
       
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+        @media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}[style*="gridTemplateColumns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}}
         *{box-sizing:border-box}
         select option{background:var(--bg3)}
         .tog{position:relative;width:46px;height:26px;flex-shrink:0;cursor:pointer}

@@ -95,7 +95,8 @@ export default function InvitePage() {
     avatar: (name:string)=>({width:38,height:38,borderRadius:'50%',background:'var(--acbg)',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,color:'var(--ac)',fontSize:15,flexShrink:0}),
   }
 
-  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,var(--bg))'}}><div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/><style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>
+  if (loading) return <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--bg,var(--bg))'}}><div style={{width:36,height:36,border:'3px solid var(--ac,#6c8cff)',borderTopColor:'transparent',borderRadius:'50%',animation:'spin 0.8s linear infinite'}}/><style>{`
+        @media (max-width:640px){[style*="grid-template-columns"]{grid-template-columns:1fr !important;}[style*="gridTemplateColumns"]{grid-template-columns:1fr !important;}input,select,textarea{font-size:16px !important;min-height:44px;}button{min-height:42px;}table{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;}}@keyframes spin{to{transform:rotate(360deg)}}`}</style></div>
 
   return (
     <>
