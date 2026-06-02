@@ -32,6 +32,7 @@ const menuData: Menu[] = [
   {
     id: 'account', icon: '🏢', title: 'Account Control', roles: ['account_owner'],
     submenus: [
+      { name: 'My Workspace', path: '/dashboard/ao' },
       { name: 'My Candidates', path: '/dashboard/candidates' },
       { name: 'My Team', path: '/dashboard/admin#team' },
       { name: 'Job Seekers', path: '/dashboard/admin#job-seekers' },
@@ -44,7 +45,7 @@ const menuData: Menu[] = [
     submenus: [
       { name: 'My Overview', path: '/dashboard' },
       { name: 'Quick Stats', path: '/dashboard#stats', roles: LEADS },
-      { name: 'Notifications', path: '/dashboard#notifications' },
+      { name: 'Notifications', path: '/dashboard/notifications' },
     ]
   },
   {
@@ -165,7 +166,7 @@ const menuData: Menu[] = [
     submenus: [
       { name: 'My Profile', path: '/dashboard/settings#profile' },
       { name: 'Company Profile', path: '/dashboard/settings#company', roles: ADMIN },
-      { name: 'Notifications', path: '/dashboard/settings#notifications' },
+      { name: 'Notifications', path: '/dashboard/notifications' },
       { name: 'Email Templates', path: '/dashboard/settings#email-templates', roles: ADMIN },
       { name: 'WhatsApp Templates', path: '/dashboard/settings#whatsapp-templates', roles: ADMIN },
       { name: 'Integrations', path: '/dashboard/settings#integrations', roles: ADMIN },
