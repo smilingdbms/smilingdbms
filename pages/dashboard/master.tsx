@@ -414,20 +414,16 @@ export default function Dashboard() {
     if (isAdmin) {
       // Super admin sees all
     } else if (au.company_id) {
-      // Company members see company data
-      q = q.eq('company_id', au.company_id)
-
-      // Team isolation — if not owner/manager, only see own team
-      if (!isOwner && !['team_manager','team_leader'].includes(au.role)) {
-        if (au.team_id) {
-          // Check cross-team permissions
-          const { data: tv } = await supabase.from('team_visibility')
-            .select('to_team_id').eq('from_team_id', au.team_id).eq('can_view', true)
-          const allowedTeamIds = [au.team_id, ...(tv||[]).map((t:any)=>t.to_team_id)]
-          q = q.or(allowedTeamIds.map((id:string)=>`team_id.eq.${id}`).join(',') + `,created_by.eq.${au.id}`)
-        } else {
-          q = q.or(`created_by.eq.${au.id},assigned_to.eq.${au.id}`)
-        }
+      // Company members see company data OR anything assigned to / created by them
+      if (isOwner || ['team_manager','team_leader'].includes(au.role)) {
+        q = q.or(`company_id.eq.${au.company_id},assigned_to.eq.${au.id},created_by.eq.${au.id}`)
+      } else if (au.team_id) {
+        const { data: tv } = await supabase.from('team_visibility')
+          .select('to_team_id').eq('from_team_id', au.team_id).eq('can_view', true)
+        const allowedTeamIds = [au.team_id, ...(tv||[]).map((t:any)=>t.to_team_id)]
+        q = q.or(allowedTeamIds.map((id:string)=>`team_id.eq.${id}`).join(',') + `,created_by.eq.${au.id},assigned_to.eq.${au.id}`)
+      } else {
+        q = q.or(`created_by.eq.${au.id},assigned_to.eq.${au.id}`)
       }
     } else {
       // No company — see only own profiles

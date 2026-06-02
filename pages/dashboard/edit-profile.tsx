@@ -304,6 +304,14 @@ export default function EditProfilePage() {
       certifications: Array.isArray(form.certifications)?form.certifications:[],
       achievements: Array.isArray(form.achievements)?form.achievements:[],
     }
+    // If assigning to someone, make sure the candidate belongs to that person's company
+    // (so it shows up in their company-scoped views). Otherwise keep existing company_id.
+    if (payload.assigned_to && payload.assigned_to !== origAssigned) {
+      try {
+        const { data: assignee } = await supabase.from('app_users').select('company_id').eq('id', payload.assigned_to).single()
+        if (assignee?.company_id) payload.company_id = assignee.company_id
+      } catch {}
+    }
     const { data, error } = await supabase.from('profiles').update(payload).eq('id', profileId).select().single()
     if (error) {
       if (error.code === '23505') {
