@@ -322,6 +322,7 @@ export default function EditProfilePage() {
             user_id: payload.assigned_to, from_user_id: user?.id, type: 'assignment',
             title: `${appUser?.full_name||'Someone'} assigned you a candidate`,
             message: `You have been assigned "${payload.name}"`,
+            related_id: id, link: `/dashboard/master?focus=${id}`,
             is_read: false, company_id: appUser?.company_id
           })
         } catch(e) {}

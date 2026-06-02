@@ -285,6 +285,16 @@ export default function Dashboard() {
     }
   }, [router.query.action, loading])
 
+  // Open a specific profile when arriving from a notification (?focus=<id>)
+  useEffect(() => {
+    if (!router.isReady || loading) return
+    const fid = router.query.focus
+    if (fid && profiles.length) {
+      const p = profiles.find((x:any) => String(x.id) === String(fid))
+      if (p) { setShowProfile(p); setForm({ ...p }) }
+    }
+  }, [router.isReady, router.query.focus, loading, profiles])
+
   // Read filters coming from the dedicated /dashboard/filters page (URL params).
   // The filters page builds a query string; we map it onto the existing filter
   // states so the current client-side filtering machinery applies them.
@@ -374,7 +384,7 @@ export default function Dashboard() {
     // Load notifications
     const { data: notifs } = await supabase.from('notifications')
       .select('*, from_user:app_users!notifications_from_user_id_fkey(full_name)')
-      .eq('user_id', u.id).order('created_at',{ascending:false}).limit(20)
+      .eq('user_id', u.id).order('created_at',{ascending:false}).limit(50)
     setNotifications(notifs || [])
     setUnreadCount((notifs||[]).filter((n:any)=>!n.is_read).length)
 
@@ -703,6 +713,7 @@ export default function Dashboard() {
               user_id: taggedUser, from_user_id: user?.id, type: 'mention',
               title: `${appUser?.full_name||'Someone'} mentioned you`,
               message: `On profile ${showProfile?.name}: "${noteText.slice(0,80)}"`,
+              related_id: showProfile?.id, link: `/dashboard/master?focus=${showProfile?.id}`,
               is_read: false, company_id: appUser?.company_id
             })
           } catch(e) {}
@@ -1052,13 +1063,24 @@ export default function Dashboard() {
                   {unreadCount>0 && <button onClick={markAllRead} style={{fontSize:11,color:'var(--ac)',background:'none',border:'none',cursor:'pointer'}}>Mark all read</button>}
                 </div>
                 {notifications.length===0 ? <div style={{fontSize:12,color:'var(--mu)',textAlign:'center',padding:'16px 0'}}>No notifications</div>
-                : notifications.slice(0,8).map(n=>(
-                  <div key={n.id} style={{padding:'9px 10px',borderRadius:8,marginBottom:4,background:n.is_read?'transparent':'var(--acbg)',border:`1px solid ${n.is_read?'transparent':'var(--bd2)'}`}}>
-                    <div style={{fontSize:12,fontWeight:600}}>{n.title}</div>
+                : <div style={{maxHeight:380,overflowY:'auto'}}>{notifications.map(n=>(
+                  <div key={n.id} onClick={async()=>{
+                    if(!n.is_read){ try{ await supabase.from('notifications').update({is_read:true}).eq('id',n.id) }catch(e){}
+                      setNotifications(prev=>prev.map(x=>x.id===n.id?{...x,is_read:true}:x)); setUnreadCount(c=>Math.max(0,c-1)) }
+                    const dest = n.link || (n.related_id ? `/dashboard/master?focus=${n.related_id}` : null)
+                    setShowNotifications(false)
+                    if(dest) router.push(dest)
+                  }} style={{padding:'9px 10px',borderRadius:8,marginBottom:4,background:n.is_read?'transparent':'var(--acbg)',border:`1px solid ${n.is_read?'transparent':'var(--bd2)'}`,cursor:'pointer',transition:'background 0.12s'}}
+                    onMouseEnter={e=>(e.currentTarget.style.background='var(--bg3)')}
+                    onMouseLeave={e=>(e.currentTarget.style.background=n.is_read?'transparent':'var(--acbg)')}>
+                    <div style={{fontSize:12,fontWeight:600,display:'flex',alignItems:'center',gap:5}}>
+                      <span>{n.type==='assignment'?'👤':n.type==='mention'?'💬':'🔔'}</span>{n.title}
+                      {(n.related_id||n.link) && <span style={{marginLeft:'auto',fontSize:10,color:'var(--ac)'}}>Open →</span>}
+                    </div>
                     <div style={{fontSize:11,color:'var(--mu)',marginTop:2}}>{n.message?.slice(0,70)}</div>
                     <div style={{fontSize:10,color:'var(--mu2)',marginTop:3}}>{new Date(n.created_at).toLocaleString('en-IN')}</div>
                   </div>
-                ))}
+                ))}</div>}
               </div>
             )}
           </div>
