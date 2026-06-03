@@ -23,6 +23,7 @@ const menuData: Menu[] = [
   {
     id: 'platform', icon: '🌐', title: 'Platform Control', roles: SA_ONLY,
     submenus: [
+      { name: 'My Workspace', path: '/dashboard/ao' },
       { name: 'All Candidates (Global)', path: '/dashboard/master' },
       { name: 'All Job Seekers', path: '/dashboard/master#job-seekers' },
       { name: 'All Companies', path: '/dashboard/admin#consultancies' },
