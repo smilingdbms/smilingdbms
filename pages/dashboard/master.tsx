@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { applyTheme, getSavedTheme, THEME_LIST } from '../../src/components/theme'
 import Layout from '../../src/components/Layout'
+import ResumeBuilder from '../../src/components/ResumeBuilder'
 
 // ── CONSTANTS ─────────────────────────────────────────────────────
 const STATUSES = ['New','Contacted','Screening','Shortlisted','Interview Scheduled','Offer Made','Placed','Rejected','On Hold']
@@ -236,6 +237,7 @@ export default function Dashboard() {
   // UI modals
   const [showAdd, setShowAdd] = useState(false)
   const [showProfile, setShowProfile] = useState<any>(null)
+  const [resumeProfile, setResumeProfile] = useState<any>(null)
   const [showUpload, setShowUpload] = useState(false)
   const [showBulkMsg, setShowBulkMsg] = useState(false)
   const [showPoints, setShowPoints] = useState(false)
@@ -1758,6 +1760,7 @@ export default function Dashboard() {
                 <div style={{fontSize:16,fontWeight:700}}>{showProfile?form.name:'Add New Profile'}</div>
                 {showProfile&&<div style={{fontSize:11,color:'var(--mu)',marginTop:2}}>{SEGMENT_CONFIG[form.segment||'experienced']?.icon} {SEGMENT_CONFIG[form.segment||'experienced']?.label} · {form.role||'—'} · {form.city||'—'}</div>}
                 {showProfile&&statusBadge(form.status||'New')}
+                {showProfile&&<button onClick={()=>setResumeProfile(form)} style={{marginLeft:8,background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd2)',borderRadius:8,padding:'5px 12px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>📄 Resume</button>}
               </div>
               <div style={{display:'flex',gap:8}}>
                 {showProfile&&(appUser?.role==='super_admin'||appUser?.role==='admin'||appUser?.role==='account_owner'||appUser?.id===showProfile.created_by)&&(
@@ -2211,6 +2214,7 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      {resumeProfile && <ResumeBuilder profile={resumeProfile} onClose={()=>setResumeProfile(null)} />}
     </>
   )
 
