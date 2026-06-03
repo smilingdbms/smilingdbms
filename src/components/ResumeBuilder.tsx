@@ -152,10 +152,9 @@ export default function ResumeBuilder({ profile, onClose }){
   }
 
   function downloadWebsite(){
-    const inner=ref.current?.outerHTML||'';
-    const html=`<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>${d.name} — CV</title><style>body{margin:0;background:#e9e9ef;display:flex;justify-content:center;padding:24px 8px;font-family:Arial,Helvetica,sans-serif}</style></head><body>${inner}</body></html>`;
+    const html=portfolioHTML(d,color);
     const blob=new Blob([html],{type:'text/html'});
-    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${fname}_CV.html`; a.click(); URL.revokeObjectURL(url); setMenu(false);
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`${fname}_Portfolio.html`; a.click(); URL.revokeObjectURL(url); setMenu(false);
   }
 
   async function downloadPPTX(){
@@ -169,6 +168,7 @@ export default function ResumeBuilder({ profile, onClose }){
       const hex=color.replace('#','');
       const head=(s,title)=>{ s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:W,h:0.7,fill:{color:hex}}); s.addText(title,{x:0.4,y:0.1,w:W-0.8,h:0.5,fontSize:20,bold:true,color:'FFFFFF'}); };
       let s=pptx.addSlide(); s.background={color:hex};
+      if(d.photo){ try{ s.addImage({path:d.photo,x:4.2,y:0.5,w:1.5,h:1.5,rounding:true}); }catch(e){} }
       s.addText(d.name,{x:0.5,y:1.7,w:9,h:0.9,fontSize:40,bold:true,color:'FFFFFF'});
       if(d.role) s.addText(d.role,{x:0.5,y:2.6,w:9,h:0.5,fontSize:18,color:'FFFFFF'});
       s.addText(contactItems(d).join('   |   '),{x:0.5,y:4.9,w:9,h:0.4,fontSize:10,color:'FFFFFF'});
@@ -209,7 +209,7 @@ export default function ResumeBuilder({ profile, onClose }){
         <div style={{marginLeft:'auto',display:'flex',gap:8,position:'relative'}}>
           <button onClick={()=>setMenu(m=>!m)} disabled={busy} style={{background:color,color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:13,opacity:busy?0.6:1}}>{busy?'Generating…':'⬇ Download ▾'}</button>
           {menu&&<div style={{position:'absolute',top:42,right:42,background:'#1e1e2e',border:'1px solid #3a3a55',borderRadius:10,padding:6,minWidth:180,zIndex:20,boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}>
-            {[['📄 PDF',downloadPDF],['📝 Word (.doc)',downloadWord],['🌐 Website (.html)',downloadWebsite],['📊 Presentation (.pptx)',downloadPPTX]].map(([label,fn]:any,i)=>(
+            {[['📄 PDF',downloadPDF],['📝 Word (.doc)',downloadWord],['🌐 Portfolio Website',downloadWebsite],['📊 Presentation (.pptx)',downloadPPTX]].map(([label,fn]:any,i)=>(
               <button key={i} onClick={fn} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',color:'#dde',border:'none',padding:'9px 12px',borderRadius:7,cursor:'pointer',fontSize:13,fontFamily:'inherit'}} onMouseEnter={e=>e.currentTarget.style.background='#2a2a40'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{label}</button>
             ))}
           </div>}
@@ -245,16 +245,76 @@ function Edu({d,c}){ if(!d.education.length)return null; return d.education.map(
   </div>);})}
 function listText(a){return typeof a==='string'?a:(a.title||a.text||a.name||'')}
 
+// ───── full portfolio WEBSITE (standalone .html) ─────
+function portfolioHTML(d,c){
+  const dark=shade(c,-0.4);
+  const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const url=u=>u?(String(u).startsWith('http')?u:'https://'+u):'';
+  const snap=snapshot(d);
+  const exp=d.work.map(w=>{const bl=bullets(w).map(b=>'<li>'+esc(b)+'</li>').join('');return '<div class="item"><div class="itop"><h3>'+esc(w.role||'')+'</h3><span class="per">'+esc(period(w))+'</span></div><div class="org">'+esc(w.company||'')+'</div>'+(bl?'<ul>'+bl+'</ul>':'')+'</div>';}).join('');
+  const edu=d.education.map(ed=>{const e=eduLine(ed);return '<div class="item"><div class="itop"><h3>'+esc(e.t)+'</h3><span class="per">'+esc(e.yr)+'</span></div><div class="org">'+esc(e.inst)+(e.grade?' · '+esc(e.grade):'')+'</div></div>';}).join('');
+  const skills=d.skills.map(s=>'<span class="tag">'+esc(s)+'</span>').join('');
+  const facts=snap.map(s=>'<div class="fact"><div class="fk">'+esc(s.k)+'</div><div class="fv">'+esc(s.v)+'</div></div>').join('');
+  const ach=d.achievements.map(a=>'<li>'+esc(listText(a))+'</li>').join('');
+  const cert=d.certifications.map(a=>'<li>'+esc(listText(a))+'</li>').join('');
+  const langs=d.languages.map(s=>'<span class="tag">'+esc(s)+'</span>').join('');
+  const nav=[['about','About'],['experience','Experience'],['skills','Skills'],['education','Education'],['contact','Contact']].map(n=>'<a href="#'+n[0]+'">'+n[1]+'</a>').join('');
+  const contacts=[
+    d.email?'<a href="mailto:'+d.email+'">✉ '+esc(d.email)+'</a>':'',
+    d.mobile?'<a href="tel:'+esc(d.mobile.replace(/\s/g,''))+'">📞 '+esc(d.mobile)+'</a>':'',
+    d.linkedin?'<a href="'+url(d.linkedin)+'" target="_blank">in LinkedIn</a>':'',
+    d.github?'<a href="'+url(d.github)+'" target="_blank">⌥ GitHub</a>':'',
+  ].filter(Boolean).join('');
+  return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(d.name)+' — Portfolio</title>'+
+  '<style>'+
+  '*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#1f2430;line-height:1.6;scroll-behavior:smooth}'+
+  ':root{--c:'+c+';--d:'+dark+'}'+
+  'nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,0.95);backdrop-filter:blur(8px);border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;padding:14px 6%}'+
+  'nav .logo{font-weight:800;font-size:18px;color:var(--c)}nav .links a{margin-left:22px;text-decoration:none;color:#444;font-weight:600;font-size:14px}nav .links a:hover{color:var(--c)}'+
+  '.burger{display:none;font-size:24px;background:none;border:none;cursor:pointer;color:var(--c)}'+
+  '.hero{background:linear-gradient(135deg,var(--c),var(--d));color:#fff;padding:70px 6% 60px;text-align:center}'+
+  '.hero img{width:150px;height:150px;border-radius:50%;object-fit:cover;border:5px solid rgba(255,255,255,0.5);margin-bottom:18px}'+
+  '.hero h1{font-size:42px;font-weight:800}.hero .role{font-size:20px;opacity:0.95;margin-top:6px}'+
+  '.hero .sum{max-width:680px;margin:18px auto 0;font-size:15px;opacity:0.95}'+
+  '.hero .cta{margin-top:22px}.hero .cta a{display:inline-block;margin:6px;padding:10px 20px;background:rgba(255,255,255,0.18);color:#fff;text-decoration:none;border-radius:30px;font-size:14px;font-weight:600}.hero .cta a:hover{background:rgba(255,255,255,0.3)}'+
+  '.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;max-width:1000px;margin:-40px auto 0;padding:0 6%;position:relative}'+
+  '.fact{background:#fff;border-radius:14px;padding:16px;box-shadow:0 6px 24px rgba(0,0,0,0.08);text-align:center}.fact .fk{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.5px;font-weight:700}.fact .fv{font-size:16px;font-weight:800;margin-top:4px;color:#222}'+
+  'section{max-width:1000px;margin:0 auto;padding:50px 6%}section h2{font-size:26px;font-weight:800;color:var(--c);margin-bottom:22px;position:relative;padding-bottom:8px}section h2:after{content:"";position:absolute;left:0;bottom:0;width:50px;height:3px;background:var(--c);border-radius:2px}'+
+  '.item{margin-bottom:22px;padding-left:18px;border-left:3px solid var(--c)}.itop{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}.itop h3{font-size:17px}.per{font-size:13px;color:#888}.org{color:var(--c);font-weight:600;font-size:14px;margin-bottom:6px}.item ul{margin-left:18px;color:#555;font-size:14px}.item li{margin-bottom:4px}'+
+  '.tags{display:flex;flex-wrap:wrap;gap:10px}.tag{background:'+c+'18;color:var(--c);padding:7px 16px;border-radius:30px;font-weight:600;font-size:14px}'+
+  'ul.plain{list-style:none}ul.plain li{padding:8px 0 8px 22px;position:relative;color:#444}ul.plain li:before{content:"▹";position:absolute;left:0;color:var(--c)}'+
+  '#contact{text-align:center}#contact .links2 a{display:inline-block;margin:8px;padding:12px 24px;background:var(--c);color:#fff;text-decoration:none;border-radius:10px;font-weight:600;font-size:14px}#contact .links2 a:hover{background:var(--d)}'+
+  'footer{text-align:center;padding:24px;color:#aaa;font-size:12px;border-top:1px solid #eee}'+
+  '@media(max-width:680px){nav .links{display:none;position:absolute;top:56px;right:0;background:#fff;flex-direction:column;padding:10px 20px;box-shadow:0 8px 20px rgba(0,0,0,0.1);border-radius:0 0 0 12px}nav .links.open{display:flex}nav .links a{margin:8px 0}.burger{display:block}.hero h1{font-size:32px}}'+
+  '</style></head><body>'+
+  '<nav><span class="logo">'+esc(d.name)+'</span><button class="burger" onclick="document.getElementById(\'lk\').classList.toggle(\'open\')">☰</button><div class="links" id="lk">'+nav+'</div></nav>'+
+  '<header class="hero" id="home">'+(d.photo?'<img src="'+d.photo+'" alt="">':'')+'<h1>'+esc(d.name)+'</h1>'+(d.role?'<div class="role">'+esc(d.role)+'</div>':'')+(d.summary?'<p class="sum">'+esc(d.summary)+'</p>':'')+'<div class="cta">'+contacts+'</div></header>'+
+  (facts?'<div class="facts">'+facts+'</div>':'')+
+  (d.summary?'<section id="about"><h2>About</h2><p style="font-size:15px;color:#444">'+esc(d.summary)+'</p></section>':'')+
+  (exp?'<section id="experience"><h2>Experience</h2>'+exp+'</section>':'')+
+  (skills?'<section id="skills"><h2>Skills</h2><div class="tags">'+skills+'</div></section>':'')+
+  (edu?'<section id="education"><h2>Education</h2>'+edu+'</section>':'')+
+  (ach?'<section><h2>Achievements</h2><ul class="plain">'+ach+'</ul></section>':'')+
+  (cert?'<section><h2>Certifications</h2><ul class="plain">'+cert+'</ul></section>':'')+
+  (langs?'<section><h2>Languages</h2><div class="tags">'+langs+'</div></section>':'')+
+  '<section id="contact"><h2 style="display:inline-block">Get in Touch</h2><div class="links2">'+contacts+'</div></section>'+
+  '<footer>Created with '+BRAND+'</footer>'+
+  '</body></html>';
+}
+
 // ──────────── 1. EXECUTIVE ────────────
 function Executive({d,c}){
   const snap=snapshot(d);
   const H=({children})=><div style={{fontSize:12.5,fontWeight:800,color:c,letterSpacing:1,textTransform:'uppercase',borderBottom:`2px solid ${c}`,paddingBottom:3,margin:'15px 0 8px'}}>{children}</div>;
   return (<div style={{padding:'40px 46px',fontFamily:'Georgia,serif',display:'flex',flexDirection:'column',minHeight:1123}}>
     <div style={{flex:1}}>
-      <div style={{borderBottom:`3px double ${c}`,paddingBottom:12,marginBottom:4}}>
-        <div style={{fontSize:30,fontWeight:800,letterSpacing:1}}>{d.name}</div>
-        {d.role&&<div style={{fontSize:14,color:c,fontWeight:600,marginTop:2,fontStyle:'italic'}}>{d.role}</div>}
+      <div style={{borderBottom:`3px double ${c}`,paddingBottom:12,marginBottom:4,display:'flex',alignItems:'center',gap:18}}>
+        <div style={{flex:1}}>
+          <div style={{fontSize:30,fontWeight:800,letterSpacing:1}}>{d.name}</div>
+          {d.role&&<div style={{fontSize:14,color:c,fontWeight:600,marginTop:2,fontStyle:'italic'}}>{d.role}</div>}
         <div style={{marginTop:8,fontSize:11,color:'#555',lineHeight:1.7,fontFamily:'Arial'}}>{contactItems(d).join('   |   ')}</div>
+        </div>
+        {d.photo&&<img src={d.photo} crossOrigin="anonymous" style={{width:92,height:92,borderRadius:'50%',objectFit:'cover',border:`3px solid ${c}`}}/>}
       </div>
       {snap.length>0&&<div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'2px 24px',margin:'12px 0',padding:'12px 16px',background:`${c}0e`,borderRadius:8,fontFamily:'Arial'}}>
         {snap.map((s,i)=><div key={i} style={{fontSize:11,padding:'2px 0'}}><span style={{color:'#888'}}>{s.k}: </span><b>{s.v}</b></div>)}
@@ -375,8 +435,13 @@ function Minimal({d,c}){
   const H=({children})=><div style={{fontSize:10.5,fontWeight:700,color:'#aaa',textTransform:'uppercase',letterSpacing:2.5,margin:'22px 0 9px'}}>{children}</div>;
   return (<div style={{padding:'52px 58px',display:'flex',flexDirection:'column',minHeight:1123}}>
     <div style={{flex:1}}>
-      <div style={{fontSize:34,fontWeight:300,letterSpacing:1.5}}>{d.name}</div>
-      {d.role&&<div style={{fontSize:14,color:c,marginTop:3,letterSpacing:0.5}}>{d.role}</div>}
+      <div style={{display:'flex',alignItems:'center',gap:18}}>
+        {d.photo&&<img src={d.photo} crossOrigin="anonymous" style={{width:80,height:80,borderRadius:'50%',objectFit:'cover'}}/>}
+        <div>
+          <div style={{fontSize:34,fontWeight:300,letterSpacing:1.5}}>{d.name}</div>
+          {d.role&&<div style={{fontSize:14,color:c,marginTop:3,letterSpacing:0.5}}>{d.role}</div>}
+        </div>
+      </div>
       <div style={{marginTop:10,fontSize:11,color:'#777',display:'flex',gap:16,flexWrap:'wrap'}}>{contactItems(d).map((x,i)=><span key={i}>{x}</span>)}</div>
       <div style={{height:1,background:'#ececec',margin:'18px 0'}}/>
       {snap.length>0&&<div style={{display:'flex',flexWrap:'wrap',gap:'4px 22px',marginBottom:6}}>{snap.map((s,i)=><div key={i} style={{fontSize:10.5,color:'#666'}}>{s.k} — <b style={{color:'#222'}}>{s.v}</b></div>)}</div>}
