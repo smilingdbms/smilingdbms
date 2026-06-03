@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import { PACKAGES, getPackage, companyAllowedKeys, PERMISSION_GROUPS, ALL_PERMISSION_KEYS } from '../../src/lib/permissions-catalog'
 
 const PLANS = ['basic','seeker','pro','elite']
 const PLAN_COLORS: any = {
@@ -63,6 +64,40 @@ export default function CompaniesPage() {
     if (error) { showToast('Failed: ' + error.message, 'error'); return }
     setCompanies(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c))
     showToast('Updated successfully')
+  }
+
+  // Assign a package: set package_code + reset seat/override, and sync company_permissions
+  async function assignPackage(co: any, code: string) {
+    setSaving(co.id + 'pkg')
+    const pkg = getPackage(code)
+    const { error } = await supabase.from('companies').update({ package_code: code, seat_limit: null, perm_override: null }).eq('id', co.id)
+    if (!error) await syncCompanyPerms(co.id, pkg.perms)
+    setSaving(null)
+    if (error) { showToast('Failed: ' + error.message, 'error'); return }
+    setCompanies(prev => prev.map(c => c.id === co.id ? { ...c, package_code: code, seat_limit: null, perm_override: null } : c))
+    showToast(`${pkg.name} plan applied`)
+  }
+
+  // Write allowed keys into company_permissions (true for allowed, false for rest)
+  async function syncCompanyPerms(companyId: string, allowedKeys: string[]) {
+    const rows = ALL_PERMISSION_KEYS.map(key => ({ company_id: companyId, permission_key: key, is_enabled: allowedKeys.includes(key) }))
+    await supabase.from('company_permissions').upsert(rows, { onConflict: 'company_id,permission_key' })
+  }
+
+  // Tailored (Enterprise): toggle one extra permission in perm_override
+  async function toggleOverride(co: any, key: string) {
+    const base = Array.isArray(co.perm_override) && co.perm_override.length ? co.perm_override : getPackage(co.package_code).perms
+    const next = base.includes(key) ? base.filter((k: string) => k !== key) : [...base, key]
+    setSaving(co.id + key)
+    const { error } = await supabase.from('companies').update({ perm_override: next }).eq('id', co.id)
+    if (!error) await syncCompanyPerms(co.id, next)
+    setSaving(null)
+    if (error) { showToast('Failed: ' + error.message, 'error'); return }
+    setCompanies(prev => prev.map(c => c.id === co.id ? { ...c, perm_override: next } : c))
+  }
+
+  async function setSeats(co: any, seats: number) {
+    await updateCompany(co.id, 'seat_limit', seats || null)
   }
 
   async function toggleFeature(companyId: string, featureKey: string, currentFeatures: any) {
@@ -198,6 +233,61 @@ export default function CompaniesPage() {
               {/* Expanded controls */}
               {isExpanded && (
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', padding: '16px 20px', background: 'rgba(0,0,0,0.2)' }}>
+
+                  {/* ===== PACKAGE & SEATS ===== */}
+                  {(() => {
+                    const pkg = getPackage(co.package_code)
+                    const seatLimit = co.seat_limit || pkg.seats
+                    const used = userCounts[co.id] || 0
+                    const allowed = companyAllowedKeys(co.package_code, co.perm_override)
+                    const isEnt = co.package_code === 'enterprise'
+                    return (
+                      <div style={{ marginBottom: 20 }} onClick={e => e.stopPropagation()}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>Package & Seats</div>
+                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--mu)', marginBottom: 4 }}>Plan</div>
+                            <select value={co.package_code || 'free'} onChange={e => assignPackage(co, e.target.value)} style={{ background: 'var(--bg3)', color: 'var(--tx)', border: '1px solid var(--bd2)', borderRadius: 8, padding: '8px 12px', fontWeight: 700, fontSize: 13 }}>
+                              {PACKAGES.map(p => <option key={p.code} value={p.code}>{p.name} — ₹{p.price_monthly}/mo</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: 'var(--mu)', marginBottom: 4 }}>Seats (logins)</div>
+                            <input type="number" min={1} defaultValue={seatLimit} onBlur={e => setSeats(co, parseInt(e.target.value))} style={{ background: 'var(--bg3)', color: 'var(--tx)', border: '1px solid var(--bd2)', borderRadius: 8, padding: '8px 12px', width: 90, fontSize: 13 }} />
+                          </div>
+                          <div style={{ fontSize: 12, color: used > seatLimit ? '#ff5050' : '#3dd68c', fontWeight: 700 }}>
+                            {used} / {seatLimit} seats used{used > seatLimit ? ' ⚠ over limit' : ''}
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 11, color: 'var(--mu)' }}>
+                          <span>📋 {pkg.candidate_cap.toLocaleString()} candidates</span>
+                          <span>💼 {pkg.active_job_cap} jobs</span>
+                          <span>🤖 {pkg.cv_parse_daily} CV/day</span>
+                          <span>💬 {pkg.bulk_msg_monthly.toLocaleString()} msg/mo</span>
+                          <span>🔑 {allowed.length} permissions</span>
+                        </div>
+
+                        {/* Tailored (Enterprise only): tick extra permissions */}
+                        {isEnt && (
+                          <div style={{ marginTop: 14, padding: 12, background: 'rgba(255,255,255,0.03)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ac)', marginBottom: 8 }}>⚙ Tailored permissions (Enterprise)</div>
+                            {PERMISSION_GROUPS.map(g => (
+                              <div key={g.group} style={{ marginBottom: 8 }}>
+                                <div style={{ fontSize: 10, color: 'var(--mu2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>{g.group}</div>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                  {g.perms.map(p => {
+                                    const on = allowed.includes(p.key)
+                                    return <button key={p.key} onClick={() => toggleOverride(co, p.key)} style={{ fontSize: 11, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${on ? 'var(--ac)' : 'var(--bd)'}`, background: on ? 'var(--acbg)' : 'transparent', color: on ? 'var(--ac)' : 'var(--mu)' }}>{on ? '✓ ' : ''}{p.label}</button>
+                                  })}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--mu)', textTransform: 'uppercase' as const, letterSpacing: 1, marginBottom: 14 }}>Feature Access</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 10 }}>
                     {FEATURES.map(f => {
