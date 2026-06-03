@@ -124,25 +124,26 @@ export default function ResumeBuilder({ profile, onClose }){
   const [menu,setMenu]=useState(false);
   const ref=useRef(null);
 
-  async function downloadPDF(){
-    if(!ref.current)return; setBusy(true);
-    try{
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-      const h2c=window.html2canvas; const {jsPDF}=window.jspdf;
-      const canvas=await h2c(ref.current,{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false});
-      const img=canvas.toDataURL('image/jpeg',0.96);
-      const pdf=new jsPDF('p','mm','a4'); const W=210,H=297;
-      const imgH=canvas.height*W/canvas.width;
-      let left=imgH,pos=0;
-      pdf.addImage(img,'JPEG',0,pos,W,imgH); left-=H;
-      while(left>0){pos-=H;pdf.addPage();pdf.addImage(img,'JPEG',0,pos,W,imgH);left-=H;}
-      pdf.save(`${fname}_CV.pdf`);
-    }catch(e){ alert('PDF generate nahi hua. Internet check karke dobara try karein.'); }
-    setBusy(false);
-  }
-
   const fname=(d.name||'resume').replace(/\s+/g,'_');
+
+  function downloadPDF(){
+    setMenu(false);
+    const inner=ref.current?.outerHTML||'';
+    const w=window.open('','_blank');
+    if(!w){ alert('Popup block hua. Browser me popups allow karein.'); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset='utf-8'><title>${d.name} CV</title>
+      <style>
+        @page{ size:A4; margin:0; }
+        *{ -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+        html,body{ margin:0; padding:0; background:#fff; }
+        .sheet{ width:794px; margin:0 auto; }
+        @media print{ .sheet{ width:100%; } }
+      </style></head>
+      <body><div class="sheet">${inner}</div>
+      <script>window.onload=function(){ setTimeout(function(){ window.print(); }, 350); };</script>
+      </body></html>`);
+    w.document.close();
+  }
 
   function downloadWord(){
     const html=`<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${d.name} CV</title></head><body>${ref.current?.innerHTML||''}</body></html>`;
@@ -161,34 +162,31 @@ export default function ResumeBuilder({ profile, onClose }){
     setMenu(false); setBusy(true);
     try{
       await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.12.0/pptxgen.bundle.js');
-      const P=window.PptxGenJS; const pptx=new P(); pptx.layout='LAYOUT_WIDE';
-      const hex=color.replace('#',''); const W=13.33;
-      const head=(s,title)=>{ s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:W,h:0.9,fill:{color:hex}}); s.addText(title,{x:0.5,y:0.12,w:W-1,h:0.66,fontSize:22,bold:true,color:'FFFFFF'}); };
-      // 1 title
+      const P=window.PptxGenJS||window.pptxgen;
+      if(!P) throw new Error('lib');
+      const pptx=new P();
+      const W=10, Ht=5.63; // default 10x5.63 inches (16:9)
+      const hex=color.replace('#','');
+      const head=(s,title)=>{ s.addShape(pptx.ShapeType.rect,{x:0,y:0,w:W,h:0.7,fill:{color:hex}}); s.addText(title,{x:0.4,y:0.1,w:W-0.8,h:0.5,fontSize:20,bold:true,color:'FFFFFF'}); };
       let s=pptx.addSlide(); s.background={color:hex};
-      s.addText(d.name,{x:0.6,y:2.1,w:12,h:1,fontSize:44,bold:true,color:'FFFFFF'});
-      if(d.role) s.addText(d.role,{x:0.6,y:3.2,w:12,h:0.6,fontSize:22,color:'FFFFFF'});
-      s.addText(contactItems(d).join('   |   '),{x:0.6,y:6.6,w:12,h:0.5,fontSize:12,color:'FFFFFF'});
-      // 2 snapshot + summary
+      s.addText(d.name,{x:0.5,y:1.7,w:9,h:0.9,fontSize:40,bold:true,color:'FFFFFF'});
+      if(d.role) s.addText(d.role,{x:0.5,y:2.6,w:9,h:0.5,fontSize:18,color:'FFFFFF'});
+      s.addText(contactItems(d).join('   |   '),{x:0.5,y:4.9,w:9,h:0.4,fontSize:10,color:'FFFFFF'});
       const snap=snapshot(d);
       if(snap.length||d.summary){ s=pptx.addSlide(); head(s,'Overview');
-        if(d.summary) s.addText(d.summary,{x:0.5,y:1.1,w:12.3,h:1.6,fontSize:13,color:'333333',valign:'top'});
-        if(snap.length){ const rows=snap.map(x=>[{text:x.k,options:{bold:true,color:hex}},{text:String(x.v),options:{color:'333333'}}]);
-          s.addTable(rows,{x:0.5,y:2.9,w:12.3,fontSize:12,border:{type:'solid',color:'E5E5E5',pt:1},rowH:0.3}); } }
-      // 3 experience
-      if(d.work.length){ s=pptx.addSlide(); head(s,'Experience'); let y=1.1;
-        d.work.forEach(w=>{ s.addText(`${w.role||''}  —  ${w.company||''}`,{x:0.5,y,w:9,h:0.35,fontSize:14,bold:true,color:'222222'});
-          s.addText(period(w),{x:9.6,y,w:3.2,h:0.35,fontSize:11,color:'888888',align:'right'}); y+=0.4;
-          const bl=bullets(w); if(bl.length){ s.addText(bl.map(b=>({text:b,options:{bullet:true,fontSize:11,color:'444444'}})),{x:0.7,y,w:12,h:Math.min(2,bl.length*0.3)}); y+=Math.min(2,bl.length*0.32)+0.1; } y+=0.1; }); }
-      // 4 education + skills
-      if(d.education.length||d.skills.length){ s=pptx.addSlide(); head(s,'Education & Skills'); let y=1.1;
-        if(d.education.length){ d.education.forEach(ed=>{ const e=eduLine(ed); s.addText(`${e.t}`,{x:0.5,y,w:8.5,h:0.32,fontSize:13,bold:true}); s.addText(`${e.inst} ${e.yr} ${e.grade?'· '+e.grade:''}`,{x:0.5,y:y+0.3,w:8.5,h:0.28,fontSize:11,color:'666666'}); y+=0.7; }); }
-        if(d.skills.length){ s.addText('Skills',{x:0.5,y:y+0.1,w:12,h:0.35,fontSize:14,bold:true,color:hex}); s.addText(d.skills.join('   •   '),{x:0.5,y:y+0.5,w:12.3,h:1,fontSize:12,color:'333333'}); } }
-      // 5 achievements + certs
-      if(d.achievements.length||d.certifications.length){ s=pptx.addSlide(); head(s,'Achievements & Certifications'); let y=1.1;
-        if(d.achievements.length){ s.addText(d.achievements.map(a=>({text:listText(a),options:{bullet:true,fontSize:12,color:'333333'}})),{x:0.6,y,w:12,h:3}); } }
+        if(d.summary) s.addText(d.summary,{x:0.4,y:0.9,w:9.2,h:1.3,fontSize:12,color:'333333',valign:'top'});
+        if(snap.length){ const rows=snap.map(x=>[{text:x.k+':',options:{bold:true,color:hex}},{text:String(x.v),options:{color:'333333'}}]);
+          s.addTable(rows,{x:0.4,y:2.3,w:9.2,fontSize:11,colW:[2.4,6.8],border:{type:'solid',color:'EEEEEE',pt:1}}); } }
+      if(d.work.length){ s=pptx.addSlide(); head(s,'Experience'); let y=0.9;
+        d.work.forEach(w=>{ if(y>5)return; s.addText(`${w.role||''} — ${w.company||''}`,{x:0.4,y,w:7,h:0.3,fontSize:13,bold:true,color:'222222'});
+          s.addText(period(w),{x:7.4,y,w:2.2,h:0.3,fontSize:10,color:'888888',align:'right'}); y+=0.35;
+          const bl=bullets(w).slice(0,5); if(bl.length){ s.addText(bl.map(b=>({text:b,options:{bullet:true,fontSize:10,color:'444444'}})),{x:0.6,y,w:9,h:bl.length*0.26}); y+=bl.length*0.27+0.08; } }); }
+      if(d.education.length||d.skills.length){ s=pptx.addSlide(); head(s,'Education & Skills'); let y=0.9;
+        d.education.forEach(ed=>{ const e=eduLine(ed); s.addText(e.t,{x:0.4,y,w:9,h:0.3,fontSize:13,bold:true}); s.addText(`${e.inst} ${e.yr} ${e.grade?'· '+e.grade:''}`,{x:0.4,y:y+0.28,w:9,h:0.26,fontSize:10,color:'666666'}); y+=0.65; });
+        if(d.skills.length){ s.addText('Skills',{x:0.4,y:y+0.1,w:9,h:0.3,fontSize:14,bold:true,color:hex}); s.addText(d.skills.join('   •   '),{x:0.4,y:y+0.5,w:9.2,h:1,fontSize:11,color:'333333'}); } }
+      if(d.achievements.length){ s=pptx.addSlide(); head(s,'Achievements'); s.addText(d.achievements.map(a=>({text:listText(a),options:{bullet:true,fontSize:12,color:'333333'}})),{x:0.5,y:0.9,w:9,h:4}); }
       await pptx.writeFile({fileName:`${fname}_CV.pptx`});
-    }catch(e){ alert('Presentation generate nahi hua. Internet check karke dobara try karein.'); }
+    }catch(e){ alert('Presentation generate nahi hua. Dobara try karein ya PDF/Word use karein.'); }
     setBusy(false);
   }
 
@@ -211,7 +209,7 @@ export default function ResumeBuilder({ profile, onClose }){
         <div style={{marginLeft:'auto',display:'flex',gap:8,position:'relative'}}>
           <button onClick={()=>setMenu(m=>!m)} disabled={busy} style={{background:color,color:'#fff',border:'none',padding:'8px 18px',borderRadius:8,fontWeight:700,cursor:'pointer',fontSize:13,opacity:busy?0.6:1}}>{busy?'Generating…':'⬇ Download ▾'}</button>
           {menu&&<div style={{position:'absolute',top:42,right:42,background:'#1e1e2e',border:'1px solid #3a3a55',borderRadius:10,padding:6,minWidth:180,zIndex:20,boxShadow:'0 8px 30px rgba(0,0,0,0.5)'}}>
-            {[['📄 PDF',()=>{setMenu(false);downloadPDF()}],['📝 Word (.doc)',downloadWord],['🌐 Website (.html)',downloadWebsite],['📊 Presentation (.pptx)',downloadPPTX]].map(([label,fn]:any,i)=>(
+            {[['📄 PDF',downloadPDF],['📝 Word (.doc)',downloadWord],['🌐 Website (.html)',downloadWebsite],['📊 Presentation (.pptx)',downloadPPTX]].map(([label,fn]:any,i)=>(
               <button key={i} onClick={fn} style={{display:'block',width:'100%',textAlign:'left',background:'transparent',color:'#dde',border:'none',padding:'9px 12px',borderRadius:7,cursor:'pointer',fontSize:13,fontFamily:'inherit'}} onMouseEnter={e=>e.currentTarget.style.background='#2a2a40'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>{label}</button>
             ))}
           </div>}
