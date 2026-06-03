@@ -10,6 +10,7 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 import { applyTheme, getSavedTheme } from '../../src/components/theme'
 import LocationPicker from '../../src/components/LocationPicker'
+import ResumeBuilder from '../../src/components/ResumeBuilder'
 import { EDUCATION_LEVELS, coursesForLevel, branchesForCourse } from '../../src/lib/courseBranches'
 
 const STUDY_YEARS = ['1st Year','2nd Year','3rd Year','4th Year','5th Year']
@@ -115,6 +116,7 @@ const EMPTY_PROFILE = {
 export default function EditProfilePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const [showResume, setShowResume] = useState(false)
   const [appUser, setAppUser] = useState<any>(null)
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -312,13 +314,17 @@ export default function EditProfilePage() {
         if (assignee?.company_id) payload.company_id = assignee.company_id
       } catch {}
     }
-    const { data, error } = await supabase.from('profiles').update(payload).eq('id', profileId).select().single()
+    const { data, error } = await supabase.from('profiles').update(payload).eq('id', profileId).select()
     if (error) {
       if (error.code === '23505') {
         if (error.message.includes('mobile')) showError('Duplicate Mobile','This mobile number already exists in your database.')
         else if (error.message.includes('email')) showError('Duplicate Email','This email already exists in your database.')
         else showError('Duplicate Entry','A similar profile already exists.')
       } else showError('Update Failed', error.message)
+      setSaving(false); return
+    }
+    if (!data || data.length === 0) {
+      showError('Update Failed', 'You may not have permission to edit this candidate, or it belongs to another company. Please contact your admin.')
       setSaving(false); return
     }
     if (data) {
@@ -385,7 +391,10 @@ export default function EditProfilePage() {
             <div style={{fontSize:11,color:'var(--mu)',marginTop:2}}>{form.name || 'Update candidate details'}</div>
           </div>
         </div>
-        <div style={{fontSize:11,color:'var(--mu)'}}>Editing existing profile</div>
+        <div style={{display:'flex',alignItems:'center',gap:10}}>
+          <button onClick={()=>setShowResume(true)} style={{background:'var(--acbg)',color:'var(--ac)',border:'1px solid var(--bd2)',borderRadius:8,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:'inherit'}}>📄 Resume PDF</button>
+          <div style={{fontSize:11,color:'var(--mu)'}}>Editing existing profile</div>
+        </div>
       </div>
 
       <div style={{maxWidth:820,margin:'0 auto',padding:'20px 16px'}}>
@@ -957,6 +966,7 @@ export default function EditProfilePage() {
       {successToast && (
         <div style={{position:'fixed',bottom:80,left:'50%',transform:'translateX(-50%)',zIndex:130,background:'var(--gn)',color:'#fff',padding:'12px 22px',borderRadius:12,fontSize:13,fontWeight:600,boxShadow:'0 8px 30px rgba(0,0,0,0.3)',animation:'slideUp 0.3s ease'}}>{successToast}</div>
       )}
+      {showResume && <ResumeBuilder profile={form} onClose={()=>setShowResume(false)} />}
     </div>
   )
 }
