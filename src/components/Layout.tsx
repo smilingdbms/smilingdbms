@@ -27,6 +27,7 @@ const menuData: Menu[] = [
       { name: 'All Candidates (Global)', path: '/dashboard/master' },
       { name: 'All Job Seekers', path: '/dashboard/master#job-seekers' },
       { name: 'All Companies', path: '/dashboard/admin#consultancies' },
+      { name: 'Packages & Plans', path: '/dashboard/companies' },
       { name: 'Platform Analytics', path: '/dashboard/reports#platform' },
     ]
   },
