@@ -49,11 +49,13 @@ export default function AccountOwnerWorkspace() {
 
       let prof = [];
       if (au.company_id) {
-        const { data } = await supabase.from('profiles').select('*').eq('company_id', au.company_id).eq('type', 'Candidate').order('created_at', { ascending: false });
-        prof = data || [];
+        const { data } = await supabase.from('profiles').select('*')
+          .or(`company_id.eq.${au.company_id},assigned_to.eq.${au.id},created_by.eq.${au.id}`)
+          .order('created_at', { ascending: false });
+        prof = (data || []).filter(p => !p.type || p.type === 'Candidate');
       } else {
         const { data } = await supabase.from('profiles').select('*').or(`created_by.eq.${au.id},assigned_to.eq.${au.id}`).order('created_at', { ascending: false });
-        prof = data || [];
+        prof = (data || []).filter(p => !p.type || p.type === 'Candidate');
       }
       if (cancelled) return;
       setCandidates(prof);
