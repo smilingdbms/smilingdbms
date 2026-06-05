@@ -63,7 +63,8 @@ const menuData: Menu[] = [
   { id:'company',icon:'🏢', title:'Company Profile',roles: ADMIN, path:'/dashboard/company' },
 
   // ── PLATFORM ──
-  { id:'platform', icon:'🌐', title:'Companies & Plans', roles: SA_ONLY, section:'Platform', path:'/dashboard/companies' },
+  { id:'overview', icon:'🌐', title:'Platform Overview', roles: SA_ONLY, section:'Platform', path:'/dashboard/overview' },
+  { id:'platform', icon:'🏢', title:'Companies & Plans', roles: SA_ONLY, path:'/dashboard/companies' },
 
   // ── SUPPORT ──
   { id:'settings', icon:'⚙️', title:'Settings', roles: ALL, section:'Support', path:'/dashboard/settings' },
