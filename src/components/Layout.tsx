@@ -5,9 +5,10 @@ import { supabase } from '../lib/supabase';
 import { applyTheme, getSavedTheme, saveTheme, THEME_LIST } from './theme';
 
 // ═══════════════════════════════════════════════════════════
-// Layout.tsx v4.2 — RecruitBase Pro
+// Layout.tsx v4.3 — RecruitBase Pro
 // Clean sectioned sidebar + 6-theme picker at bottom (theme.ts).
-// Added: Billing & Plan menu in Administration.
+// v4.3: + Placements (Recruitment); Account Owner ka Dashboard
+//       /dashboard/ao (AO workspace) pe khulta hai.
 // ═══════════════════════════════════════════════════════════
 
 type SubMenu = { name: string; path: string; roles?: string[] };
@@ -40,6 +41,7 @@ const menuData: Menu[] = [
   { id:'jobs',   icon:'💼', title:'Jobs',           roles: STAFF,  path:'/dashboard/jobs' },
   { id:'apps',   icon:'📋', title:'Applications',   roles: HIRING, path:'/dashboard/applications' },
   { id:'int',    icon:'📅', title:'Interviews',     roles: HIRING, path:'/dashboard/interviews' },
+  { id:'place',  icon:'🎯', title:'Placements',     roles: HIRING, path:'/dashboard/placements' },
 
   // ── BUSINESS ──
   { id:'bd',     icon:'🤝', title:'Clients & BD',   roles: BD_TEAM, section:'Business', submenus:[
@@ -146,9 +148,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const visibleMenus = menuData.filter(m => m.roles.includes(userRole));
   const getVisibleSubmenus = (menu: Menu) => (menu.submenus || []).filter(s => !s.roles || s.roles.includes(userRole));
 
-  const isDirectActive = (menu: Menu) => menu.path === '/dashboard'
-    ? router.pathname === '/dashboard'
-    : !!menu.path && router.pathname === menu.path;
+  // Account Owner ka Dashboard -> AO workspace
+  const dashPath = userRole === 'account_owner' ? '/dashboard/ao' : '/dashboard';
+  const hrefFor = (menu: Menu) => (menu.id === 'dash' ? dashPath : (menu.path || '#'));
+
+  const isDirectActive = (menu: Menu) => {
+    if (menu.id === 'dash') return router.pathname === '/dashboard' || router.pathname === '/dashboard/ao';
+    return !!menu.path && router.pathname === menu.path;
+  };
   const isAccordionActive = (menu: Menu) => (menu.submenus || []).some(s => {
     const b = s.path.split('#')[0].split('?')[0];
     return router.pathname === b || router.asPath.startsWith(b + '#') || router.asPath.startsWith(b + '?');
@@ -222,7 +229,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 return (
                   <div key={menu.id}>
                     {menu.section && !isCollapsed && <div className="os-section">{menu.section}</div>}
-                    <Link href={menu.path!} className={`os-menu-item ${active ? 'active' : ''} ${isPlatform ? 'os-platform-item' : ''}`} title={isCollapsed ? menu.title : undefined} onClick={() => setIsMobileOpen(false)}>
+                    <Link href={hrefFor(menu)} className={`os-menu-item ${active ? 'active' : ''} ${isPlatform ? 'os-platform-item' : ''}`} title={isCollapsed ? menu.title : undefined} onClick={() => setIsMobileOpen(false)}>
                       <span style={{ fontSize: '18px', minWidth: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{menu.icon}</span>
                       {!isCollapsed && <span style={{ marginLeft: '12px', fontSize: '13.5px', fontWeight: active ? 600 : 500, flex: 1 }}>{menu.title}</span>}
                     </Link>
