@@ -40,12 +40,12 @@ function rangeBounds(k, minDate) {
 
 const deptOfProfile = (p) => {
   const t = (p?.type || 'Candidate').toLowerCase()
-  if (/bd|client|company|lead|business|prospect/.test(t)) return 'bd'
+  if (/\bbd\b|business|lead|prospect/.test(t)) return 'bd'
   return 'recruitment'
 }
 const deptOfUser = (u) => {
   const r = (u?.role || '').toLowerCase()
-  if (/bd|business|sales|client/.test(r)) return 'bd'
+  if (/\bbd\b|business|sales/.test(r)) return 'bd'
   return 'recruitment'
 }
 const isPlaced = (s) => /plac|joined/i.test(s || '')
