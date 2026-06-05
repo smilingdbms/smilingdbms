@@ -31,7 +31,13 @@ export default function DashboardIndex() {
         return
       }
 
-      // Everyone else → Master DB (data isolation via RLS)
+      // Account Owner → premium AO workspace dashboard
+      if (au.role === 'account_owner') {
+        router.replace('/dashboard/ao')
+        return
+      }
+
+      // Everyone else (recruiters, BD, etc.) → Master DB (data isolation via RLS)
       router.replace('/dashboard/master')
     }
 
