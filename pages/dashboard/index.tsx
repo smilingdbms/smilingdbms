@@ -25,7 +25,13 @@ export default function DashboardIndex() {
         return
       }
 
-      // ALL users → Master DB (data isolation via RLS)
+      // Super Admin / Platform Admin → Platform Overview (god-view)
+      if (['super_admin', 'platform_admin'].includes(au.role)) {
+        router.replace('/dashboard/overview')
+        return
+      }
+
+      // Everyone else → Master DB (data isolation via RLS)
       router.replace('/dashboard/master')
     }
 
