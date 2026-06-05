@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
+import { getPackage } from '../../src/lib/permissions-catalog'
 
 export default function InvitePage() {
   const router = useRouter()
@@ -40,6 +41,11 @@ export default function InvitePage() {
   }
 
   async function approveMember(memberId: string) {
+    // Seat guard — block approval if doing so would exceed the plan's seat limit
+    if (seatsUsed >= seatLimit) {
+      alert(`Your ${pkg.name} plan allows ${seatLimit} seats and all are in use. Please upgrade your plan to approve more members.`)
+      return
+    }
     setSaving(memberId)
     await supabase.from('app_users').update({ status: 'active' }).eq('id', memberId)
     await supabase.from('notifications').insert({
@@ -79,6 +85,13 @@ export default function InvitePage() {
   const pending = members.filter(m => m.status === 'pending')
   const active = members.filter(m => m.status === 'active' && m.id !== appUser?.id)
 
+  // ── Seat-limit logic ─────────────────────────────────────────────
+  const pkg = getPackage(company?.package_code)
+  const seatLimit = company?.seat_limit || pkg.seats
+  const seatsUsed = members.filter(m => m.status === 'active').length // includes the Account Owner
+  const seatsFull = seatsUsed >= seatLimit
+  // ─────────────────────────────────────────────────────────────────
+
   const ROLES = ['recruiter','sr_recruiter','team_leader','team_manager','bd_executive','bd_manager','individual_recruiter']
 
   const BADGE: any = {
@@ -100,20 +113,48 @@ export default function InvitePage() {
 
   return (
     <>
-      
-    
       <div style={{flex:1,overflowY:'auto',padding:'20px'}}>
         <div style={{maxWidth:720,margin:'0 auto'}}>
 
           <div style={{fontSize:18,fontWeight:800,marginBottom:4}}>👥 Team & Invites</div>
           <div style={{fontSize:12,color:'var(--mu)',marginBottom:20}}>Manage your company members, share invite links, and approve join requests.</div>
 
+          {/* Seat usage banner */}
+          {company && (
+            <div style={{...S.card, display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap',
+              border:`1px solid ${seatsFull ? 'rgba(255,159,67,0.4)' : 'var(--bd)'}`,
+              background: seatsFull ? 'rgba(255,159,67,0.05)' : 'var(--bg2)'}}>
+              <div>
+                <div style={{fontSize:13,fontWeight:700,marginBottom:2}}>
+                  🪑 {seatsUsed} / {seatLimit} seats used
+                  <span style={{fontSize:11,fontWeight:600,color:'var(--ac)',marginLeft:8}}>· {pkg.name} plan</span>
+                </div>
+                <div style={{fontSize:11,color:'var(--mu)'}}>
+                  {seatsFull
+                    ? 'All seats are in use. Upgrade your plan to add more members.'
+                    : `You can add ${seatLimit - seatsUsed} more member${seatLimit - seatsUsed === 1 ? '' : 's'}.`}
+                </div>
+              </div>
+              {seatsFull && (
+                <span style={{padding:'6px 14px',borderRadius:8,background:'rgba(255,159,67,0.15)',color:'#ff9f43',fontSize:12,fontWeight:700}}>
+                  🔒 Seats full
+                </span>
+              )}
+            </div>
+          )}
+
           {/* Company Code & Invite Link */}
           {company && (
             <div style={S.card}>
               <div style={{fontSize:13,fontWeight:700,marginBottom:14}}>🏢 {company.name}</div>
 
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+              {seatsFull && (
+                <div style={{background:'rgba(255,159,67,0.08)',border:'1px solid rgba(255,159,67,0.25)',borderRadius:10,padding:'10px 14px',marginBottom:14,fontSize:12,color:'#ff9f43',fontWeight:600}}>
+                  ⚠ All {seatLimit} seats are used. New members can't join until you upgrade your plan.
+                </div>
+              )}
+
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16, opacity: seatsFull ? 0.5 : 1, pointerEvents: seatsFull ? 'none' : 'auto'}}>
                 {/* Company Code */}
                 <div style={{background:'var(--bg3)',borderRadius:10,padding:14}}>
                   <span style={S.label}>Company Code</span>
@@ -143,8 +184,8 @@ export default function InvitePage() {
                 </div>
               </div>
 
-              {/* WhatsApp Share */}
-              <div style={{display:'flex',gap:8}}>
+              {/* WhatsApp / Email Share */}
+              <div style={{display:'flex',gap:8, opacity: seatsFull ? 0.5 : 1, pointerEvents: seatsFull ? 'none' : 'auto'}}>
                 <button onClick={()=>window.open(`https://wa.me/?text=${encodeURIComponent(`Hi! Join our team on RecruitBase Pro.\n\nCompany: ${company.name}\nCompany Code: ${company.company_code}\nSignup here: ${inviteLink}`)}`,'_blank')}
                   style={{padding:'8px 16px',borderRadius:8,background:'rgba(37,211,102,0.12)',color:'#25d366',border:'1px solid rgba(37,211,102,0.2)',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
                   💬 Share via WhatsApp
@@ -172,8 +213,9 @@ export default function InvitePage() {
                     <div style={{fontSize:11,color:'var(--mu)'}}>{m.email} · {m.role?.replace(/_/g,' ')}</div>
                   </div>
                   <div style={{display:'flex',gap:6}}>
-                    <button onClick={()=>approveMember(m.id)} disabled={saving===m.id}
-                      style={{padding:'6px 14px',borderRadius:8,background:'rgba(52,211,153,0.12)',color:'#34d399',border:'1px solid rgba(52,211,153,0.2)',cursor:'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit'}}>
+                    <button onClick={()=>approveMember(m.id)} disabled={saving===m.id || seatsFull}
+                      title={seatsFull ? 'Seats full — upgrade plan to approve' : ''}
+                      style={{padding:'6px 14px',borderRadius:8,background:'rgba(52,211,153,0.12)',color:'#34d399',border:'1px solid rgba(52,211,153,0.2)',cursor: seatsFull ? 'not-allowed' : 'pointer',fontSize:12,fontWeight:600,fontFamily:'inherit',opacity: seatsFull ? 0.5 : 1}}>
                       {saving===m.id?'…':'✓ Approve'}
                     </button>
                     <button onClick={()=>rejectMember(m.id)} disabled={saving===m.id}
@@ -183,6 +225,11 @@ export default function InvitePage() {
                   </div>
                 </div>
               ))}
+              {seatsFull && (
+                <div style={{fontSize:11,color:'#ff9f43',marginTop:10,fontWeight:600}}>
+                  🔒 Seats full — upgrade your plan to approve pending members.
+                </div>
+              )}
             </div>
           )}
 

@@ -1,4 +1,4 @@
-// pages/_app.tsx v2.1 — Fixed: /jobseeker no longer wrapped with staff Layout
+// pages/_app.tsx v2.2 — theme picker hidden on dashboard (moved to sidebar bottom in Layout)
 import type { AppProps } from 'next/app'
 import '../src/styles/globals.css'
 import { useEffect, useState, useCallback } from 'react'
@@ -6,7 +6,7 @@ import { useRouter } from 'next/router'
 import Layout from '../src/components/Layout'
 import { applyTheme, getSavedTheme, saveTheme, THEME_LIST } from '../src/components/theme'
 
-// ✅ FIXED: /jobseeker removed — it has its OWN sidebar (JobSeekerSidebar)
+// /jobseeker has its OWN sidebar (JobSeekerSidebar) — not wrapped with staff Layout
 const DASHBOARD_PATHS = ['/dashboard']
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -70,8 +70,9 @@ export default function App({ Component, pageProps }: AppProps) {
         <Component {...pageProps} />
       )}
 
-      {/* Theme Picker — visible everywhere except login */}
-      {!isLogin && (
+      {/* Theme picker — only on non-dashboard, non-login pages.
+          (On dashboard it lives in the sidebar bottom — see Layout.tsx) */}
+      {!isLogin && !isDashboard && (
         <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 9999 }} onClick={e => e.stopPropagation()}>
           {showPicker && (
             <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', right: 0, background: 'var(--bg2)', border: '1px solid var(--bd2)', borderRadius: 14, padding: 6, boxShadow: 'var(--shl)', minWidth: 170 }}>

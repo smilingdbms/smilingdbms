@@ -2,186 +2,70 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
+import { applyTheme, getSavedTheme, saveTheme, THEME_LIST } from './theme';
 
 // ═══════════════════════════════════════════════════════════
-// Layout.tsx v3.0 — RecruitBase Pro
-// Complete sidebar rewrite: role-based menus, friendly names
+// Layout.tsx v4.2 — RecruitBase Pro
+// Clean sectioned sidebar + 6-theme picker at bottom (theme.ts).
+// Added: Billing & Plan menu in Administration.
 // ═══════════════════════════════════════════════════════════
 
 type SubMenu = { name: string; path: string; roles?: string[] };
-type Menu = { id: string; icon: string; title: string; roles: string[]; submenus: SubMenu[] };
+type Menu = {
+  id: string; icon: string; title: string; roles: string[];
+  section?: string;
+  path?: string;
+  submenus?: SubMenu[];
+};
 
-const ALL = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter','bd','job_seeker'];
-const STAFF = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter','bd'];
+const ALL    = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter','bd','job_seeker'];
+const STAFF  = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter','bd'];
 const HIRING = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter'];
-const LEADS = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader'];
-const ADMIN = ['super_admin','platform_admin','platform_manager','account_owner'];
+const LEADS  = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader'];
+const ADMIN  = ['super_admin','platform_admin','platform_manager','account_owner'];
 const SA_ONLY = ['super_admin','platform_admin','platform_manager'];
-const BD_TEAM = ['super_admin','platform_admin','platform_manager','account_owner','bd'];
+const BD_TEAM = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader','bd'];
 
 const menuData: Menu[] = [
-  {
-    id: 'platform', icon: '🌐', title: 'Platform Control', roles: SA_ONLY,
-    submenus: [
-      { name: 'My Workspace', path: '/dashboard/ao' },
-      { name: 'All Candidates (Global)', path: '/dashboard/master' },
-      { name: 'All Job Seekers', path: '/dashboard/master#job-seekers' },
-      { name: 'All Companies', path: '/dashboard/admin#consultancies' },
-      { name: 'Packages & Plans', path: '/dashboard/companies' },
-      { name: 'Platform Analytics', path: '/dashboard/reports#platform' },
-    ]
-  },
-  {
-    id: 'account', icon: '🏢', title: 'Account Control', roles: ['account_owner'],
-    submenus: [
-      { name: 'My Workspace', path: '/dashboard/ao' },
-      { name: 'My Candidates', path: '/dashboard/candidates' },
-      { name: 'My Team', path: '/dashboard/admin#team' },
-      { name: 'Job Seekers', path: '/dashboard/admin#job-seekers' },
-      { name: 'Company Profile', path: '/dashboard/settings#company' },
-      { name: 'Account Analytics', path: '/dashboard/reports' },
-    ]
-  },
-  {
-    id: 'dash', icon: '🏠', title: 'Dashboard', roles: ALL,
-    submenus: [
-      { name: 'My Overview', path: '/dashboard' },
-      { name: 'Quick Stats', path: '/dashboard#stats', roles: LEADS },
-      { name: 'Notifications', path: '/dashboard/notifications' },
-    ]
-  },
-  {
-    id: 'cand', icon: '👥', title: 'Candidates', roles: HIRING,
-    submenus: [
-      { name: 'All Candidates', path: '/dashboard/candidates' },
-      { name: 'Add Candidate', path: '/dashboard/candidates?action=add' },
-      { name: 'Upload CV (AI Parse)', path: '/dashboard/candidates?action=upload' },
-      { name: 'Bulk CV Upload', path: '/dashboard/candidates?action=bulk_upload' },
-      { name: 'Bulk Import (CSV)', path: '/dashboard/candidates?action=import', roles: ADMIN },
-      { name: 'Blacklisted', path: '/dashboard/candidates#blacklisted', roles: ADMIN },
-    ]
-  },
-  {
-    id: 'jobs', icon: '💼', title: 'Jobs & Mandates', roles: ALL,
-    submenus: [
-      { name: 'All Jobs', path: '/dashboard/jobs' },
-      { name: 'Create Job', path: '/dashboard/jobs?action=add', roles: [...ADMIN, 'bd'] },
-      { name: 'Active Jobs', path: '/dashboard/jobs#active' },
-      { name: 'My Assigned Jobs', path: '/dashboard/jobs#my-jobs', roles: ['team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter'] },
-      { name: 'My Applications', path: '/dashboard/jobs#my-applications', roles: ['job_seeker'] },
-      { name: 'Closed Jobs', path: '/dashboard/jobs#closed', roles: LEADS },
-    ]
-  },
-  {
-    id: 'apps', icon: '📋', title: 'Applications', roles: HIRING,
-    submenus: [
-      { name: 'All Applications', path: '/dashboard/applications' },
-      { name: 'New / Unscreened', path: '/dashboard/applications#new' },
-      { name: 'Shortlisted', path: '/dashboard/applications#shortlisted' },
-      { name: 'Interview Stage', path: '/dashboard/applications#interview' },
-      { name: 'Offer Pipeline', path: '/dashboard/applications#offers', roles: LEADS },
-      { name: 'Joined Candidates', path: '/dashboard/applications#joined' },
-    ]
-  },
-  {
-    id: 'int', icon: '📅', title: 'Interviews', roles: [...HIRING, 'job_seeker'],
-    submenus: [
-      { name: 'All Interviews', path: '/dashboard/interviews' },
-      { name: "Today's Interviews", path: '/dashboard/interviews#today' },
-      { name: 'Upcoming', path: '/dashboard/interviews#upcoming' },
-      { name: 'Completed', path: '/dashboard/interviews#completed', roles: HIRING },
-      { name: 'Calendar View', path: '/dashboard/interviews#calendar' },
-    ]
-  },
-  {
-    id: 'pipe', icon: '🚀', title: 'Pipeline', roles: HIRING,
-    submenus: [
-      { name: 'Kanban Board', path: '/dashboard/applications#kanban' },
-      { name: 'Stage Wise View', path: '/dashboard/applications#stages', roles: LEADS },
-    ]
-  },
-  {
-    id: 'clients', icon: '🏢', title: 'Clients & BD', roles: BD_TEAM,
-    submenus: [
-      { name: 'All Clients', path: '/dashboard/bd' },
-      { name: 'Add New Client', path: '/dashboard/bd?action=add' },
-      { name: 'Active Clients', path: '/dashboard/bd#active-clients' },
-      { name: 'New Leads', path: '/dashboard/bd#leads' },
-      { name: 'BD Pipeline', path: '/dashboard/bd#pipeline' },
-      { name: 'Client Analytics', path: '/dashboard/bd#analytics', roles: ADMIN },
-    ]
-  },
-  {
-    id: 'place', icon: '🎯', title: 'Placements', roles: [...HIRING, 'bd'],
-    submenus: [
-      { name: 'All Placements', path: '/dashboard/placements' },
-      { name: 'Joining Pipeline', path: '/dashboard/placements#joining' },
-      { name: 'Completed Placements', path: '/dashboard/placements#completed' },
-      { name: 'Revenue Tracker', path: '/dashboard/placements#revenue', roles: [...ADMIN, 'bd'] },
-    ]
-  },
-  {
-    id: 'follow', icon: '📞', title: 'Follow Ups', roles: STAFF,
-    submenus: [
-      { name: "Today's Tasks", path: '/dashboard/follow-ups#today' },
-      { name: 'Overdue', path: '/dashboard/follow-ups#overdue' },
-      { name: 'Upcoming', path: '/dashboard/follow-ups#upcoming' },
-      { name: 'My Reminders', path: '/dashboard/follow-ups#reminders' },
-    ]
-  },
-  {
-    id: 'reports', icon: '📊', title: 'Reports', roles: LEADS,
-    submenus: [
-      { name: 'Performance Dashboard', path: '/dashboard/reports' },
-      { name: 'Recruiter Performance', path: '/dashboard/reports#recruiter' },
-      { name: 'Placement Reports', path: '/dashboard/reports#placements', roles: ADMIN },
-      { name: 'Revenue Reports', path: '/dashboard/reports#revenue', roles: ADMIN },
-      { name: 'Pipeline Analytics', path: '/dashboard/reports#pipeline' },
-      { name: 'My Performance', path: '/dashboard/reports#my-stats', roles: ['team_manager','team_leader','sr_recruiter','recruiter','individual_recruiter','bd'] },
-    ]
-  },
-  {
-    id: 'ai', icon: '🤖', title: 'AI Tools', roles: ALL,
-    submenus: [
-      { name: 'Talk to AI (Gemini)', path: '/dashboard/ai' },
-      { name: 'CV Parser', path: '/dashboard/ai#cv-parser', roles: [...HIRING, 'job_seeker'] },
-      { name: 'AI Job Writer', path: '/dashboard/ai#job-writer', roles: [...ADMIN, 'bd'] },
-      { name: 'Smart Match', path: '/dashboard/ai#smart-match', roles: HIRING },
-      { name: 'Resume Builder', path: '/dashboard/ai#resume-builder', roles: ['job_seeker'] },
-    ]
-  },
-  {
-    id: 'admin', icon: '🛡️', title: 'Admin Center', roles: ADMIN,
-    submenus: [
-      { name: 'My Team', path: '/dashboard/admin#team' },
-      { name: 'Pending Approvals', path: '/dashboard/admin#pending' },
-      { name: 'Job Seekers', path: '/dashboard/admin#job-seekers' },
-      { name: 'Invite User', path: '/dashboard/admin#invite' },
-      { name: 'Role Permissions', path: '/dashboard/admin#permissions' },
-      { name: 'All Consultancies', path: '/dashboard/admin#consultancies', roles: SA_ONLY },
-      { name: 'Audit Logs', path: '/dashboard/admin#audit-logs', roles: SA_ONLY },
-      { name: 'Platform Stats', path: '/dashboard/admin#platform', roles: SA_ONLY },
-    ]
-  },
-  {
-    id: 'settings', icon: '⚙️', title: 'Settings', roles: ALL,
-    submenus: [
-      { name: 'My Profile', path: '/dashboard/settings#profile' },
-      { name: 'Company Profile', path: '/dashboard/settings#company', roles: ADMIN },
-      { name: 'Email Templates', path: '/dashboard/settings#email-templates', roles: ADMIN },
-      { name: 'WhatsApp Templates', path: '/dashboard/settings#whatsapp-templates', roles: ADMIN },
-      { name: 'Integrations', path: '/dashboard/settings#integrations', roles: ADMIN },
-    ]
-  },
-  {
-    id: 'feedback', icon: '💬', title: 'Feedback & Support', roles: ALL,
-    submenus: [
-      { name: 'Send Feedback', path: '/dashboard/feedback' },
-      { name: 'Refer a Friend', path: '/dashboard/feedback#refer' },
-      { name: 'Help & FAQ', path: '/dashboard/feedback#help' },
-      { name: 'View All Feedback', path: '/dashboard/feedback#all', roles: SA_ONLY },
-    ]
-  },
+  // ── WORKSPACE ──
+  { id:'dash',   icon:'🏠', title:'Dashboard',      roles: STAFF, section:'Workspace', path:'/dashboard' },
+  { id:'notif',  icon:'🔔', title:'Notifications',  roles: STAFF, path:'/dashboard/notifications' },
+
+  // ── RECRUITMENT ──
+  { id:'cand',   icon:'👥', title:'Candidates',     roles: HIRING, section:'Recruitment', submenus:[
+      { name:'All Candidates', path:'/dashboard/master' },
+      { name:'Add Candidate',  path:'/dashboard/add-profile' },
+      { name:'Bulk Import',    path:'/dashboard/import', roles: ADMIN },
+  ]},
+  { id:'jobs',   icon:'💼', title:'Jobs',           roles: STAFF,  path:'/dashboard/jobs' },
+  { id:'apps',   icon:'📋', title:'Applications',   roles: HIRING, path:'/dashboard/applications' },
+  { id:'int',    icon:'📅', title:'Interviews',     roles: HIRING, path:'/dashboard/interviews' },
+
+  // ── BUSINESS ──
+  { id:'bd',     icon:'🤝', title:'Clients & BD',   roles: BD_TEAM, section:'Business', submenus:[
+      { name:'All Clients',  path:'/dashboard/bd' },
+      { name:'Stakeholders', path:'/dashboard/stakeholders', roles: ADMIN },
+  ]},
+  { id:'analytics', icon:'📊', title:'Analytics',   roles: LEADS,  path:'/dashboard/analytics' },
+  { id:'comms',  icon:'📨', title:'Communications', roles: STAFF,  path:'/dashboard/communications' },
+  { id:'ai',     icon:'🤖', title:'AI Tools',       roles: ALL,    path:'/dashboard/ai' },
+
+  // ── ADMINISTRATION ──
+  { id:'team',   icon:'👤', title:'Team & Access',  roles: ADMIN, section:'Administration', submenus:[
+      { name:'Team & Invites',       path:'/dashboard/invite' },
+      { name:'Employee Permissions', path:'/dashboard/permissions' },
+      { name:'Role Permissions',     path:'/dashboard/company-permissions' },
+  ]},
+  { id:'admin',  icon:'🛡️', title:'Admin Center',   roles: ADMIN, path:'/dashboard/admin' },
+  { id:'billing',icon:'💳', title:'Billing & Plan', roles: ADMIN, path:'/dashboard/billing' },
+  { id:'company',icon:'🏢', title:'Company Profile',roles: ADMIN, path:'/dashboard/company' },
+
+  // ── PLATFORM ──
+  { id:'platform', icon:'🌐', title:'Companies & Plans', roles: SA_ONLY, section:'Platform', path:'/dashboard/companies' },
+
+  // ── SUPPORT ──
+  { id:'settings', icon:'⚙️', title:'Settings', roles: ALL, section:'Support', path:'/dashboard/settings' },
+  { id:'feedback', icon:'💬', title:'Feedback', roles: ALL, path:'/dashboard/feedback' },
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -194,6 +78,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   const [userName, setUserName] = useState('');
   const [userRole, setUserRole] = useState('');
   const [loggingOut, setLoggingOut] = useState(false);
+  const [theme, setTheme] = useState('dark');
+  const [showThemePicker, setShowThemePicker] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -206,6 +92,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try { const s = localStorage.getItem('rbp_logo'); if (s) setBrandLogo(s); } catch {}
   }, []);
+
+  useEffect(() => { try { setTheme(getSavedTheme()); } catch {} }, []);
+
+  useEffect(() => {
+    if (!showThemePicker) return;
+    const close = () => setShowThemePicker(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [showThemePicker]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -240,10 +135,24 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   };
   const handleLogout = async () => { setLoggingOut(true); await supabase.auth.signOut(); router.push('/'); };
 
+  const changeTheme = (id: string) => { setTheme(id); applyTheme(id); saveTheme(id); setShowThemePicker(false); };
+  const handleThemeClick = () => {
+    if (isCollapsed && !isMobileOpen) { setIsCollapsed(false); setTimeout(() => setShowThemePicker(true), 150); }
+    else { setShowThemePicker(v => !v); }
+  };
+  const cur = THEME_LIST.find(t => t.id === theme) || THEME_LIST[0];
+
   const roleLabel = userRole.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   const visibleMenus = menuData.filter(m => m.roles.includes(userRole));
-  const isActiveMenu = (menu: Menu) => menu.submenus.some(s => { const b = s.path.split('#')[0].split('?')[0]; return router.pathname === b || router.asPath.startsWith(b + '#') || router.asPath.startsWith(b + '?'); });
-  const getVisibleSubmenus = (menu: Menu) => menu.submenus.filter(s => !s.roles || s.roles.includes(userRole));
+  const getVisibleSubmenus = (menu: Menu) => (menu.submenus || []).filter(s => !s.roles || s.roles.includes(userRole));
+
+  const isDirectActive = (menu: Menu) => menu.path === '/dashboard'
+    ? router.pathname === '/dashboard'
+    : !!menu.path && router.pathname === menu.path;
+  const isAccordionActive = (menu: Menu) => (menu.submenus || []).some(s => {
+    const b = s.path.split('#')[0].split('?')[0];
+    return router.pathname === b || router.asPath.startsWith(b + '#') || router.asPath.startsWith(b + '?');
+  });
 
   return (
     <>
@@ -251,22 +160,26 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         * { box-sizing: border-box; }
         body { margin: 0; padding: 0; }
         .os-layout { font-family: var(--fn, 'Outfit', sans-serif); background: var(--bg); color: var(--tx); display: flex; height: 100vh; overflow: hidden; }
-        .os-sidebar-scroll { flex: 1; overflow-y: auto; padding: 8px 0 12px; }
+        .os-sidebar-scroll { flex: 1; overflow-y: auto; padding: 6px 0 12px; }
         .os-sidebar-scroll::-webkit-scrollbar { width: 4px; }
         .os-sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
         .os-sidebar-scroll::-webkit-scrollbar-thumb { background: var(--bd2); border-radius: 4px; }
-        .os-menu-item { padding: 11px 18px; display: flex; align-items: center; cursor: pointer; color: var(--mu); border-left: 3px solid transparent; white-space: nowrap; overflow: hidden; transition: background 0.15s, color 0.15s; }
+        .os-section { font-size: 9.5px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--mu2, var(--mu)); padding: 14px 18px 5px; opacity: 0.65; }
+        .os-menu-item { padding: 11px 18px; display: flex; align-items: center; cursor: pointer; color: var(--mu); border-left: 3px solid transparent; white-space: nowrap; overflow: hidden; transition: background 0.15s, color 0.15s; text-decoration: none; }
         .os-menu-item:hover { background: var(--acbg); color: var(--tx); }
         .os-menu-item.active { background: var(--acbg); color: var(--ac); border-left-color: var(--ac); }
         .os-submenu-item { text-decoration: none; display: block; padding: 9px 18px 9px 58px; font-size: 12.5px; color: var(--mu); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.15s, background 0.15s, padding-left 0.15s; }
         .os-submenu-item:hover { color: var(--ac); background: var(--acbg); padding-left: 63px; }
         .os-submenu-item.active { color: var(--ac); font-weight: 600; }
-        .os-user-bar { padding: 12px 16px; border-top: 1px solid var(--bd); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+        .os-platform-item { background: var(--pubg, var(--acbg)) !important; border-left-color: #7C3AED !important; color: var(--pu, var(--ac)) !important; }
+        .os-footer { border-top: 1px solid var(--bd); flex-shrink: 0; }
+        .os-theme-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 18px; background: none; border: none; color: var(--mu); font-family: inherit; font-size: 13px; cursor: pointer; transition: background 0.15s, color 0.15s; }
+        .os-theme-btn:hover { background: var(--acbg); color: var(--tx); }
+        .os-theme-opt { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+        .os-theme-opt:hover { background: var(--acbg); }
+        .os-user-bar { padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
         .os-logout-btn { background: var(--rdbg); border: 1px solid var(--rd); color: var(--rd); border-radius: 7px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; width: 100%; margin-top: 6px; }
         .os-logout-btn:hover { background: var(--rd); }
-        .os-platform-item { background: var(--pubg) !important; border-left-color: #7C3AED !important; color: var(--pu) !important; }
-        .os-platform-item:hover { background: var(--pubg) !important; }
-        .os-section-divider { height: 1px; background: var(--bd); margin: 6px 16px; }
         .os-mobile-header { display: none; align-items: center; justify-content: space-between; padding: 0 20px; height: 58px; background: var(--nb); border-bottom: 1px solid var(--bd); position: fixed; top: 0; left: 0; right: 0; z-index: 50; }
         @media (max-width: 768px) { .os-mobile-header { display: flex; } .os-desktop-toggle { display: none !important; } .os-main-content { padding-top: 78px !important; } }
         @media (min-width: 769px) { .os-mobile-only { display: none !important; } }
@@ -282,6 +195,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="os-layout">
         <div style={{ width: isCollapsed ? '68px' : '280px', background: 'var(--nb)', borderRight: '1px solid var(--bd)', display: 'flex', flexDirection: 'column', zIndex: 99, flexShrink: 0, height: '100vh', position: isMobile ? 'fixed' : 'relative', transform: isMobile && !isMobileOpen ? 'translateX(-100%)' : 'translateX(0)', transition: 'width 0.28s ease, transform 0.28s ease', overflow: 'hidden' }}>
 
+          {/* Brand / logo */}
           <div style={{ height: '64px', display: 'flex', alignItems: 'center', justifyContent: isCollapsed ? 'center' : 'space-between', padding: isCollapsed ? '0 10px' : '0 16px', borderBottom: '1px solid var(--bd)', flexShrink: 0 }}>
             <input type="file" ref={fileInputRef} onChange={handleLogoUpload} accept="image/*" style={{ display: 'none' }} />
             {!isCollapsed && (
@@ -297,41 +211,80 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             <button className="os-desktop-toggle" onClick={toggleSidebar} title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'} style={{ background: 'none', border: 'none', color: 'var(--ac)', fontSize: '20px', cursor: 'pointer', flexShrink: 0, padding: '4px' }}>{isCollapsed ? '☰' : '✖'}</button>
           </div>
 
+          {/* Menu */}
           <div className="os-sidebar-scroll">
             {visibleMenus.map((menu) => {
+              const isPlatform = menu.id === 'platform';
+              const isDirect = !!menu.path && (!menu.submenus || menu.submenus.length === 0);
+
+              if (isDirect) {
+                const active = isDirectActive(menu);
+                return (
+                  <div key={menu.id}>
+                    {menu.section && !isCollapsed && <div className="os-section">{menu.section}</div>}
+                    <Link href={menu.path!} className={`os-menu-item ${active ? 'active' : ''} ${isPlatform ? 'os-platform-item' : ''}`} title={isCollapsed ? menu.title : undefined} onClick={() => setIsMobileOpen(false)}>
+                      <span style={{ fontSize: '18px', minWidth: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{menu.icon}</span>
+                      {!isCollapsed && <span style={{ marginLeft: '12px', fontSize: '13.5px', fontWeight: active ? 600 : 500, flex: 1 }}>{menu.title}</span>}
+                    </Link>
+                  </div>
+                );
+              }
+
               const isOpen = openMenu === menu.id;
-              const isActive = isActiveMenu(menu);
-              const isPlatform = menu.id === 'platform' || menu.id === 'account';
-              const visibleSubs = getVisibleSubmenus(menu);
+              const active = isAccordionActive(menu);
+              const subs = getVisibleSubmenus(menu);
               return (
                 <div key={menu.id}>
-                  <div className={`os-menu-item ${isActive ? 'active' : ''} ${isPlatform ? 'os-platform-item' : ''}`} onClick={() => handleAccordion(menu.id)} title={isCollapsed ? menu.title : undefined}>
+                  {menu.section && !isCollapsed && <div className="os-section">{menu.section}</div>}
+                  <div className={`os-menu-item ${active ? 'active' : ''}`} onClick={() => handleAccordion(menu.id)} title={isCollapsed ? menu.title : undefined}>
                     <span style={{ fontSize: '18px', minWidth: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{menu.icon}</span>
-                    {!isCollapsed && (<><span style={{ marginLeft: '12px', fontSize: '13.5px', fontWeight: isActive ? 600 : 500, flex: 1 }}>{menu.title}</span><span style={{ fontSize: '11px', color: 'var(--mu)', marginLeft: '4px' }}>{isOpen ? '▼' : '▶'}</span></>)}
+                    {!isCollapsed && (<><span style={{ marginLeft: '12px', fontSize: '13.5px', fontWeight: active ? 600 : 500, flex: 1 }}>{menu.title}</span><span style={{ fontSize: '11px', color: 'var(--mu)', marginLeft: '4px' }}>{isOpen ? '▼' : '▶'}</span></>)}
                   </div>
-                  {isOpen && !isCollapsed && visibleSubs.length > 0 && (
+                  {isOpen && !isCollapsed && subs.length > 0 && (
                     <div style={{ background: 'var(--nb)', paddingBottom: '4px' }}>
-                      {visibleSubs.map((sub, idx) => {
+                      {subs.map((sub, idx) => {
                         const bp = sub.path.split('#')[0].split('?')[0];
                         const sa = router.asPath === sub.path || (router.pathname === bp && sub.path === bp);
                         return <Link href={sub.path} key={idx} className={`os-submenu-item ${sa ? 'active' : ''}`} onClick={() => setIsMobileOpen(false)}>· {sub.name}</Link>;
                       })}
                     </div>
                   )}
-                  {isPlatform && !isCollapsed && <div className="os-section-divider" />}
                 </div>
               );
             })}
           </div>
 
-          <div className="os-user-bar" style={{ flexDirection: 'column', alignItems: 'flex-start' }}>
-            {!isCollapsed && userName && (
-              <div style={{ width: '100%', marginBottom: '2px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
-                {roleLabel && <div style={{ fontSize: '10px', color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{roleLabel}</div>}
-              </div>
-            )}
-            <button className="os-logout-btn" onClick={handleLogout} disabled={loggingOut} title="Logout">{isCollapsed ? '🚪' : (loggingOut ? 'Logging out...' : '🚪 Logout')}</button>
+          {/* Footer: theme picker + user + logout */}
+          <div className="os-footer">
+            <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
+              {showThemePicker && !isCollapsed && (
+                <div style={{ position: 'absolute', bottom: 'calc(100% + 4px)', left: 12, right: 12, background: 'var(--bg2)', border: '1px solid var(--bd2)', borderRadius: 12, padding: 6, boxShadow: 'var(--shl)', zIndex: 100 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, padding: '6px 10px 8px', color: 'var(--mu)', borderBottom: '1px solid var(--bd)', marginBottom: 4 }}>🎨 Theme</div>
+                  {THEME_LIST.map(t => (
+                    <div key={t.id} className="os-theme-opt" onClick={() => changeTheme(t.id)} style={{ background: theme === t.id ? 'var(--acbg)' : 'transparent' }}>
+                      <span style={{ width: 11, height: 11, borderRadius: '50%', background: t.color, flexShrink: 0, outline: theme === t.id ? `2px solid ${t.color}` : 'none', outlineOffset: 2 }} />
+                      <span style={{ fontSize: 12, color: theme === t.id ? 'var(--ac)' : 'var(--tx)', fontWeight: theme === t.id ? 600 : 400, flex: 1 }}>{t.emoji} {t.label}</span>
+                      {theme === t.id && <span style={{ color: 'var(--ac)', fontSize: 11 }}>✓</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <button className="os-theme-btn" onClick={handleThemeClick} title={isCollapsed ? `Theme: ${cur.label}` : undefined}>
+                <span style={{ fontSize: '18px', minWidth: '28px', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{cur.emoji}</span>
+                {!isCollapsed && <span style={{ flex: 1, textAlign: 'left' }}>{cur.label}</span>}
+                {!isCollapsed && <span style={{ fontSize: '11px', color: 'var(--mu)' }}>▴</span>}
+              </button>
+            </div>
+
+            <div className="os-user-bar" style={{ flexDirection: 'column', alignItems: 'flex-start', borderTop: '1px solid var(--bd)' }}>
+              {!isCollapsed && userName && (
+                <div style={{ width: '100%', marginBottom: '2px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userName}</div>
+                  {roleLabel && <div style={{ fontSize: '10px', color: 'var(--mu)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>{roleLabel}</div>}
+                </div>
+              )}
+              <button className="os-logout-btn" onClick={handleLogout} disabled={loggingOut} title="Logout">{isCollapsed ? '🚪' : (loggingOut ? 'Logging out...' : '🚪 Logout')}</button>
+            </div>
           </div>
         </div>
 
