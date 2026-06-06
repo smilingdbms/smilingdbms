@@ -25,6 +25,8 @@ export default function AIMatch() {
   const [jobId, setJobId] = useState('')
   const [req, setReq] = useState({ role: '', skills: '', location: '', minExp: '', maxCtc: '' })
   const [ranked, setRanked] = useState(null)
+  const [query, setQuery] = useState('')
+  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -58,11 +60,30 @@ export default function AIMatch() {
     return parseNum(c.total_experience) ?? parseNum(c.experience) ?? parseNum(c.relevant_experience) ?? 0
   }
 
-  function rank() {
-    const reqSkills = splitList(req.skills)
-    const minExp = parseNum(req.minExp)
-    const maxCtc = parseNum(req.maxCtc)
-    const loc = (req.location || '').trim().toLowerCase()
+  async function doSearch() {
+    if (!query.trim()) return
+    setSearching(true)
+    try {
+      const res = await fetch('/api/ai-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) })
+      const d = await res.json()
+      if (d?.ok && d.filters) {
+        const f = d.filters
+        const nr = { role: f.role || '', skills: (f.skills || []).join(', '), location: f.location || '', minExp: f.min_experience ?? '', maxCtc: f.max_ctc ?? '' }
+        setReq(nr); rank(nr)
+      } else throw new Error('ai')
+    } catch {
+      // graceful fallback: treat query words as skills, switch to manual
+      const nr = { ...req, skills: query }
+      setReq(nr); rank(nr)
+    }
+    setSearching(false)
+  }
+
+  function rank(rq = req) {
+    const reqSkills = splitList(rq.skills)
+    const minExp = parseNum(rq.minExp)
+    const maxCtc = parseNum(rq.maxCtc)
+    const loc = (rq.location || '').trim().toLowerCase()
     const hasSkills = reqSkills.length > 0
 
     const scored = cands.map(c => {
@@ -116,9 +137,21 @@ export default function AIMatch() {
 
         <div className="m-card" style={{ marginBottom: 16 }}>
           <div className="seg" style={{ marginBottom: 14 }}>
+            <button className={mode === 'search' ? 'on' : ''} onClick={() => setMode('search')}>🔎 AI Search</button>
             <button className={mode === 'job' ? 'on' : ''} onClick={() => setMode('job')}>💼 From a Job</button>
-            <button className={mode === 'manual' ? 'on' : ''} onClick={() => setMode('manual')}>✍️ Manual Requirement</button>
+            <button className={mode === 'manual' ? 'on' : ''} onClick={() => setMode('manual')}>✍️ Manual</button>
           </div>
+
+          {mode === 'search' && (
+            <div style={{ marginBottom: 14 }}>
+              <label style={lbl}>Describe who you're looking for (plain English / Hinglish)</label>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input style={{ ...inStyle, flex: 1, minWidth: 220 }} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && doSearch()} placeholder='e.g. "React developers in Noida with 3+ years under 12 LPA"' />
+                <button onClick={doSearch} disabled={searching} style={{ background: '#10b981', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'inherit' }}>{searching ? '🔎 Thinking…' : '🔎 Search'}</button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: 6 }}>AI tumhari query ko skills/location/experience/CTC mein todega, phir rank karega. Niche fields edit bhi kar sakte ho.</div>
+            </div>
+          )}
 
           {mode === 'job' && (
             <div style={{ marginBottom: 14 }}>
