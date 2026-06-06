@@ -14,6 +14,14 @@ import { supabase } from '../../src/lib/supabase'
 
 const INDUSTRIES = ['IT Services', 'Software Product', 'E-commerce', 'Finance', 'Banking', 'EdTech', 'Recruitment', 'Manufacturing', 'Healthcare', 'Real Estate', 'Logistics', 'Other']
 const parseJSON = (d, fb = []) => { try { return typeof d === 'string' ? JSON.parse(d) : (d || fb) } catch { return fb } }
+const FLAG_M = 500 // flag a visit if farther than this from the company's registered location
+function haversine(aLat, aLng, bLat, bLng) {
+  const R = 6371000, toR = x => x * Math.PI / 180
+  const dLat = toR(bLat - aLat), dLng = toR(bLng - aLng)
+  const x = Math.sin(dLat / 2) ** 2 + Math.cos(toR(aLat)) * Math.cos(toR(bLat)) * Math.sin(dLng / 2) ** 2
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)))
+}
+const fmtDist = (m) => m == null ? '' : (m >= 1000 ? (m / 1000).toFixed(1) + ' km' : m + ' m')
 
 export default function FieldVisits() {
   const router = useRouter()
@@ -34,7 +42,10 @@ export default function FieldVisits() {
   const [linkMode, setLinkMode] = useState('new')      // new | existing
   const [leadId, setLeadId] = useState('')
   const [form, setForm] = useState({ client_name: '', industry: '', purpose: 'Client Meeting', requirement: '', notes: '', next_followup: '' })
+  const [view, setView] = useState('list')   // list | map
+  const [dayFilter, setDayFilter] = useState('all')
   const videoRef = useRef(null), canvasRef = useRef(null), streamRef = useRef(null)
+  const mapRef = useRef(null), mapObj = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -52,7 +63,7 @@ export default function FieldVisits() {
     const { data } = await q; setVisits(data || [])
   }
   async function loadLeads(au) {
-    let q = supabase.from('bd_pipeline').select('id, company_name, stage, sector, feedback, next_followup').order('created_at', { ascending: false })
+    let q = supabase.from('bd_pipeline').select('id, company_name, stage, sector, feedback, next_followup, latitude, longitude').order('created_at', { ascending: false })
     if (au?.company_id) q = q.eq('company_id', au.company_id)
     const { data } = await q; setLeads(data || [])
   }
@@ -145,6 +156,7 @@ export default function FieldVisits() {
       const visitEntry = { date: when, author, text: entryText, tagged: [] }
 
       let linkedId = leadId
+      let distance_m = null, flagged = false
       if (linkMode === 'new') {
         // 1st visit → auto-create BD pipeline lead (manual flow untouched, same table)
         const payload = {
@@ -154,6 +166,7 @@ export default function FieldVisits() {
           stage: form.requirement ? 'Requirement Received' : 'Contacted',
           notes: form.notes || '', bd_owner: author, commercial_type: 'Percentage (%)', value: '',
           agreement_file: '', company_id: me?.company_id || null,
+          latitude: loc?.lat ?? null, longitude: loc?.lng ?? null,
           tags: '[]', feedback: JSON.stringify([visitEntry]),
         }
         const ins = await supabase.from('bd_pipeline').insert([payload]).select('id').single()
@@ -167,6 +180,11 @@ export default function FieldVisits() {
         if (form.next_followup) upd.next_followup = form.next_followup
         if (form.requirement) { upd.requirement_status = 'Requirement Shared'; upd.stage = 'Requirement Received' }
         else if (lead?.stage === 'New Lead') upd.stage = 'Contacted'
+        // distance / anti-fraud
+        if (loc && lead?.latitude && lead?.longitude) {
+          distance_m = haversine(lead.latitude, lead.longitude, loc.lat, loc.lng)
+          flagged = distance_m > FLAG_M
+        } else if (loc) { upd.latitude = loc.lat; upd.longitude = loc.lng } // establish reference
         const { error } = await supabase.from('bd_pipeline').update(upd).eq('id', leadId)
         if (error) throw error
       }
@@ -174,10 +192,11 @@ export default function FieldVisits() {
       // link the visit record to the BD lead
       const { error: ve } = await supabase.from('bd_visits').update({
         client_name: companyName, industry: form.industry || null, purpose: form.purpose || null,
-        notes: form.notes || null, bd_pipeline_id: linkedId,
+        notes: form.notes || null, bd_pipeline_id: linkedId, distance_m, flagged,
       }).eq('id', rowId)
       if (ve) throw ve
 
+      if (flagged) alert('⚠️ Note: Ye visit registered office se ' + fmtDist(distance_m) + ' door hai (flagged for manager review).')
       resetAll(); setMode('list'); await Promise.all([loadVisits(me), loadLeads(me)])
     } catch (e) { alert('Save nahi hua: ' + (e.message || 'error')) }
     setSaving(false)
@@ -186,9 +205,44 @@ export default function FieldVisits() {
   function resetAll() { setShotUrl(null); setRowId(null); setLoc(null); setLinkMode('new'); setLeadId(''); setForm({ client_name: '', industry: '', purpose: 'Client Meeting', requirement: '', notes: '', next_followup: '' }); setCamErr('') }
   function cancel() { stopCam(); resetAll(); setMode('list') }
 
+  // ── Manager Map view (Leaflet via CDN, free) ──
+  useEffect(() => {
+    if (mode !== 'list' || view !== 'map' || !mapRef.current) return
+    let cancelled = false, map
+    const ensure = () => new Promise((res) => {
+      if (window.L) return res()
+      if (!document.getElementById('leaflet-css')) { const l = document.createElement('link'); l.id = 'leaflet-css'; l.rel = 'stylesheet'; l.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(l) }
+      let sc = document.getElementById('leaflet-js')
+      if (!sc) { sc = document.createElement('script'); sc.id = 'leaflet-js'; sc.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; sc.onload = res; document.body.appendChild(sc) }
+      else { const t = setInterval(() => { if (window.L) { clearInterval(t); res() } }, 100); setTimeout(() => clearInterval(t), 6000) }
+    })
+    ensure().then(() => {
+      if (cancelled || !mapRef.current) return
+      const L = window.L
+      map = L.map(mapRef.current).setView([22.5, 78.9], 4); mapObj.current = map
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map)
+      const pts = mapVisits.filter(v => v.latitude && v.longitude)
+      const latlngs = []
+      pts.forEach(v => {
+        const c = v.flagged ? '#EF4444' : '#10b981'
+        L.circleMarker([v.latitude, v.longitude], { radius: 9, color: '#fff', weight: 2, fillColor: c, fillOpacity: 0.9 })
+          .addTo(map)
+          .bindPopup(`<b>${v.client_name || 'Field Visit'}</b><br>${v.purpose || ''}<br>${v.created_at ? new Date(v.created_at).toLocaleString('en-IN') : ''}${v.flagged ? `<br><span style="color:#EF4444">⚠ ${fmtDist(v.distance_m)} away</span>` : ''}`)
+        latlngs.push([v.latitude, v.longitude])
+      })
+      if (dayFilter !== 'all' && latlngs.length > 1) L.polyline(latlngs, { color: '#10b981', weight: 3, opacity: 0.6, dashArray: '6 6' }).addTo(map)
+      if (latlngs.length) map.fitBounds(latlngs, { padding: [40, 40], maxZoom: 15 })
+      setTimeout(() => map.invalidateSize(), 200)
+    })
+    return () => { cancelled = true; try { map && map.remove() } catch {} mapObj.current = null }
+  }, [mode, view, dayFilter, visits])
+
   if (loading) return <div style={{ padding: 60, textAlign: 'center', color: 'var(--mu)' }}>Loading visits…</div>
 
   const selLead = leads.find(l => l.id === leadId)
+  const days = Array.from(new Set(visits.filter(v => v.created_at).map(v => new Date(v.created_at).toLocaleDateString('en-IN'))))
+  const mapVisits = dayFilter === 'all' ? visits : visits.filter(v => v.created_at && new Date(v.created_at).toLocaleDateString('en-IN') === dayFilter)
+  const flaggedCount = visits.filter(v => v.flagged).length
 
   return (
     <>
@@ -296,36 +350,63 @@ export default function FieldVisits() {
           </div>
         )}
 
-        {/* LIST (separate time-wise visit records) */}
+        {/* LIST / MAP */}
         {mode === 'list' && (
-          visits.length === 0 ? (
-            <div className="v-card" style={{ textAlign: 'center', padding: 50, color: 'var(--mu)' }}>
-              <div style={{ fontSize: 38, marginBottom: 10 }}>📸</div>
-              <div style={{ fontWeight: 600, fontSize: 14 }}>No visits logged yet</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Tap “+ New Visit” when you reach a client.</div>
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+              <div className="seg" style={{ width: 'auto' }}>
+                <button className={view === 'list' ? 'on' : ''} style={{ padding: '8px 16px' }} onClick={() => setView('list')}>📋 List</button>
+                <button className={view === 'map' ? 'on' : ''} style={{ padding: '8px 16px' }} onClick={() => setView('map')}>🗺️ Map</button>
+              </div>
+              {view === 'map' && days.length > 0 && (
+                <select className="v-in" style={{ width: 'auto' }} value={dayFilter} onChange={e => setDayFilter(e.target.value)}>
+                  <option value="all">All days</option>
+                  {days.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              )}
+              {flaggedCount > 0 && <span style={{ fontSize: 12, fontWeight: 700, color: '#EF4444', background: 'rgba(239,68,68,0.12)', padding: '5px 11px', borderRadius: 20 }}>⚠️ {flaggedCount} flagged</span>}
+              <span style={{ fontSize: 12, color: 'var(--mu2)', marginLeft: 'auto' }}>{visits.length} visits</span>
             </div>
-          ) : (
-            <div className="v-grid">
-              {visits.map(v => (
-                <div key={v.id} className="v-card">
-                  {v.photo_url && <img src={v.photo_url} alt="" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />}
-                  <div style={{ padding: 14 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>{v.client_name || 'Field Visit'}</div>
-                      {v.bd_pipeline_id && <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>● BD linked</span>}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 2 }}>{[v.purpose, v.industry].filter(Boolean).join(' · ')}</div>
-                    <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 8 }}>📍 {v.address ? (v.address.length > 50 ? v.address.slice(0, 50) + '…' : v.address) : `${v.latitude}, ${v.longitude}`}{v.accuracy_m ? ` (±${v.accuracy_m}m)` : ''}</div>
-                    {v.notes && <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 6 }}>{v.notes}</div>}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
-                      <span style={{ fontSize: 11, color: 'var(--mu2)' }}>{v.created_at ? new Date(v.created_at).toLocaleString('en-IN') : ''}</span>
-                      {v.google_maps_url && <a href={v.google_maps_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>Map →</a>}
-                    </div>
-                  </div>
+
+            {view === 'map' ? (
+              <div className="v-card" style={{ padding: 10 }}>
+                <div ref={mapRef} style={{ height: '62vh', width: '100%', borderRadius: 12, overflow: 'hidden', background: 'var(--bg3)' }} />
+                <div style={{ fontSize: 11, color: 'var(--mu2)', marginTop: 8, display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <span>🟢 On-location visit</span><span>🔴 Flagged ({'>'}{FLAG_M}m from office)</span>{dayFilter !== 'all' && <span>— — route for {dayFilter}</span>}
                 </div>
-              ))}
-            </div>
-          )
+              </div>
+            ) : (
+              visits.length === 0 ? (
+                <div className="v-card" style={{ textAlign: 'center', padding: 50, color: 'var(--mu)' }}>
+                  <div style={{ fontSize: 38, marginBottom: 10 }}>📸</div>
+                  <div style={{ fontWeight: 600, fontSize: 14 }}>No visits logged yet</div>
+                  <div style={{ fontSize: 13, marginTop: 4 }}>Tap “+ New Visit” when you reach a client.</div>
+                </div>
+              ) : (
+                <div className="v-grid">
+                  {visits.map(v => (
+                    <div key={v.id} className="v-card">
+                      {v.photo_url && <img src={v.photo_url} alt="" style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />}
+                      <div style={{ padding: 14 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>{v.client_name || 'Field Visit'}</div>
+                          {v.bd_pipeline_id && <span style={{ fontSize: 10, fontWeight: 700, color: '#10b981', background: 'rgba(16,185,129,0.15)', padding: '2px 8px', borderRadius: 12, whiteSpace: 'nowrap' }}>● BD linked</span>}
+                        </div>
+                        <div style={{ fontSize: 11, color: '#10b981', fontWeight: 600, marginTop: 2 }}>{[v.purpose, v.industry].filter(Boolean).join(' · ')}</div>
+                        {v.flagged && <div style={{ fontSize: 11, fontWeight: 700, color: '#EF4444', background: 'rgba(239,68,68,0.12)', padding: '3px 9px', borderRadius: 12, display: 'inline-block', marginTop: 6 }}>⚠️ {fmtDist(v.distance_m)} from office</div>}
+                        <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 8 }}>📍 {v.address ? (v.address.length > 50 ? v.address.slice(0, 50) + '…' : v.address) : `${v.latitude}, ${v.longitude}`}{v.accuracy_m ? ` (±${v.accuracy_m}m)` : ''}</div>
+                        {v.notes && <div style={{ fontSize: 12, color: 'var(--mu)', marginTop: 6 }}>{v.notes}</div>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                          <span style={{ fontSize: 11, color: 'var(--mu2)' }}>{v.created_at ? new Date(v.created_at).toLocaleString('en-IN') : ''}</span>
+                          {v.google_maps_url && <a href={v.google_maps_url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: '#10b981', fontWeight: 600, textDecoration: 'none' }}>Map →</a>}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            )}
+          </>
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       </div>
