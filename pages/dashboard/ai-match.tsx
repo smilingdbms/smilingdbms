@@ -27,6 +27,7 @@ export default function AIMatch() {
   const [ranked, setRanked] = useState(null)
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
+  const [searchNote, setSearchNote] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -62,7 +63,7 @@ export default function AIMatch() {
 
   async function doSearch() {
     if (!query.trim()) return
-    setSearching(true)
+    setSearching(true); setSearchNote('')
     try {
       const res = await fetch('/api/ai-search', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ query }) })
       const d = await res.json()
@@ -72,9 +73,8 @@ export default function AIMatch() {
         setReq(nr); rank(nr)
       } else throw new Error('ai')
     } catch {
-      // graceful fallback: treat query words as skills, switch to manual
-      const nr = { ...req, skills: query }
-      setReq(nr); rank(nr)
+      // AI unavailable → point to the reliable structured fields (no garbage parsing)
+      setMode('manual'); setSearchNote('🔎 AI abhi unavailable — neeche fields bhar ke "Rank Candidates" dabao.')
     }
     setSearching(false)
   }
@@ -163,6 +163,8 @@ export default function AIMatch() {
               {jobs.length === 0 && <div style={{ fontSize: 12, color: 'var(--mu2)', marginTop: 6 }}>Koi job nahi mila — "Manual Requirement" use karo.</div>}
             </div>
           )}
+
+          {searchNote && <div style={{ fontSize: 13, color: '#F59E0B', background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 9, padding: '9px 12px', marginBottom: 12 }}>{searchNote}</div>}
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))', gap: 12 }}>
             <div><label style={lbl}>Role / Title</label><input style={inStyle} value={req.role} onChange={e => setReq({ ...req, role: e.target.value })} placeholder="e.g. React Developer" /></div>
