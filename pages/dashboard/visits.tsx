@@ -26,7 +26,8 @@ export default function FieldVisits() {
   const [rowId, setRowId] = useState(null)       // inserted visit id
   const [form, setForm] = useState({ client_name: '', industry: '', purpose: 'Client Meeting', notes: '' })
   const [saving, setSaving] = useState(false)
-  const videoRef = useRef(null), canvasRef = useRef(null), streamRef = useRef(null), fileRef = useRef(null)
+  const [facing, setFacing] = useState('environment')
+  const videoRef = useRef(null), canvasRef = useRef(null), streamRef = useRef(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -45,13 +46,17 @@ export default function FieldVisits() {
   }
 
   async function startCam() {
-    setCamErr(''); setMode('capture'); setShotUrl(null); getLocation()
+    setCamErr(''); setMode('capture'); setShotUrl(null); getLocation(); await openStream(facing)
+  }
+  async function openStream(f) {
+    stopCam()
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: f } }, audio: false })
       streamRef.current = stream
       if (videoRef.current) { videoRef.current.srcObject = stream; await videoRef.current.play() }
-    } catch { setCamErr('Camera nahi khuli — permission allow karo, ya neeche se photo upload karo.') }
+    } catch { setCamErr('Camera nahi khuli — permission allow karke retry karo.') }
   }
+  function flipCam() { const nf = facing === 'environment' ? 'user' : 'environment'; setFacing(nf); openStream(nf) }
   function stopCam() { try { streamRef.current?.getTracks().forEach(t => t.stop()) } catch {} streamRef.current = null }
 
   function getLocation() {
@@ -59,9 +64,10 @@ export default function FieldVisits() {
     setLocating(true)
     navigator.geolocation.getCurrentPosition(async (pos) => {
       const lat = +pos.coords.latitude.toFixed(6), lng = +pos.coords.longitude.toFixed(6)
+      const acc = pos.coords.accuracy ? Math.round(pos.coords.accuracy) : null
       let address = ''
       try { const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`, { headers: { Accept: 'application/json' } }); const d = await r.json(); address = d?.display_name || '' } catch {}
-      setLoc({ lat, lng, address }); setLocating(false)
+      setLoc({ lat, lng, address, acc }); setLocating(false)
     }, () => { setLocating(false); setCamErr('Location permission denied — allow karke retry karo.') }, { enableHighAccuracy: true, timeout: 15000 })
   }
 
@@ -73,7 +79,7 @@ export default function FieldVisits() {
     const lines = [
       '📍 Field Visit',
       curLoc?.address ? (curLoc.address.length > 70 ? curLoc.address.slice(0, 70) + '…' : curLoc.address) : 'Address: not captured',
-      `Lat ${curLoc?.lat ?? '—'}, Lng ${curLoc?.lng ?? '—'}`,
+      `Lat ${curLoc?.lat ?? '—'}, Lng ${curLoc?.lng ?? '—'}${curLoc?.acc ? ` (±${curLoc.acc}m)` : ''}`,
       `${now.toLocaleDateString('en-IN')} ${now.toLocaleTimeString('en-IN')} · ${me?.full_name || me?.email || ''}`,
     ]
     const pad = Math.round(W * 0.025), fs = Math.max(13, Math.round(W * 0.022)), lh = fs * 1.5, panelH = lines.length * lh + pad * 1.5
@@ -97,6 +103,7 @@ export default function FieldVisits() {
         company_id: me?.company_id || null, user_id: me?.id, photo_url: pub?.publicUrl || null,
         latitude: curLoc?.lat ?? null, longitude: curLoc?.lng ?? null, address: curLoc?.address || null,
         google_maps_url: curLoc ? `https://www.google.com/maps?q=${curLoc.lat},${curLoc.lng}` : null,
+        accuracy_m: curLoc?.acc ?? null,
         purpose: 'Client Meeting',
       }
       const ins = await supabase.from('bd_visits').insert([row]).select('id').single()
@@ -110,13 +117,10 @@ export default function FieldVisits() {
   }
 
   async function capture() {
+    if (!loc) { setCamErr('📡 GPS lock baaki hai — location aate hi capture enable hoga.'); return }
     const v = videoRef.current
     if (!v || !v.videoWidth) { setCamErr('Camera ready nahi hai, thoda ruko.'); return }
     const blob = await stampToCanvas(v, v.videoWidth, v.videoHeight, loc); stopCam(); autoUpload(blob, loc)
-  }
-  function onFile(e) {
-    const f = e.target.files?.[0]; if (!f) return
-    const img = new Image(); img.onload = async () => { const blob = await stampToCanvas(img, img.width, img.height, loc); autoUpload(blob, loc) }; img.src = URL.createObjectURL(f)
   }
 
   async function saveDetails() {
@@ -162,17 +166,18 @@ export default function FieldVisits() {
         {mode === 'capture' && (
           <div className="v-card" style={{ padding: 16 }}>
             <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden', aspectRatio: '3/4', maxHeight: '60vh', margin: '0 auto', display: 'flex', justifyContent: 'center' }}>
-              <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', top: 10, left: 10, right: 10, background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: 12, padding: '7px 11px', borderRadius: 8 }}>
-                {locating ? '📡 Getting location…' : loc ? `📍 ${loc.address ? loc.address.slice(0, 50) : loc.lat + ', ' + loc.lng}` : '📍 Location pending'}
+              <video ref={videoRef} playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: facing === 'user' ? 'scaleX(-1)' : 'none' }} />
+              <div style={{ position: 'absolute', top: 10, left: 10, right: 10, background: loc ? 'rgba(16,185,129,0.85)' : 'rgba(0,0,0,0.55)', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 11px', borderRadius: 8 }}>
+                {locating ? '📡 Getting GPS lock…' : loc ? `📍 Locked ${loc.acc ? `(±${loc.acc}m)` : ''} — ${loc.address ? loc.address.slice(0, 42) : loc.lat + ', ' + loc.lng}` : '📍 GPS lock pending…'}
               </div>
+              <button onClick={flipCam} title="Flip camera" style={{ position: 'absolute', bottom: 12, right: 12, background: 'rgba(0,0,0,0.55)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)', borderRadius: '50%', width: 42, height: 42, fontSize: 18, cursor: 'pointer' }}>🔄</button>
             </div>
             {camErr && <div style={{ color: 'var(--rd)', background: 'var(--rdbg)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginTop: 12 }}>{camErr}</div>}
+            {loc && loc.acc && loc.acc > 200 && <div style={{ color: 'var(--gd)', background: 'var(--gdbg)', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginTop: 10 }}>⚠️ GPS accuracy low (±{loc.acc}m). Khule aasman ke neeche aake "Refresh location" karo for better lock.</div>}
             <div style={{ display: 'flex', gap: 10, marginTop: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button className="v-btn v-pri" onClick={capture} disabled={!!camErr}>📷 Capture & Upload</button>
-              <button className="v-btn v-sec" onClick={() => fileRef.current?.click()}>🖼️ Upload photo</button>
+              <button className="v-btn v-pri" onClick={capture} disabled={!loc} style={{ opacity: loc ? 1 : 0.5 }}>{loc ? '📷 Capture & Upload' : '📡 Waiting for GPS…'}</button>
+              <button className="v-btn v-sec" onClick={getLocation} disabled={locating}>{locating ? 'Locating…' : '↻ Refresh location'}</button>
               <button className="v-btn v-sec" onClick={cancel}>Cancel</button>
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={onFile} style={{ display: 'none' }} />
             </div>
           </div>
         )}
