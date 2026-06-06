@@ -48,6 +48,7 @@ const menuData: Menu[] = [
       { name:'All Clients',  path:'/dashboard/bd' },
       { name:'Stakeholders', path:'/dashboard/stakeholders', roles: ADMIN },
   ]},
+  { id:'visits', icon:'📸', title:'Field Visits',  roles: BD_TEAM, path:'/dashboard/visits' },
   { id:'analytics', icon:'📊', title:'Analytics',   roles: LEADS,  path:'/dashboard/analytics' },
   { id:'compare',   icon:'⚖️', title:'Team Compare', roles: LEADS,  path:'/dashboard/compare' },
   { id:'comms',  icon:'📨', title:'Communications', roles: STAFF,  path:'/dashboard/communications' },
