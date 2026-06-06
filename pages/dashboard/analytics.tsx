@@ -161,19 +161,27 @@ export default function Analytics() {
   const [range, setRange] = useState('all')
   const [emp, setEmp] = useState('all')
 
+  const [viewingAs, setViewingAs] = useState(false)
+
   useEffect(() => {
+    if (!router.isReady) return
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!session) { router.push('/'); return }
       load(session.user)
     })
-  }, [router])
+  }, [router.isReady, router.query.company])
 
   async function load(u) {
     const { data: au } = await supabase.from('app_users').select('*').eq('id', u.id).single()
     setAppUser(au)
     const admin = ['super_admin', 'platform_admin'].includes(au?.role)
-    let pq = supabase.from('profiles').select('*'); if (!admin) pq = pq.eq('company_id', au?.company_id)
-    let uq = supabase.from('app_users').select('*'); if (!admin) uq = uq.eq('company_id', au?.company_id)
+    const qCompany = router.query.company
+    const overrideCo = (admin && qCompany) ? String(qCompany) : null
+    setViewingAs(!!overrideCo)
+    let pq = supabase.from('profiles').select('*')
+    let uq = supabase.from('app_users').select('*')
+    if (overrideCo) { pq = pq.eq('company_id', overrideCo); uq = uq.eq('company_id', overrideCo) }
+    else if (!admin) { pq = pq.eq('company_id', au?.company_id); uq = uq.eq('company_id', au?.company_id) }
     const [{ data: ps }, { data: us }] = await Promise.all([pq, uq])
     setProfiles(ps || []); setUsers(us || []); setLoading(false)
   }
@@ -298,6 +306,12 @@ export default function Analytics() {
       `}</style>
 
       <div style={{ padding: '26px 24px 60px', maxWidth: 1220, margin: '0 auto' }}>
+        {viewingAs && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'linear-gradient(90deg,#F59E0B22,#F59E0B11)', border: '1px solid #F59E0B55', borderRadius: 12, padding: '10px 16px', marginBottom: 18 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)' }}>👁️ Super Admin view — analytics scoped to one company</span>
+            <button onClick={() => router.push('/dashboard/overview')} style={{ background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--tx)', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>← Exit to Platform</button>
+          </div>
+        )}
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 22 }}>
           <div>

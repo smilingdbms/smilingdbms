@@ -58,7 +58,10 @@ export default function AccountOwnerWorkspace() {
   const [search, setSearch] = useState('')
   const [stats, setStats] = useState({ total: 0, mandates: 0, interviews: 0, placements: 0, pipeline: 0, team: 0 })
 
+  const [viewingAs, setViewingAs] = useState(false)
+
   useEffect(() => {
+    if (!router.isReady) return
     let off = false
     ;(async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -67,9 +70,20 @@ export default function AccountOwnerWorkspace() {
       if (off || !au) { router.replace('/'); return }
       if (au.role === 'job_seeker') { router.replace('/jobseeker'); return }
       setMe(au)
-      if (au.company_id) { const { data: co } = await supabase.from('companies').select('*').eq('id', au.company_id).single(); if (!off) setCompany(co) }
+
+      // Super Admin drill-in: ?company=<id> scopes this dashboard to that company
+      const admin = ['super_admin', 'platform_admin'].includes(au.role)
+      const qCompany = router.query.company
+      const overrideCo = (admin && qCompany) ? String(qCompany) : null
+      setViewingAs(!!overrideCo)
+      const ocid = overrideCo || au.company_id
+
+      if (ocid) { const { data: co } = await supabase.from('companies').select('*').eq('id', ocid).single(); if (!off) setCompany(co) }
       let prof = []
-      if (au.company_id) {
+      if (overrideCo) {
+        const { data } = await supabase.from('profiles').select('*').eq('company_id', overrideCo).order('created_at', { ascending: false })
+        prof = (data || []).filter(p => !p.type || p.type === 'Candidate')
+      } else if (au.company_id) {
         const { data } = await supabase.from('profiles').select('*').or(`company_id.eq.${au.company_id},assigned_to.eq.${au.id},created_by.eq.${au.id}`).order('created_at', { ascending: false })
         prof = (data || []).filter(p => !p.type || p.type === 'Candidate')
       } else {
@@ -78,7 +92,7 @@ export default function AccountOwnerWorkspace() {
       }
       if (off) return
       setCandidates(prof)
-      const cid = au.company_id
+      const cid = overrideCo || au.company_id
       const cnt = async (table, build) => { try { let q = supabase.from(table).select('id', { count: 'exact', head: true }); if (cid) q = q.eq('company_id', cid); if (build) q = build(q); const { count } = await q; return count || 0 } catch { return 0 } }
       const mandates = await cnt('job_descriptions', q => q.eq('status', 'Open'))
       const interviews = await cnt('interviews')
@@ -89,7 +103,7 @@ export default function AccountOwnerWorkspace() {
       if (!off) { setStats({ total: prof.length, mandates, interviews, placements, pipeline, team }); setLoading(false) }
     })()
     return () => { off = true }
-  }, [])
+  }, [router.isReady, router.query.company])
 
   const filtered = candidates.filter(c => { if (!search) return true; const q = search.toLowerCase(); return [c.name, c.mobile, c.email, c.role, c.city, c.skills].some(v => (v || '').toLowerCase().includes(q)) })
 
@@ -157,6 +171,12 @@ export default function AccountOwnerWorkspace() {
       `}} />
 
       <div className="ao-wrap" style={{ padding: '4px 2px 48px' }}>
+        {viewingAs && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', background: 'linear-gradient(90deg,#F59E0B22,#F59E0B11)', border: '1px solid #F59E0B55', borderRadius: 12, padding: '10px 16px', marginBottom: 16 }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--tx)' }}>👁️ Super Admin view — viewing <b>{company?.name || 'this company'}</b> as their dashboard</span>
+            <button onClick={() => router.push('/dashboard/overview')} style={{ background: 'var(--bg2)', border: '1px solid var(--bd2)', color: 'var(--tx)', padding: '6px 14px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600 }}>← Exit to Platform</button>
+          </div>
+        )}
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div>
@@ -165,7 +185,7 @@ export default function AccountOwnerWorkspace() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => router.push('/dashboard/add-profile')} style={{ background: 'var(--ac)', color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>+ Add Profile</button>
-            <button onClick={() => router.push('/dashboard/analytics')} style={{ background: 'var(--bg2)', color: 'var(--tx)', border: '1px solid var(--bd2)', padding: '9px 14px', borderRadius: 9, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Analytics →</button>
+            <button onClick={() => router.push(viewingAs ? `/dashboard/analytics?company=${router.query.company}` : '/dashboard/analytics')} style={{ background: 'var(--bg2)', color: 'var(--tx)', border: '1px solid var(--bd2)', padding: '9px 14px', borderRadius: 9, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>Analytics →</button>
           </div>
         </div>
 
