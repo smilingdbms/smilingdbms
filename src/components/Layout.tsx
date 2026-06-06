@@ -51,6 +51,7 @@ const menuData: Menu[] = [
   { id:'visits', icon:'📸', title:'Field Visits',  roles: BD_TEAM, path:'/dashboard/visits' },
   { id:'analytics', icon:'📊', title:'Analytics',   roles: LEADS,  path:'/dashboard/analytics' },
   { id:'compare',   icon:'⚖️', title:'Team Compare', roles: LEADS,  path:'/dashboard/compare' },
+  { id:'aimatch',   icon:'🎯', title:'AI Match',     roles: HIRING, path:'/dashboard/ai-match' },
   { id:'comms',  icon:'📨', title:'Communications', roles: STAFF,  path:'/dashboard/communications' },
   { id:'ai',     icon:'🤖', title:'AI Tools',       roles: ALL,    path:'/dashboard/ai' },
 
