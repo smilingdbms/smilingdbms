@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 
-const EMPTY_JD: any = { title:'', company:'', location:'', industry:'', experience_min:'', experience_max:'', qualification:'', skills:'', description:'', status:'Open', openings:1, team_visibility:false, bd_can_see_candidates:false, _recruiters:[], _bd:'' }
+const EMPTY_JD: any = { title:'', company:'', location:'', industry:'', experience_min:'', experience_max:'', qualification:'', skills:'', description:'', status:'Open', openings:1, is_public:false, team_visibility:false, bd_can_see_candidates:false, _recruiters:[], _bd:'' }
 const MANAGE_ROLES = ['super_admin','platform_admin','platform_manager','account_owner','team_manager','team_leader']
 const JOB_COLS = ['title','company','company_name','location','city','industry','experience_min','experience_max','qualification','skills','description','status','openings','is_public','salary_min','salary_max','job_type','latitude','longitude','team_visibility','bd_can_see_candidates']
 
@@ -242,8 +242,19 @@ export default function Jobs() {
           <div>
             <h1 style={{fontSize:20,fontWeight:700,marginBottom:2}}>Job Descriptions</h1>
             <p style={{fontSize:13,color:'var(--mu)'}}>{jobs.length} job{jobs.length!==1?'s':''} posted</p>
+            {appUser?.company_id && (typeof window!=='undefined') && (
+              <div style={{display:'flex',alignItems:'center',gap:8,marginTop:8,flexWrap:'wrap'}}>
+                <span style={{fontSize:12,color:'var(--mu)'}}>🌐 Careers page:</span>
+                <code style={{fontSize:12,background:'var(--bg3)',padding:'3px 8px',borderRadius:6,color:'#10b981'}}>{window.location.origin}/careers/{appUser.company_id}</code>
+                <button onClick={()=>{navigator.clipboard?.writeText(`${window.location.origin}/careers/${appUser.company_id}`); alert('Careers link copied!')}} style={{fontSize:11,padding:'3px 10px',borderRadius:6,background:'rgba(16,185,129,0.12)',color:'#10b981',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Copy</button>
+                <a href={`/careers/${appUser.company_id}`} target="_blank" rel="noopener noreferrer" style={{fontSize:11,padding:'3px 10px',borderRadius:6,background:'var(--bg3)',color:'var(--tx)',textDecoration:'none',fontWeight:600}}>Open ↗</a>
+              </div>
+            )}
           </div>
-          <button onClick={()=>{setForm({...EMPTY_JD});setParseNote('');setParsing(false);setShowAdd(true)}} style={{padding:'10px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>＋ Post New Job</button>
+          <div style={{display:'flex',gap:10}}>
+            {appUser?.company_id && <button onClick={()=>{const url=`${location.origin}/careers/${appUser.company_id}`; navigator.clipboard?.writeText(url); window.open(url,'_blank')}} style={{padding:'10px 16px',borderRadius:10,background:'var(--bg2)',color:'#10b981',border:'1px solid rgba(16,185,129,0.3)',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}} title="Open & copy your public careers link">🔗 Careers Page</button>}
+            <button onClick={()=>{setForm({...EMPTY_JD});setParseNote('');setParsing(false);setShowAdd(true)}} style={{padding:'10px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>＋ Post New Job</button>
+          </div>
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
@@ -326,6 +337,7 @@ export default function Jobs() {
                 <div><label style={LS}>Location</label><input style={IS} value={form.location||''} onChange={e=>setForm((f:any)=>({...f,location:e.target.value}))} placeholder="City or Remote"/></div>
                 <div><label style={LS}>Industry</label><input style={IS} value={form.industry||''} onChange={e=>setForm((f:any)=>({...f,industry:e.target.value}))} placeholder="e.g. Healthcare, IT, BFSI"/></div>
                 <div><label style={LS}>Status</label><select style={IS} value={form.status} onChange={e=>setForm((f:any)=>({...f,status:e.target.value}))}>{['Open','On Hold','Filled','Closed'].map(s=><option key={s}>{s}</option>)}</select></div>
+                <div style={{gridColumn:'1/-1'}}><label style={{display:'flex',alignItems:'center',gap:9,fontSize:13,cursor:'pointer',marginTop:4}}><input type="checkbox" checked={!!form.is_public} onChange={e=>setForm((f:any)=>({...f,is_public:e.target.checked}))} style={{width:16,height:16,accentColor:'#10b981'}}/><span>🌐 Show on public Careers Page (candidates can apply directly)</span></label></div>
                 <div><label style={LS}>Min Experience (Yrs)</label><input style={IS} type="number" value={form.experience_min||''} onChange={e=>setForm((f:any)=>({...f,experience_min:e.target.value}))} placeholder="e.g. 3"/></div>
                 <div><label style={LS}>Max Experience (Yrs)</label><input style={IS} type="number" value={form.experience_max||''} onChange={e=>setForm((f:any)=>({...f,experience_max:e.target.value}))} placeholder="e.g. 10"/></div>
                 <div><label style={LS}>Qualification Required</label><input style={IS} value={form.qualification||''} onChange={e=>setForm((f:any)=>({...f,qualification:e.target.value}))} placeholder="e.g. MBBS, MBA, B.Tech"/></div>
@@ -367,6 +379,10 @@ export default function Jobs() {
                     <label style={{display:'flex',alignItems:'center',gap:10,fontSize:13,cursor:'pointer'}}>
                       <input type="checkbox" checked={!!form.bd_can_see_candidates} onChange={e=>setForm((f:any)=>({...f,bd_can_see_candidates:e.target.checked}))} style={{width:16,height:16,accentColor:'#10b981'}}/>
                       <span>BD owner is mandate ke candidates dekh sake</span>
+                    </label>
+                    <label style={{display:'flex',alignItems:'center',gap:10,fontSize:13,cursor:'pointer'}}>
+                      <input type="checkbox" checked={!!form.is_public} onChange={e=>setForm((f:any)=>({...f,is_public:e.target.checked}))} style={{width:16,height:16,accentColor:'#10b981'}}/>
+                      <span>🌐 Show on public Careers page (inbound applications)</span>
                     </label>
                   </div>
                 </div>
