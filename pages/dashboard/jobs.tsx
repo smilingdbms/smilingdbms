@@ -165,6 +165,57 @@ export default function Jobs() {
     setPdfBusy(false)
   }
 
+  // ── JD upload → auto-fill (pdf.js text extract + Gemini, free) ──
+  function loadPdfJs():Promise<any> {
+    return new Promise((res)=>{
+      const w:any = window
+      if (w.pdfjsLib) return res(w.pdfjsLib)
+      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
+      sc.onload=()=>{ const lib=w.pdfjsLib; if(lib) lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(lib) }
+      sc.onerror=()=>res(null); document.body.appendChild(sc)
+    })
+  }
+  async function extractText(file:any):Promise<string> {
+    const name=(file.name||'').toLowerCase()
+    if (name.endsWith('.pdf')) {
+      const lib=await loadPdfJs(); if(!lib) return ''
+      const buf=await file.arrayBuffer()
+      const pdf=await lib.getDocument({data:buf}).promise
+      let txt=''
+      for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); txt+=c.items.map((it:any)=>it.str).join(' ')+'\n' }
+      return txt
+    }
+    try { return await file.text() } catch { return '' }
+  }
+  async function onJDFile(e:any) {
+    const file=e.target.files?.[0]; if(!file) return
+    e.target.value=''
+    setParsing(true); setParseNote('Reading file...')
+    try {
+      const text=await extractText(file)
+      if(!text.trim()){ setParseNote('Text nahi nikla (scanned PDF?) - manually bharo.'); setParsing(false); return }
+      setParseNote('AI extracting...')
+      const r=await fetch('/api/parse-jd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.slice(0,12000)})})
+      const d=await r.json()
+      if(d?.ok && d.jd){
+        const j=d.jd
+        setForm((p:any)=>({...p,
+          title:j.title||p.title, company:j.company||p.company, location:j.location||p.location,
+          city:j.city||p.city, industry:j.industry||p.industry,
+          experience_min:(j.experience_min??'')!==''?j.experience_min:p.experience_min,
+          experience_max:(j.experience_max??'')!==''?j.experience_max:p.experience_max,
+          qualification:j.qualification||p.qualification, skills:j.skills||p.skills,
+          description:j.description||p.description||text,
+        }))
+        setParseNote('Auto-filled - fields check & edit kar lo.')
+      } else {
+        setForm((p:any)=>({...p, description:p.description||text}))
+        setParseNote('AI busy - text Description mein daal diya, fields manually adjust karo.')
+      }
+    } catch(err:any){ setParseNote('Parse fail - manually bharo.') }
+    setParsing(false)
+  }
+
   const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
   const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
   const STATUS_C: any = { 'Open': '#3dd68c', 'Closed': '#ff6b6b', 'On Hold': '#ffb347', 'Filled': '#c77dff' }
