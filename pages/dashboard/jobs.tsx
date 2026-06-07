@@ -122,109 +122,47 @@ export default function Jobs() {
     if (company) t = t.replace(new RegExp(company.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), 'the Company') // client name in text
     return t.replace(/\n{3,}/g, '\n\n')
   }
-  function jdHtml(j:any, blind:boolean) {
-    const company = blind ? 'Confidential Client' : (j.company || j.company_name || '')
-    const loc = [j.city, j.location].filter(Boolean).join(', ') || '—'
-    const exp = (j.experience_min || j.experience_max) ? `${j.experience_min||'0'} - ${j.experience_max||'+'} yrs` : '—'
-    const desc = scrub(j.description || '', blind, j.company || j.company_name || '')
-    const row = (k:string,v:string) => v ? `<tr><td style="padding:6px 10px;color:#666;font-weight:600;width:38%">${k}</td><td style="padding:6px 10px;color:#111">${v}</td></tr>` : ''
-    return `
-    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:34px 40px;max-width:760px">
-      <div style="border-bottom:3px solid #10b981;padding-bottom:14px;margin-bottom:18px">
-        <div style="font-size:12px;letter-spacing:2px;color:#10b981;font-weight:700;text-transform:uppercase">Job Description</div>
-        <div style="font-size:24px;font-weight:800;margin-top:6px">${j.title||'Untitled Role'}</div>
-        <div style="font-size:13px;color:#555;margin-top:4px">${company}${company?' · ':''}${loc}</div>
-      </div>
-      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px">
-        ${row('Location', loc)}
-        ${row('Experience', exp)}
-        ${row('Qualification', j.qualification||'')}
-        ${row('Industry', j.industry||'')}
-        ${row('Openings', j.openings ? String(j.openings) : '')}
-        ${row('Employment Type', j.job_type||'')}
-        ${row('Key Skills', j.skills||'')}
-      </table>
-      ${desc ? `<div style="font-size:13px;font-weight:700;margin-bottom:6px;color:#111">Role Details</div>
-      <div style="font-size:12.5px;line-height:1.7;color:#333;white-space:pre-wrap">${desc}</div>` : ''}
-      <div style="margin-top:26px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#999">
-        ${blind ? 'Client identity & contact details withheld. Apply through our consultancy.' : 'Generated via RecruitBase Pro'}
-      </div>
-    </div>`
-  }
-  function loadHtml2pdf():Promise<any> {
+  function loadJsPDF():Promise<any> {
     return new Promise((res)=>{
-      if ((window as any).html2pdf) return res((window as any).html2pdf)
-      const sc = document.createElement('script')
-      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
-      sc.onload = ()=>res((window as any).html2pdf)
-      sc.onerror = ()=>res(null)
-      document.body.appendChild(sc)
+      const w:any = window
+      if (w.jspdf?.jsPDF) return res(w.jspdf.jsPDF)
+      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+      sc.onload=()=>res(w.jspdf?.jsPDF||null); sc.onerror=()=>res(null); document.body.appendChild(sc)
     })
   }
   async function downloadJD(j:any, blind:boolean) {
     setPdfBusy(true)
     try {
-      const h2p = await loadHtml2pdf()
-      const el = document.createElement('div'); el.innerHTML = jdHtml(j, blind)
-      const name = `${(j.title||'JD').replace(/[^\w]+/g,'_')}${blind?'_Blind':''}_JD.pdf`
-      if (h2p) {
-        await h2p().set({ margin:0, filename:name, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4'} }).from(el).save()
-      } else {
-        // fallback: open printable window
-        const w = window.open('','_blank'); if (w){ w.document.write('<html><head><title>'+name+'</title></head><body>'+el.innerHTML+'</body></html>'); w.document.close(); w.focus(); w.print() }
-      }
+      const JsPDF = await loadJsPDF()
+      if (!JsPDF) { alert('PDF library load nahi hui — internet check karo.'); setPdfBusy(false); return }
+      const doc = new JsPDF({ unit:'pt', format:'a4' })
+      const M=48, PW=595, W=PW-M*2; let y=58
+      const company = blind ? 'Confidential Client' : (j.company || j.company_name || '')
+      const loc = [j.city, j.location].filter(Boolean).join(', ') || '—'
+      const expStr = (j.experience_min || j.experience_max) ? `${j.experience_min||'0'} - ${j.experience_max||'+'} yrs` : ''
+      const NL=()=>{ if(y>805){ doc.addPage(); y=58 } }
+      // header
+      doc.setFontSize(10); doc.setTextColor(16,185,129); doc.setFont('helvetica','bold'); doc.text('JOB DESCRIPTION', M, y); y+=22
+      doc.setFontSize(18); doc.setTextColor(17,17,17); doc.text(j.title||'Untitled Role', M, y); y+=18
+      doc.setFont('helvetica','normal'); doc.setFontSize(11); doc.setTextColor(90,90,90)
+      const sub=[company, loc].filter(Boolean).join('   |   '); if(sub){ doc.text(sub, M, y); y+=12 }
+      doc.setDrawColor(16,185,129); doc.setLineWidth(2); doc.line(M,y,M+W,y); y+=24
+      // rows
+      const rows:any[] = [['Location',loc],['Experience',expStr],['Qualification',j.qualification],['Industry',j.industry],['Openings',j.openings?String(j.openings):''],['Employment Type',j.job_type],['Key Skills',j.skills]]
+      doc.setFontSize(11)
+      rows.forEach(([k,v]:any)=>{ if(!v) return; NL(); doc.setTextColor(110,110,110); doc.setFont('helvetica','bold'); doc.text(k, M, y)
+        doc.setTextColor(25,25,25); doc.setFont('helvetica','normal'); const lines=doc.splitTextToSize(String(v), W-130); doc.text(lines, M+130, y); y+=Math.max(17, lines.length*14) })
+      // description
+      const desc = scrub(j.description||'', blind, j.company || j.company_name || '')
+      if (desc) { y+=12; NL(); doc.setFont('helvetica','bold'); doc.setTextColor(17,17,17); doc.setFontSize(12); doc.text('Role Details', M, y); y+=18
+        doc.setFont('helvetica','normal'); doc.setTextColor(55,55,55); doc.setFontSize(10.5)
+        doc.splitTextToSize(desc, W).forEach((line:string)=>{ NL(); doc.text(line, M, y); y+=15 }) }
+      // footer
+      y+=22; NL(); doc.setFontSize(9); doc.setTextColor(150,150,150)
+      doc.text(blind ? 'Client identity & contact details withheld. Apply through our consultancy.' : 'Generated via RecruitBase Pro', M, y)
+      doc.save(`${(j.title||'JD').replace(/[^\w]+/g,'_')}${blind?'_Blind':''}_JD.pdf`)
     } catch(e:any){ alert('PDF banane mein dikkat: '+(e.message||'error')) }
     setPdfBusy(false)
-  }
-
-  // ── JD upload → auto-fill (pdf.js text extract + Gemini, free) ──
-  function loadPdfJs():Promise<any> {
-    return new Promise((res)=>{
-      if ((window as any).pdfjsLib) return res((window as any).pdfjsLib)
-      const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'
-      sc.onload=()=>{ const lib=(window as any).pdfjsLib; if(lib) lib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; res(lib) }
-      sc.onerror=()=>res(null); document.body.appendChild(sc)
-    })
-  }
-  async function extractText(file:any):Promise<string> {
-    const name=(file.name||'').toLowerCase()
-    if (name.endsWith('.pdf')) {
-      const lib=await loadPdfJs(); if(!lib) return ''
-      const buf=await file.arrayBuffer()
-      const pdf=await lib.getDocument({data:buf}).promise
-      let txt=''
-      for(let i=1;i<=pdf.numPages;i++){ const pg=await pdf.getPage(i); const c=await pg.getTextContent(); txt+=c.items.map((it:any)=>it.str).join(' ')+'\n' }
-      return txt
-    }
-    try { return await file.text() } catch { return '' }
-  }
-  async function onJDFile(e:any) {
-    const file=e.target.files?.[0]; if(!file) return
-    e.target.value=''
-    setParsing(true); setParseNote('Reading file…')
-    try {
-      const text=await extractText(file)
-      if(!text.trim()){ setParseNote('Text nahi nikla (scanned PDF?) — manually bharo.'); setParsing(false); return }
-      setParseNote('AI extracting…')
-      const r=await fetch('/api/parse-jd',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text.slice(0,12000)})})
-      const d=await r.json()
-      if(d?.ok && d.jd){
-        const j=d.jd
-        setForm((p:any)=>({...p,
-          title:j.title||p.title, company:j.company||p.company, location:j.location||p.location,
-          city:j.city||p.city, industry:j.industry||p.industry,
-          experience_min:(j.experience_min??'')!==''?j.experience_min:p.experience_min,
-          experience_max:(j.experience_max??'')!==''?j.experience_max:p.experience_max,
-          qualification:j.qualification||p.qualification, skills:j.skills||p.skills,
-          description:j.description||p.description||text,
-        }))
-        setParseNote('✓ Auto-filled — fields check & edit kar lo.')
-      } else {
-        setForm((p:any)=>({...p, description:p.description||text}))
-        setParseNote('AI busy — text Description mein daal diya, fields manually adjust karo.')
-      }
-    } catch(err:any){ setParseNote('Parse fail — manually bharo.') }
-    setParsing(false)
   }
 
   const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
