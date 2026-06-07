@@ -40,6 +40,7 @@ const menuData: Menu[] = [
   ]},
   { id:'jobs',   icon:'💼', title:'Jobs',           roles: STAFF,  path:'/dashboard/jobs' },
   { id:'apps',   icon:'📋', title:'Applications',   roles: HIRING, path:'/dashboard/applications' },
+  { id:'inbox',  icon:'📥', title:'Careers Inbox',  roles: HIRING, path:'/dashboard/inbox' },
   { id:'int',    icon:'📅', title:'Interviews',     roles: HIRING, path:'/dashboard/interviews' },
   { id:'place',  icon:'🎯', title:'Placements',     roles: HIRING, path:'/dashboard/placements' },
 
