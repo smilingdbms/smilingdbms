@@ -66,7 +66,7 @@ export default function Jobs() {
   function openJob(j:any) {
     const a = assignMap[j.id] || { recruiters: [], bd: '' }
     setForm({ ...EMPTY_JD, ...j, _recruiters: [...a.recruiters], _bd: a.bd || '' })
-    setShowAdd(true)
+    setParseNote(''); setParsing(false); setShowAdd(true)
   }
   function toggleRecruiter(id:string) {
     setForm((f:any) => {
@@ -234,7 +234,7 @@ export default function Jobs() {
             <h1 style={{fontSize:20,fontWeight:700,marginBottom:2}}>Job Descriptions</h1>
             <p style={{fontSize:13,color:'var(--mu)'}}>{jobs.length} job{jobs.length!==1?'s':''} posted</p>
           </div>
-          <button onClick={()=>{setForm({...EMPTY_JD});setShowAdd(true)}} style={{padding:'10px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>＋ Post New Job</button>
+          <button onClick={()=>{setForm({...EMPTY_JD});setParseNote('');setParsing(false);setShowAdd(true)}} style={{padding:'10px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>＋ Post New Job</button>
         </div>
 
         <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12,marginBottom:24}}>
