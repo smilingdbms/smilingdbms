@@ -51,11 +51,20 @@ export default function CareersInbox() {
         source:'Careers Page', status:'New', segment:'experienced',
         company_id: me?.company_id||null, assigned_to: me?.id, created_by: me?.id, job_id: a.job_id||null }
       const { error } = await supabase.from('profiles').insert([payload])
-      if (error) throw error
+      if (error) {
+        if (/(duplicate|unique)/i.test(error.message||'')) {
+          if (confirm(`${a.name} pehle se Candidates mein hai (same mobile). Is application ko 'Added' mark kar dein?`)) {
+            await supabase.from('career_applications').update({ status:'converted' }).eq('id', a.id)
+            setApps(p=>p.map(x=>x.id===a.id?{...x,status:'converted'}:x))
+          }
+          setBusy(''); return
+        }
+        throw error
+      }
       await supabase.from('career_applications').update({ status:'converted' }).eq('id', a.id)
       setApps(p=>p.map(x=>x.id===a.id?{...x,status:'converted'}:x))
       alert('✓ Candidate add ho gaya (owner: tum).')
-    } catch(e:any){ alert('Add nahi hua: '+(e.message||'error')+(/(duplicate|unique)/i.test(e.message||'')?' (mobile already exists)':'')) }
+    } catch(e:any){ alert('Add nahi hua: '+(e.message||'error')) }
     setBusy('')
   }
 
