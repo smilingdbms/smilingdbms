@@ -6,6 +6,9 @@ import { applyTheme, getSavedTheme, THEME_LIST } from '../../src/components/them
 import Layout from '../../src/components/Layout'
 import ResumeBuilder from '../../src/components/ResumeBuilder'
 
+const WA_NUM = (raw:any) => { const d=String(raw||'').replace(/\D/g,''); return d ? (d.length===10 ? '91'+d : d.replace(/^0+/,'')) : '' }
+const WA_LINK = (raw:any, text:string) => { const n=WA_NUM(raw); return n ? `https://wa.me/${n}?text=${encodeURIComponent(text)}` : '' }
+
 // ── CONSTANTS ─────────────────────────────────────────────────────
 const STATUSES = ['New','Contacted','Screening','Shortlisted','Interview Scheduled','Offer Made','Placed','Rejected','On Hold']
 const INDUSTRIES = ['IT / Software','BFSI / Banking','Healthcare / Medical','FMCG / Consumer Goods','Real Estate / Property','Manufacturing / Engineering','E-commerce / Retail','Education / EdTech','Consulting / Advisory','Media / Advertising','Pharma / Biotech','Logistics / Supply Chain','Legal / Law','Hospitality / Travel','Telecom','Automobile','Infrastructure / Construction','Government / PSU','NGO / Social Sector','Other']
@@ -2114,6 +2117,10 @@ export default function Dashboard() {
                       <div style={{fontSize:16,fontWeight:700}}>{form.name||'—'}</div>
                       <div style={{fontSize:12,color:'var(--mu)',marginTop:2}}>{form.role||'—'} · {form.city||'—'}</div>
                       <div style={{fontSize:11,color:'var(--ac)',marginTop:2}}>{SEGMENT_CONFIG[form.segment||'experienced']?.icon} {SEGMENT_CONFIG[form.segment||'experienced']?.label}</div>
+                      {form.mobile && (<div style={{display:'flex',gap:8,marginTop:8}}>
+                        <a href={WA_LINK(form.mobile, `Hi ${form.name||''}, regarding a ${form.role||'job'} opportunity. Are you available to connect?`)} target="_blank" rel="noopener noreferrer" style={{fontSize:11,fontWeight:700,color:'#fff',background:'#25D366',padding:'5px 11px',borderRadius:7,textDecoration:'none'}}>💬 WhatsApp</a>
+                        <a href={`tel:${form.mobile}`} style={{fontSize:11,fontWeight:700,color:'#10b981',background:'rgba(16,185,129,0.12)',padding:'5px 11px',borderRadius:7,textDecoration:'none'}}>📞 Call</a>
+                      </div>)}
                     </div>
                   </div>
                   <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10}}>

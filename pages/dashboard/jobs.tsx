@@ -122,6 +122,15 @@ export default function Jobs() {
     if (company) t = t.replace(new RegExp(company.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), 'the Company') // client name in text
     return t.replace(/\n{3,}/g, '\n\n')
   }
+  function jdText(j:any, blind:boolean) {
+    const company = blind ? 'Confidential Client' : (j.company || j.company_name || '')
+    const loc=[j.city,j.location].filter(Boolean).join(', ')
+    const exp=(j.experience_min||j.experience_max)?`${j.experience_min||'0'}-${j.experience_max||'+'} yrs`:''
+    const desc=scrub(j.description||'', blind, j.company||j.company_name||'')
+    return [`*${j.title||'Job Opening'}*`, company&&`Company: ${company}`, loc&&`Location: ${loc}`, exp&&`Experience: ${exp}`, j.qualification&&`Qualification: ${j.qualification}`, j.skills&&`Skills: ${j.skills}`, desc&&`\n${desc}`].filter(Boolean).join('\n')
+  }
+  function shareJDWhatsApp(j:any, blind:boolean) { window.open(`https://wa.me/?text=${encodeURIComponent(jdText(j,blind))}`,'_blank') }
+
   function loadJsPDF():Promise<any> {
     return new Promise((res)=>{
       const w:any = window
@@ -285,6 +294,7 @@ export default function Jobs() {
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontSize:11,color:'var(--mu2)'}}>{new Date(j.created_at).toLocaleDateString('en-IN')}</span>
                 <div style={{display:'flex',gap:6}}>
+                  <button onClick={e=>{e.stopPropagation();shareJDWhatsApp(j,false)}} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(37,211,102,0.14)',color:'#1faa52',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>💬 WA</button>
                   <button onClick={e=>{e.stopPropagation();downloadJD(j,false)}} disabled={pdfBusy} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(16,185,129,0.12)',color:'#10b981',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>📄 PDF</button>
                   <button onClick={e=>{e.stopPropagation();deleteJob(j.id)}} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
                 </div>
@@ -364,6 +374,7 @@ export default function Jobs() {
             </div>
             <div style={{padding:'14px 24px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'flex-end',gap:10,position:'sticky',bottom:0,background:'var(--bg2)'}}>
               {form.id && <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'var(--mu)',cursor:'pointer',marginRight:'auto'}}><input type="checkbox" checked={blindPdf} onChange={e=>setBlindPdf(e.target.checked)} style={{accentColor:'#10b981'}}/> Blind JD (hide client + contact)</label>}
+              {form.id && <button onClick={()=>shareJDWhatsApp(form, blindPdf)} style={{padding:'9px 16px',borderRadius:10,background:'rgba(37,211,102,0.14)',color:'#1faa52',border:'1px solid rgba(37,211,102,0.3)',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>💬 WhatsApp JD</button>}
               {form.id && <button onClick={()=>downloadJD(form, blindPdf)} disabled={pdfBusy} style={{padding:'9px 16px',borderRadius:10,background:'rgba(16,185,129,0.12)',color:'#10b981',border:'1px solid rgba(16,185,129,0.3)',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>{pdfBusy?'…':'📄 Download PDF'}</button>}
               <button onClick={()=>setShowAdd(false)} style={{padding:'9px 18px',borderRadius:10,background:'transparent',color:'var(--mu)',border:'1px solid rgba(255,255,255,0.1)',cursor:'pointer',fontFamily:'inherit',fontSize:13}}>Cancel</button>
               <button onClick={saveJob} disabled={saving||!form.title} style={{padding:'9px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit',opacity:saving?0.7:1}}>{saving?'Saving...':'Save Job'}</button>

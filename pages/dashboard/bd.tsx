@@ -330,7 +330,7 @@ export default function BDPipeline() {
                       {m.spoc_contact && (
                         <>
                           <a href={`tel:${m.spoc_contact}`} className="action-icon" style={{color:'#10B981'}}>📞 Call</a>
-                          <a href={`https://wa.me/91${m.spoc_contact.replace(/\D/g, '')}`} target="_blank" className="action-icon" style={{color:'#25D366'}}>💬 WA</a>
+                          <a href={`https://wa.me/91${m.spoc_contact.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi ${m.spoc_name||''}, this is regarding recruitment services for ${m.company_name||'your company'}. Can we connect?`)}`} target="_blank" className="action-icon" style={{color:'#25D366'}}>💬 WA</a>
                         </>
                       )}
                       {m.spoc_email && <a href={`mailto:${m.spoc_email}`} className="action-icon" style={{color:'#3B82F6'}}>✉️ Mail</a>}
