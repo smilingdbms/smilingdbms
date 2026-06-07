@@ -435,7 +435,32 @@ export default function Dashboard() {
     }
 
     const { data: ps } = await q
-    setProfiles(ps || [])
+    let list = ps || []
+
+    // Mandate-based visibility: non-leads also see candidates under JDs they can see
+    const isLead = isOwner || ['team_manager','team_leader'].includes(au.role)
+    if (!isAdmin && !isLead && au.id) {
+      try {
+        const { data: myAssign } = await supabase.from('jd_assignments').select('jd_id, role').eq('user_id', au.id)
+        const jdIds = Array.from(new Set((myAssign||[]).map((a:any)=>a.jd_id)))
+        if (jdIds.length) {
+          const { data: jds } = await supabase.from('job_descriptions').select('id, team_visibility, bd_can_see_candidates').in('id', jdIds)
+          const tv:any = {}, bd:any = {}
+          ;(jds||[]).forEach((j:any)=>{ tv[j.id]=j.team_visibility; bd[j.id]=j.bd_can_see_candidates })
+          const visible = Array.from(new Set((myAssign||[])
+            .filter((a:any)=> a.role==='bd_owner' ? bd[a.jd_id] : tv[a.jd_id])
+            .map((a:any)=>a.jd_id)))
+          if (visible.length) {
+            const { data: extra } = await supabase.from('profiles').select('*').in('job_id', visible)
+            const seen = new Set(list.map((p:any)=>p.id))
+            ;(extra||[]).forEach((p:any)=>{ if(!seen.has(p.id)){ list.push(p); seen.add(p.id) } })
+            list.sort((a:any,b:any)=> new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          }
+        }
+      } catch(e) {}
+    }
+
+    setProfiles(list)
   }
 
   async function loadFeedbacks(profileId: string) {

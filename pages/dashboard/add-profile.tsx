@@ -104,7 +104,7 @@ const EMPTY_PROFILE = {
   internship_details:'', available_immediately:true,
   linkedin:'', youtube_url:'', github:'', address:'', google_maps_url:'', latitude:null, longitude:null, state:'', pincode:'',
   job_type:'', employment_type:'',
-  status:'New', assigned_to:'', source:'Direct', source_detail:'',
+  status:'New', assigned_to:'', job_id:'', source:'Direct', source_detail:'',
   ai_summary:'', resume_url:'', resume_name:'', star_rating:0,
   channels:[] as string[], photos:[] as string[], photo_url:'',
   work_experiences: [] as any[],
@@ -118,6 +118,7 @@ export default function AddProfilePage() {
   const [user, setUser] = useState<any>(null)
   const [appUser, setAppUser] = useState<any>(null)
   const [allUsers, setAllUsers] = useState<any[]>([])
+  const [jobs, setJobs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState<any>({...EMPTY_PROFILE})
   const [saving, setSaving] = useState(false)
@@ -160,6 +161,12 @@ export default function AddProfilePage() {
       const { data: users } = await supabase.from('app_users').select('*').eq('company_id', au.company_id)
       setAllUsers(users || [])
     }
+    try {
+      const SA = ['super_admin','platform_admin','platform_manager'].includes(au.role)
+      let jq = supabase.from('job_descriptions').select('id, title, company, status').order('created_at',{ascending:false})
+      if (!SA && au.company_id) jq = jq.eq('company_id', au.company_id)
+      const { data: jbs } = await jq; setJobs(jbs || [])
+    } catch(e) {}
     setLoading(false)
   }
 
@@ -298,7 +305,7 @@ export default function AddProfilePage() {
       star_rating: i(form.star_rating)||0,
       willing_to_relocate: !!form.willing_to_relocate, has_internship: !!form.has_internship,
       available_immediately: form.available_immediately!==false,
-      company_id: u(appUser?.company_id), team_id: u(appUser?.team_id), assigned_to: u(form.assigned_to),
+      company_id: u(appUser?.company_id), team_id: u(appUser?.team_id), assigned_to: u(form.assigned_to) || user?.id, job_id: u(form.job_id),
       channels: Array.isArray(form.channels)?form.channels:[], photos: Array.isArray(form.photos)?form.photos:[],
       work_experiences: Array.isArray(form.work_experiences)?form.work_experiences:[],
       education: Array.isArray(form.education)?form.education:[],
@@ -898,7 +905,15 @@ export default function AddProfilePage() {
                 <option value="">Unassigned</option>
                 {allUsers.map(au=><option key={au.id} value={au.id}>{au.full_name} ({au.role?.replace(/_/g,' ')})</option>)}
               </select>
-              <div style={{fontSize:10,color:'var(--mu)',marginTop:4}}>Assigned user gets a notification</div>
+              <div style={{fontSize:10,color:'var(--mu)',marginTop:4}}>Khaali chhoda to tum (creator) hi owner banoge</div>
+            </div>
+            <div>
+              <label style={LS}>Mandate / Job (optional)</label>
+              <select style={IS} value={form.job_id||''} onChange={e=>sf('job_id',e.target.value)}>
+                <option value="">— No mandate —</option>
+                {jobs.map((j:any)=><option key={j.id} value={j.id}>{j.title}{j.company?` · ${j.company}`:''}{j.status?` (${j.status})`:''}</option>)}
+              </select>
+              <div style={{fontSize:10,color:'var(--mu)',marginTop:4}}>Is candidate ko kis JD/mandate ke liye laaye</div>
             </div>
             <div>
               <label style={LS}>Source</label>
