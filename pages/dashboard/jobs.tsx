@@ -17,6 +17,8 @@ export default function Jobs() {
   const [showAdd, setShowAdd] = useState(false)
   const [form, setForm] = useState<any>(Object.assign({}, EMPTY_JD))
   const [saving, setSaving] = useState(false)
+  const [blindPdf, setBlindPdf] = useState(false)
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -107,6 +109,72 @@ export default function Jobs() {
     setJobs(prev => prev.filter(j => j.id !== id))
   }
 
+  // ── Auto JD PDF (100% free, client-side, unlimited) ──
+  function scrub(text:string, blind:boolean, company:string) {
+    if (!text) return ''
+    if (!blind) return text
+    let t = text
+    t = t.replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '[hidden]')                 // emails
+    t = t.replace(/(https?:\/\/|www\.)\S+/gi, '[hidden]')                 // urls/websites
+    t = t.replace(/\+?\d[\d\s().-]{8,}\d/g, '[hidden]')                   // phone numbers
+    if (company) t = t.replace(new RegExp(company.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), 'the Company') // client name in text
+    return t.replace(/\n{3,}/g, '\n\n')
+  }
+  function jdHtml(j:any, blind:boolean) {
+    const company = blind ? 'Confidential Client' : (j.company || j.company_name || '')
+    const loc = [j.city, j.location].filter(Boolean).join(', ') || '—'
+    const exp = (j.experience_min || j.experience_max) ? `${j.experience_min||'0'} - ${j.experience_max||'+'} yrs` : '—'
+    const desc = scrub(j.description || '', blind, j.company || j.company_name || '')
+    const row = (k:string,v:string) => v ? `<tr><td style="padding:6px 10px;color:#666;font-weight:600;width:38%">${k}</td><td style="padding:6px 10px;color:#111">${v}</td></tr>` : ''
+    return `
+    <div style="font-family:Arial,Helvetica,sans-serif;color:#111;padding:34px 40px;max-width:760px">
+      <div style="border-bottom:3px solid #10b981;padding-bottom:14px;margin-bottom:18px">
+        <div style="font-size:12px;letter-spacing:2px;color:#10b981;font-weight:700;text-transform:uppercase">Job Description</div>
+        <div style="font-size:24px;font-weight:800;margin-top:6px">${j.title||'Untitled Role'}</div>
+        <div style="font-size:13px;color:#555;margin-top:4px">${company}${company?' · ':''}${loc}</div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:18px">
+        ${row('Location', loc)}
+        ${row('Experience', exp)}
+        ${row('Qualification', j.qualification||'')}
+        ${row('Industry', j.industry||'')}
+        ${row('Openings', j.openings ? String(j.openings) : '')}
+        ${row('Employment Type', j.job_type||'')}
+        ${row('Key Skills', j.skills||'')}
+      </table>
+      ${desc ? `<div style="font-size:13px;font-weight:700;margin-bottom:6px;color:#111">Role Details</div>
+      <div style="font-size:12.5px;line-height:1.7;color:#333;white-space:pre-wrap">${desc}</div>` : ''}
+      <div style="margin-top:26px;padding-top:12px;border-top:1px solid #eee;font-size:11px;color:#999">
+        ${blind ? 'Client identity & contact details withheld. Apply through our consultancy.' : 'Generated via RecruitBase Pro'}
+      </div>
+    </div>`
+  }
+  function loadHtml2pdf():Promise<any> {
+    return new Promise((res)=>{
+      if ((window as any).html2pdf) return res((window as any).html2pdf)
+      const sc = document.createElement('script')
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
+      sc.onload = ()=>res((window as any).html2pdf)
+      sc.onerror = ()=>res(null)
+      document.body.appendChild(sc)
+    })
+  }
+  async function downloadJD(j:any, blind:boolean) {
+    setPdfBusy(true)
+    try {
+      const h2p = await loadHtml2pdf()
+      const el = document.createElement('div'); el.innerHTML = jdHtml(j, blind)
+      const name = `${(j.title||'JD').replace(/[^\w]+/g,'_')}${blind?'_Blind':''}_JD.pdf`
+      if (h2p) {
+        await h2p().set({ margin:0, filename:name, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'pt',format:'a4'} }).from(el).save()
+      } else {
+        // fallback: open printable window
+        const w = window.open('','_blank'); if (w){ w.document.write('<html><head><title>'+name+'</title></head><body>'+el.innerHTML+'</body></html>'); w.document.close(); w.focus(); w.print() }
+      }
+    } catch(e:any){ alert('PDF banane mein dikkat: '+(e.message||'error')) }
+    setPdfBusy(false)
+  }
+
   const IS: any = { width:'100%', background:'var(--bg3)', border:'1px solid rgba(255,255,255,0.1)', borderRadius:8, padding:'9px 12px', color:'var(--tx)', fontSize:13, outline:'none', fontFamily:'inherit', boxSizing:'border-box' }
   const LS: any = { display:'block', fontSize:10, fontWeight:600, color:'var(--mu)', textTransform:'uppercase', letterSpacing:1, marginBottom:5 }
   const STATUS_C: any = { 'Open': '#3dd68c', 'Closed': '#ff6b6b', 'On Hold': '#ffb347', 'Filled': '#c77dff' }
@@ -175,7 +243,10 @@ export default function Jobs() {
               {j.skills&&<div style={{fontSize:12,color:'var(--mu)',marginBottom:12,lineHeight:1.5}}>Skills: {j.skills}</div>}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <span style={{fontSize:11,color:'var(--mu2)'}}>{new Date(j.created_at).toLocaleDateString('en-IN')}</span>
-                <button onClick={e=>{e.stopPropagation();deleteJob(j.id)}} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                <div style={{display:'flex',gap:6}}>
+                  <button onClick={e=>{e.stopPropagation();downloadJD(j,false)}} disabled={pdfBusy} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(16,185,129,0.12)',color:'#10b981',border:'none',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>📄 PDF</button>
+                  <button onClick={e=>{e.stopPropagation();deleteJob(j.id)}} style={{fontSize:11,padding:'4px 10px',borderRadius:6,background:'rgba(255,107,107,0.1)',color:'#ff6b6b',border:'none',cursor:'pointer',fontFamily:'inherit'}}>Delete</button>
+                </div>
               </div>
             </div>
           )})}
@@ -243,6 +314,8 @@ export default function Jobs() {
               )}
             </div>
             <div style={{padding:'14px 24px',borderTop:'1px solid rgba(255,255,255,0.07)',display:'flex',justifyContent:'flex-end',gap:10,position:'sticky',bottom:0,background:'var(--bg2)'}}>
+              {form.id && <label style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:'var(--mu)',cursor:'pointer',marginRight:'auto'}}><input type="checkbox" checked={blindPdf} onChange={e=>setBlindPdf(e.target.checked)} style={{accentColor:'#10b981'}}/> Blind JD (hide client + contact)</label>}
+              {form.id && <button onClick={()=>downloadJD(form, blindPdf)} disabled={pdfBusy} style={{padding:'9px 16px',borderRadius:10,background:'rgba(16,185,129,0.12)',color:'#10b981',border:'1px solid rgba(16,185,129,0.3)',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit'}}>{pdfBusy?'…':'📄 Download PDF'}</button>}
               <button onClick={()=>setShowAdd(false)} style={{padding:'9px 18px',borderRadius:10,background:'transparent',color:'var(--mu)',border:'1px solid rgba(255,255,255,0.1)',cursor:'pointer',fontFamily:'inherit',fontSize:13}}>Cancel</button>
               <button onClick={saveJob} disabled={saving||!form.title} style={{padding:'9px 20px',borderRadius:10,background:'#10b981',color:'#fff',border:'none',cursor:'pointer',fontSize:13,fontWeight:600,fontFamily:'inherit',opacity:saving?0.7:1}}>{saving?'Saving...':'Save Job'}</button>
             </div>
