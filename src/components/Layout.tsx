@@ -47,6 +47,7 @@ const menuData: Menu[] = [
   // ── BUSINESS ──
   { id:'bd',     icon:'🤝', title:'Clients & BD',   roles: BD_TEAM, section:'Business', submenus:[
       { name:'All Clients',  path:'/dashboard/bd' },
+  { id:'subs',   icon:'📤', title:'Submissions',    roles: HIRING, path:'/dashboard/submissions' },
       { name:'Stakeholders', path:'/dashboard/stakeholders', roles: ADMIN },
   ]},
   { id:'visits', icon:'📸', title:'Field Visits',  roles: BD_TEAM, path:'/dashboard/visits' },
