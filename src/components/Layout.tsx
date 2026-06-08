@@ -31,6 +31,8 @@ const menuData: Menu[] = [
   // ── WORKSPACE ──
   { id:'dash',   icon:'🏠', title:'Dashboard',      roles: STAFF, section:'Workspace', path:'/dashboard' },
   { id:'notif',  icon:'🔔', title:'Notifications',  roles: STAFF, path:'/dashboard/notifications' },
+  { id:'comms',  icon:'📨', title:'Communications', roles: STAFF, path:'/dashboard/communications' },
+  { id:'ai',     icon:'🤖', title:'AI Tools',       roles: ALL,   path:'/dashboard/ai' },
 
   // ── RECRUITMENT ──
   { id:'cand',   icon:'👥', title:'Candidates',     roles: HIRING, section:'Recruitment', submenus:[
@@ -39,23 +41,25 @@ const menuData: Menu[] = [
       { name:'Bulk Import',    path:'/dashboard/import', roles: ADMIN },
   ]},
   { id:'jobs',   icon:'💼', title:'Jobs',           roles: STAFF,  path:'/dashboard/jobs' },
-  { id:'apps',   icon:'📋', title:'Applications',   roles: HIRING, path:'/dashboard/applications' },
-  { id:'inbox',  icon:'📥', title:'Careers Inbox',  roles: HIRING, path:'/dashboard/inbox' },
+  { id:'aimatch',icon:'✨', title:'AI Match',       roles: HIRING, path:'/dashboard/ai-match' },
+  { id:'apps',   icon:'📋', title:'Applications',   roles: HIRING, submenus:[
+      { name:'Job Applications', path:'/dashboard/applications' },
+      { name:'Careers Inbox',    path:'/dashboard/inbox' },
+  ]},
   { id:'int',    icon:'📅', title:'Interviews',     roles: HIRING, path:'/dashboard/interviews' },
   { id:'place',  icon:'🎯', title:'Placements',     roles: HIRING, path:'/dashboard/placements' },
 
   // ── BUSINESS ──
   { id:'bd',     icon:'🤝', title:'Clients & BD',   roles: BD_TEAM, section:'Business', submenus:[
       { name:'All Clients',  path:'/dashboard/bd' },
-  { id:'subs',   icon:'📤', title:'Submissions',    roles: HIRING, path:'/dashboard/submissions' },
       { name:'Stakeholders', path:'/dashboard/stakeholders', roles: ADMIN },
   ]},
-  { id:'visits', icon:'📸', title:'Field Visits',  roles: BD_TEAM, path:'/dashboard/visits' },
-  { id:'analytics', icon:'📊', title:'Analytics',   roles: LEADS,  path:'/dashboard/analytics' },
-  { id:'compare',   icon:'⚖️', title:'Team Compare', roles: LEADS,  path:'/dashboard/compare' },
-  { id:'aimatch',   icon:'🎯', title:'AI Match',     roles: HIRING, path:'/dashboard/ai-match' },
-  { id:'comms',  icon:'📨', title:'Communications', roles: STAFF,  path:'/dashboard/communications' },
-  { id:'ai',     icon:'🤖', title:'AI Tools',       roles: ALL,    path:'/dashboard/ai' },
+  { id:'subs',   icon:'📤', title:'Submissions',    roles: HIRING,  path:'/dashboard/submissions' },
+  { id:'visits', icon:'📸', title:'Field Visits',   roles: BD_TEAM, path:'/dashboard/visits' },
+
+  // ── INSIGHTS ──
+  { id:'analytics', icon:'📊', title:'Analytics',    roles: LEADS, section:'Insights', path:'/dashboard/analytics' },
+  { id:'compare',   icon:'⚖️', title:'Team Compare', roles: LEADS, path:'/dashboard/compare' },
 
   // ── ADMINISTRATION ──
   { id:'team',   icon:'👤', title:'Team & Access',  roles: ADMIN, section:'Administration', submenus:[
@@ -65,11 +69,11 @@ const menuData: Menu[] = [
   ]},
   { id:'admin',  icon:'🛡️', title:'Admin Center',   roles: ADMIN, path:'/dashboard/admin' },
   { id:'billing',icon:'💳', title:'Billing & Plan', roles: ADMIN, path:'/dashboard/billing' },
-  { id:'company',icon:'🏢', title:'Company Profile',roles: ADMIN, path:'/dashboard/company' },
+  { id:'company',icon:'🏢', title:'Company Profile', roles: ADMIN, path:'/dashboard/company' },
 
   // ── PLATFORM ──
   { id:'overview', icon:'🌐', title:'Platform Overview', roles: SA_ONLY, section:'Platform', path:'/dashboard/overview' },
-  { id:'platform', icon:'🏢', title:'Companies & Plans', roles: SA_ONLY, path:'/dashboard/companies' },
+  { id:'platform', icon:'🏬', title:'Companies & Plans', roles: SA_ONLY, path:'/dashboard/companies' },
 
   // ── SUPPORT ──
   { id:'settings', icon:'⚙️', title:'Settings', roles: ALL, section:'Support', path:'/dashboard/settings' },

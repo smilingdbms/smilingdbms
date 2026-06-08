@@ -4,11 +4,14 @@ import { useRouter } from 'next/router'
 import { supabase } from '../../src/lib/supabase'
 
 // ════════════════════════════════════════════════════════════════════════
-//  SUBMISSIONS — consultant tracker. Share candidates to clients + status.
-//  Auto-fills from profiles. Same CV → multiple clients = multiple rows.
+//  SUBMISSIONS — premium consultant pipeline tracker.
+//  Share candidates → clients, auto-fill from profiles, track status.
 // ════════════════════════════════════════════════════════════════════════
 const STAGES = ['Submitted','Shortlisted','Interview','Hold','Rejected']
-const SC:any = { Submitted:'#6B7280', Shortlisted:'#10b981', Interview:'#3B82F6', Hold:'#F59E0B', Rejected:'#EF4444' }
+const SC:any = { Submitted:'#6366F1', Shortlisted:'#10b981', Interview:'#3B82F6', Hold:'#F59E0B', Rejected:'#EF4444' }
+const AV = ['#10b981','#3B82F6','#8B5CF6','#F59E0B','#EC4899','#06B6D4','#6366F1']
+const initials = (n:string) => (n||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase()
+const avColor = (n:string) => AV[(n||'').split('').reduce((a,c)=>a+c.charCodeAt(0),0) % AV.length]
 const latestOrg = (p:any) => {
   if (p?.current_company) return p.current_company
   const we = Array.isArray(p?.work_experiences) ? p.work_experiences : []
@@ -32,7 +35,7 @@ export default function Submissions() {
   const [csearch, setCsearch] = useState('')
   const [saving, setSaving] = useState(false)
   const [up, setUp] = useState(false)
-  // filters
+  const [showFilters, setShowFilters] = useState(false)
   const [fq, setFq] = useState(''); const [fClient, setFClient] = useState(''); const [fPos, setFPos] = useState('')
   const [fBranch, setFBranch] = useState(''); const [fStatus, setFStatus] = useState(''); const [fNotice, setFNotice] = useState('')
   const [fLoc, setFLoc] = useState(''); const [fCtcMin, setFCtcMin] = useState(''); const [fCtcMax, setFCtcMax] = useState('')
@@ -52,7 +55,7 @@ export default function Submissions() {
     let q = supabase.from('client_submissions').select('*').order('created_at',{ascending:false})
     if (!admin && au?.company_id) q = q.eq('company_id', au.company_id)
     const { data } = await q; setRows(data||[])
-    const cl = supabase.from('bd_pipeline').select('id, company_name, spoc_name'); 
+    const cl = supabase.from('bd_pipeline').select('id, company_name, spoc_name')
     const { data: cld } = au?.company_id && !admin ? await cl.eq('company_id',au.company_id) : await cl
     setClients(cld||[])
     const ca = supabase.from('profiles').select('id,name,role,current_company,work_experiences,current_ctc,expected_ctc,notice_period,city,total_experience,experience,skills,resume_url,segment')
@@ -110,6 +113,7 @@ export default function Submissions() {
     try { await supabase.from('client_submissions').update({status}).eq('id',row.id)
       setRows(r=>r.map(x=>x.id===row.id?{...x,status}:x)) } catch(e){}
   }
+  function clearFilters(){ setFq('');setFClient('');setFPos('');setFBranch('');setFStatus('');setFNotice('');setFLoc('');setFCtcMin('');setFCtcMax('');setFFrom('');setFTo('') }
 
   const clientName = (id:string)=> clients.find(c=>c.id===id)?.company_name || '—'
   const filtered = rows.filter(r=>{
@@ -128,56 +132,102 @@ export default function Submissions() {
     if (fTo && new Date(r.created_at) > new Date(fTo+'T23:59:59')) return false
     return true
   })
+  const cnt = (st:string)=> rows.filter(r=>(r.status||'Submitted')===st).length
+  const activeF = [fq,fClient,fPos,fBranch,fStatus,fNotice,fLoc,fCtcMin,fCtcMax,fFrom,fTo].filter(Boolean).length
 
-  if (loading) return <div style={{padding:60,textAlign:'center',color:'var(--mu)'}}>Loading…</div>
-  const IN:any = { padding:'9px 11px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg2)', color:'var(--tx)', fontSize:13, fontFamily:'inherit', outline:'none', width:'100%', boxSizing:'border-box' }
+  if (loading) return <div style={{padding:60,textAlign:'center',color:'var(--mu)'}}>Loading pipeline…</div>
+  const IN:any = { padding:'9px 11px', borderRadius:9, border:'1px solid var(--bd)', background:'var(--bg)', color:'var(--tx)', fontSize:13, fontFamily:'inherit', outline:'none', width:'100%', boxSizing:'border-box' }
   const LB:any = { fontSize:11, fontWeight:600, color:'var(--mu)', marginBottom:4, display:'block' }
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{__html:`@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Sora:wght@700;800&display=swap');.s-wrap{font-family:Outfit,system-ui,sans-serif}.s-card{background:var(--bg2);border:1px solid var(--bd);border-radius:13px;padding:15px}.sb{border:none;border-radius:8px;padding:7px 13px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit}`}}/>
-      <div className="s-wrap" style={{padding:'4px 2px 56px',maxWidth:1180}}>
+      <style dangerouslySetInnerHTML={{__html:`
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Sora:wght@700;800&display=swap');
+        .sm{font-family:Outfit,system-ui,sans-serif}
+        .sm-kpi{background:var(--bg2);border:1px solid var(--bd);border-radius:14px;padding:14px 16px}
+        .sm-card{background:var(--bg2);border:1px solid var(--bd);border-radius:15px;padding:16px 18px;transition:transform .15s,box-shadow .15s}
+        .sm-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.08)}
+        .sm-chip{font-size:11.5px;font-weight:600;color:var(--mu);background:var(--bg3);padding:4px 10px;border-radius:7px;white-space:nowrap}
+        .sb{border:none;border-radius:9px;padding:8px 14px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit}
+      `}}/>
+      <div className="sm" style={{padding:'4px 2px 56px',maxWidth:1180}}>
+        {/* header */}
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-end',flexWrap:'wrap',gap:12,marginBottom:18}}>
           <div>
-            <div style={{fontSize:11,fontWeight:700,color:'var(--mu)',textTransform:'uppercase',letterSpacing:.5}}>Business · Pipeline</div>
-            <h1 style={{fontFamily:'Sora,sans-serif',margin:'5px 0 0',fontSize:27,fontWeight:800,color:'var(--tx)'}}>📤 Submissions</h1>
-            <p style={{fontSize:13,color:'var(--mu)',margin:'6px 0 0'}}>Kis CV ko kis client ko, kis position par bheja — pura tracker</p>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--mu)',textTransform:'uppercase',letterSpacing:.6}}>Business · Client Pipeline</div>
+            <h1 style={{fontFamily:'Sora,sans-serif',margin:'5px 0 0',fontSize:28,fontWeight:800,color:'var(--tx)'}}>Submissions</h1>
+            <p style={{fontSize:13,color:'var(--mu)',margin:'6px 0 0'}}>Har candidate kis client ko, kis position par gaya — aur uska live status</p>
           </div>
-          <button onClick={()=>{setForm(EMPTY);setOpen(true)}} className="sb" style={{background:'#10b981',color:'#fff',padding:'11px 20px',fontSize:14}}>＋ New Submission</button>
+          <button onClick={()=>{setForm(EMPTY);setOpen(true)}} className="sb" style={{background:'#10b981',color:'#fff',padding:'12px 22px',fontSize:14,boxShadow:'0 4px 14px rgba(16,185,129,.35)'}}>＋ New Submission</button>
         </div>
 
-        {/* filters */}
-        <div className="s-card" style={{marginBottom:14,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10}}>
-          <input style={IN} placeholder="🔍 Search name/skills" value={fq} onChange={e=>setFq(e.target.value)}/>
-          <select style={IN} value={fClient} onChange={e=>setFClient(e.target.value)}><option value="">All clients</option>{clients.map(c=><option key={c.id} value={c.id}>{c.company_name}</option>)}</select>
-          <input style={IN} placeholder="Position" value={fPos} onChange={e=>setFPos(e.target.value)}/>
-          <input style={IN} placeholder="Branch" value={fBranch} onChange={e=>setFBranch(e.target.value)}/>
-          <select style={IN} value={fStatus} onChange={e=>setFStatus(e.target.value)}><option value="">Any status</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
-          <input style={IN} placeholder="Notice" value={fNotice} onChange={e=>setFNotice(e.target.value)}/>
-          <input style={IN} placeholder="Location" value={fLoc} onChange={e=>setFLoc(e.target.value)}/>
-          <input style={IN} placeholder="Exp CTC min" value={fCtcMin} onChange={e=>setFCtcMin(e.target.value)}/>
-          <input style={IN} placeholder="Exp CTC max" value={fCtcMax} onChange={e=>setFCtcMax(e.target.value)}/>
-          <input style={IN} type="date" value={fFrom} onChange={e=>setFFrom(e.target.value)}/>
-          <input style={IN} type="date" value={fTo} onChange={e=>setFTo(e.target.value)}/>
+        {/* KPI strip */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:12,marginBottom:18}}>
+          {[['Total Submissions',rows.length,'#6366F1'],['Shortlisted',cnt('Shortlisted'),'#10b981'],['Interview',cnt('Interview'),'#3B82F6'],['On Hold',cnt('Hold'),'#F59E0B'],['Rejected',cnt('Rejected'),'#EF4444']].map(([l,v,c]:any)=>(
+            <div key={l} style={{background:'var(--bg2)',border:'1px solid var(--bd)',borderLeft:`4px solid ${c}`,borderRadius:13,padding:'13px 16px'}}>
+              <div style={{fontSize:11,fontWeight:600,color:'var(--mu)'}}>{l}</div>
+              <div style={{fontFamily:'Sora,sans-serif',fontSize:27,fontWeight:800,color:c,marginTop:3}}>{v}</div>
+            </div>
+          ))}
         </div>
 
-        <div style={{fontSize:12,color:'var(--mu)',marginBottom:10}}>{filtered.length} submission{filtered.length!==1?'s':''}</div>
+        {/* filter bar */}
+        <div style={{display:'flex',gap:10,alignItems:'center',marginBottom:14,flexWrap:'wrap'}}>
+          <input style={{...IN,maxWidth:280,background:'var(--bg2)'}} placeholder="🔍 Search name, skills, position…" value={fq} onChange={e=>setFq(e.target.value)}/>
+          <button onClick={()=>setShowFilters(s=>!s)} className="sb" style={{background:'var(--bg2)',color:'var(--tx)',border:'1px solid var(--bd)'}}>⚙ Filters{activeF>0?` (${activeF})`:''}</button>
+          {activeF>0 && <button onClick={clearFilters} className="sb" style={{background:'none',color:'#EF4444',padding:'8px 6px'}}>Clear</button>}
+          <div style={{marginLeft:'auto',fontSize:12.5,color:'var(--mu)'}}>{filtered.length} of {rows.length}</div>
+        </div>
+        {showFilters && (
+          <div className="sm-kpi" style={{padding:14,marginBottom:16,display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:10}}>
+            <select style={IN} value={fClient} onChange={e=>setFClient(e.target.value)}><option value="">All clients</option>{clients.map(c=><option key={c.id} value={c.id}>{c.company_name}</option>)}</select>
+            <input style={IN} placeholder="Position" value={fPos} onChange={e=>setFPos(e.target.value)}/>
+            <input style={IN} placeholder="Branch" value={fBranch} onChange={e=>setFBranch(e.target.value)}/>
+            <select style={IN} value={fStatus} onChange={e=>setFStatus(e.target.value)}><option value="">Any status</option>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
+            <input style={IN} placeholder="Notice" value={fNotice} onChange={e=>setFNotice(e.target.value)}/>
+            <input style={IN} placeholder="Location" value={fLoc} onChange={e=>setFLoc(e.target.value)}/>
+            <input style={IN} placeholder="Exp CTC min" value={fCtcMin} onChange={e=>setFCtcMin(e.target.value)}/>
+            <input style={IN} placeholder="Exp CTC max" value={fCtcMax} onChange={e=>setFCtcMax(e.target.value)}/>
+            <div><label style={LB}>From</label><input style={IN} type="date" value={fFrom} onChange={e=>setFFrom(e.target.value)}/></div>
+            <div><label style={LB}>To</label><input style={IN} type="date" value={fTo} onChange={e=>setFTo(e.target.value)}/></div>
+          </div>
+        )}
 
-        {filtered.length===0 ? <div className="s-card" style={{textAlign:'center',padding:46,color:'var(--mu)'}}>Koi submission nahi. "＋ New Submission" se shuru karo.</div> : (
-          <div style={{display:'flex',flexDirection:'column',gap:11}}>
+        {/* list */}
+        {filtered.length===0 ? (
+          <div className="sm-card" style={{textAlign:'center',padding:'52px 20px'}}>
+            <div style={{fontSize:42}}>📤</div>
+            <div style={{fontWeight:700,fontSize:16,marginTop:10,color:'var(--tx)'}}>{rows.length===0?'Abhi koi submission nahi':'Filter se kuch nahi mila'}</div>
+            <div style={{fontSize:13,color:'var(--mu)',marginTop:5}}>{rows.length===0?'Candidate ko client ko share karo — yahan track hoga.':'Filters clear karke dekho.'}</div>
+            {rows.length===0 && <button onClick={()=>{setForm(EMPTY);setOpen(true)}} className="sb" style={{background:'#10b981',color:'#fff',marginTop:16,padding:'10px 20px'}}>＋ New Submission</button>}
+          </div>
+        ) : (
+          <div style={{display:'flex',flexDirection:'column',gap:12}}>
             {filtered.map(r=>(
-              <div key={r.id} className="s-card">
-                <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}>
-                  <div style={{minWidth:240,flex:1}}>
-                    <div style={{fontWeight:700,fontSize:15}}>{r.candidate_name} <span style={{fontSize:12,color:'var(--mu)',fontWeight:500}}>· {r.current_position||'—'}</span></div>
-                    <div style={{fontSize:12.5,marginTop:4}}><span style={{color:'#10b981',fontWeight:700}}>→ {clientName(r.client_id)}</span> <span style={{color:'var(--mu)'}}>· {r.applying_position||'position —'}{r.branch?` · 🏢 ${r.branch}`:''}</span></div>
-                    <div style={{fontSize:11.5,color:'var(--mu)',marginTop:5}}>{r.current_company||'—'} · 💰 {r.expected_ctc||'—'} · ⏳ {r.notice_period||'—'} · 📍 {r.current_location||'—'}</div>
-                    {r.cv_url && <a href={r.cv_url} target="_blank" rel="noopener noreferrer" style={{fontSize:11.5,color:'#10b981',fontWeight:600}}>🔗 CV</a>}
-                    {r.client_note && <div style={{fontSize:12,marginTop:6,padding:'6px 10px',background:'var(--bg3)',borderRadius:8,color:'var(--tx)'}}>💬 Client: {r.client_note}</div>}
-                  </div>
-                  <div style={{display:'flex',flexDirection:'column',gap:6,alignItems:'flex-end'}}>
-                    <select value={r.status||'Submitted'} onChange={e=>setStatus(r,e.target.value)} style={{...IN,width:'auto',padding:'5px 9px',color:SC[r.status||'Submitted'],fontWeight:700,fontSize:12}}>{STAGES.map(s=><option key={s}>{s}</option>)}</select>
-                    <div style={{fontSize:10.5,color:'var(--mu2)'}}>{r.created_at?new Date(r.created_at).toLocaleDateString('en-IN'):''}</div>
+              <div key={r.id} className="sm-card">
+                <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+                  <div style={{width:46,height:46,borderRadius:12,background:avColor(r.candidate_name),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:800,fontSize:16,flexShrink:0,fontFamily:'Sora,sans-serif'}}>{initials(r.candidate_name)}</div>
+                  <div style={{flex:1,minWidth:200}}>
+                    <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap',alignItems:'flex-start'}}>
+                      <div>
+                        <div style={{fontWeight:700,fontSize:16,color:'var(--tx)'}}>{r.candidate_name}</div>
+                        <div style={{fontSize:12.5,color:'var(--mu)',marginTop:1}}>{r.current_position||'—'} · {r.current_company||'—'}</div>
+                      </div>
+                      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:5}}>
+                        <select value={r.status||'Submitted'} onChange={e=>setStatus(r,e.target.value)} style={{border:`1.5px solid ${SC[r.status||'Submitted']}`,color:SC[r.status||'Submitted'],background:'var(--bg)',fontWeight:700,fontSize:12,borderRadius:20,padding:'5px 12px',fontFamily:'inherit',cursor:'pointer',outline:'none'}}>{STAGES.map(s=><option key={s} style={{color:'var(--tx)'}}>{s}</option>)}</select>
+                        <div style={{fontSize:10.5,color:'var(--mu2)'}}>{r.created_at?new Date(r.created_at).toLocaleDateString('en-IN'):''}</div>
+                      </div>
+                    </div>
+                    <div style={{display:'flex',gap:7,flexWrap:'wrap',marginTop:11}}>
+                      <span style={{fontSize:11.5,fontWeight:700,color:'#10b981',background:'rgba(16,185,129,.12)',padding:'4px 11px',borderRadius:7}}>→ {clientName(r.client_id)}</span>
+                      {r.applying_position && <span className="sm-chip">🎯 {r.applying_position}</span>}
+                      {r.branch && <span className="sm-chip">🏢 {r.branch}</span>}
+                      {r.expected_ctc && <span className="sm-chip">💰 {r.expected_ctc}</span>}
+                      {r.notice_period && <span className="sm-chip">⏳ {r.notice_period}</span>}
+                      {r.current_location && <span className="sm-chip">📍 {r.current_location}</span>}
+                      {r.cv_url && <a href={r.cv_url} target="_blank" rel="noopener noreferrer" className="sm-chip" style={{color:'#3B82F6',textDecoration:'none'}}>🔗 CV</a>}
+                    </div>
+                    {r.client_note && <div style={{fontSize:12.5,marginTop:10,padding:'8px 12px',background:'var(--bg3)',borderRadius:9,color:'var(--tx)',borderLeft:`3px solid ${SC[r.status||'Submitted']}`}}>💬 <b>Client:</b> {r.client_note}</div>}
                   </div>
                 </div>
               </div>
@@ -188,22 +238,21 @@ export default function Submissions() {
 
       {/* New Submission modal */}
       {open && (
-        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:20,zIndex:100,overflowY:'auto'}} onClick={e=>{if(e.target===e.currentTarget)setOpen(false)}}>
-          <div className="s-wrap" style={{background:'var(--bg)',borderRadius:16,width:'100%',maxWidth:560,padding:22,margin:'10px 0'}}>
-            <div style={{fontFamily:'Sora,sans-serif',fontSize:19,fontWeight:800,color:'var(--tx)',marginBottom:14}}>📤 New Submission</div>
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',display:'flex',alignItems:'flex-start',justifyContent:'center',padding:20,zIndex:9999,overflowY:'auto'}} onClick={e=>{if(e.target===e.currentTarget)setOpen(false)}}>
+          <div className="sm" style={{background:'var(--bg)',borderRadius:18,width:'100%',maxWidth:580,padding:24,margin:'10px 0',border:'1px solid var(--bd)'}}>
+            <div style={{fontFamily:'Sora,sans-serif',fontSize:20,fontWeight:800,color:'var(--tx)',marginBottom:4}}>📤 New Submission</div>
+            <div style={{fontSize:12.5,color:'var(--mu)',marginBottom:16}}>Candidate select karo → fields apne aap bhar jaayenge</div>
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
               <div><label style={LB}>Client *</label><select style={IN} value={form.client_id} onChange={e=>setForm({...form,client_id:e.target.value})}><option value="">Select client…</option>{clients.map(c=><option key={c.id} value={c.id}>{c.company_name}</option>)}</select></div>
-
               <div><label style={LB}>Candidate (DB se — auto-fill)</label>
-                <input style={IN} placeholder="Type to search candidate…" value={csearch} onChange={e=>setCsearch(e.target.value)}/>
-                {csearch && <div style={{maxHeight:160,overflowY:'auto',border:'1px solid var(--bd)',borderRadius:9,marginTop:5}}>
+                <input style={IN} placeholder="Type to search…" value={csearch} onChange={e=>setCsearch(e.target.value)}/>
+                {csearch && <div style={{maxHeight:170,overflowY:'auto',border:'1px solid var(--bd)',borderRadius:9,marginTop:5,background:'var(--bg2)'}}>
                   {cands.filter(p=>(p.name||'').toLowerCase().includes(csearch.toLowerCase())).slice(0,20).map(p=>(
-                    <div key={p.id} onClick={()=>pick(p)} style={{padding:'8px 11px',cursor:'pointer',fontSize:13,borderBottom:'1px solid var(--bd)'}}>{p.name} <span style={{color:'var(--mu)',fontSize:11}}>· {p.role||''}</span></div>
+                    <div key={p.id} onClick={()=>pick(p)} style={{padding:'9px 12px',cursor:'pointer',fontSize:13,borderBottom:'1px solid var(--bd)',display:'flex',alignItems:'center',gap:9}}><span style={{width:26,height:26,borderRadius:7,background:avColor(p.name),color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:10,fontWeight:700}}>{initials(p.name)}</span>{p.name} <span style={{color:'var(--mu)',fontSize:11}}>· {p.role||''}</span></div>
                   ))}
                   {cands.filter(p=>(p.name||'').toLowerCase().includes(csearch.toLowerCase())).length===0 && <div style={{padding:10,fontSize:12,color:'var(--mu)'}}>Nahi mila — niche manually bharo (direct CV)</div>}
                 </div>}
               </div>
-
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
                 <div><label style={LB}>Candidate Name *</label><input style={IN} value={form.candidate_name} onChange={e=>setForm({...form,candidate_name:e.target.value})}/></div>
                 <div><label style={LB}>Current Position</label><input style={IN} value={form.current_position} onChange={e=>setForm({...form,current_position:e.target.value})}/></div>
@@ -224,19 +273,15 @@ export default function Submissions() {
                 <div><label style={LB}>Current Location</label><input style={IN} value={form.current_location} onChange={e=>setForm({...form,current_location:e.target.value})}/></div>
                 <div><label style={LB}>Total Experience</label><input style={IN} value={form.total_experience} onChange={e=>setForm({...form,total_experience:e.target.value})}/></div>
               </div>
-
               <div><label style={LB}>Skills</label><input style={IN} value={form.skills} onChange={e=>setForm({...form,skills:e.target.value})}/></div>
-
               <div><label style={LB}>Custom Notes (har line = ek bullet)</label><textarea style={{...IN,resize:'vertical'}} rows={4} placeholder={"Strong in client handling\nLed a team of 8\nOpen to relocate"} value={form.custom_notes} onChange={e=>setForm({...form,custom_notes:e.target.value})}/></div>
-
               <div><label style={LB}>CV link / upload</label>
-                <input style={IN} placeholder="CV link (Drive/LinkedIn) — auto-filled if available" value={form.cv_url} onChange={e=>setForm({...form,cv_url:e.target.value})}/>
+                <input style={IN} placeholder="CV link — auto-filled if available" value={form.cv_url} onChange={e=>setForm({...form,cv_url:e.target.value})}/>
                 <label style={{fontSize:11,color:'#10b981',cursor:'pointer',marginTop:4,display:'inline-block',fontWeight:600}}>{up?'Uploading…':'📎 ya CV file upload karo'}<input type="file" accept=".pdf,.doc,.docx" onChange={uploadCV} style={{display:'none'}}/></label>
               </div>
-
               <div style={{display:'flex',gap:10,marginTop:4}}>
-                <button onClick={()=>setOpen(false)} className="sb" style={{background:'var(--bg3)',color:'var(--mu)',padding:'10px 18px'}}>Cancel</button>
-                <button onClick={save} disabled={saving} className="sb" style={{flex:1,background:'#10b981',color:'#fff',padding:'10px'}}>{saving?'Sharing…':'Share with Client'}</button>
+                <button onClick={()=>setOpen(false)} className="sb" style={{background:'var(--bg3)',color:'var(--mu)',padding:'11px 18px'}}>Cancel</button>
+                <button onClick={save} disabled={saving} className="sb" style={{flex:1,background:'#10b981',color:'#fff',padding:'11px'}}>{saving?'Sharing…':'Share with Client'}</button>
               </div>
             </div>
           </div>
